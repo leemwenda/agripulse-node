@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.log
+.DS_Store
+client/node_modules/
+client/dist/
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+*.log
+.pm2/

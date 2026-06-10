@@ -1,0 +1,32 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: agripulse-nginx
+    restart: always
+    ports:
+      - "5002:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - agripulse-net
+
+  mysql-backup:
+    image: mysql:8.0
+    container_name: agripulse-mysql-backup
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: AgriPulse@2026!
+      MYSQL_DATABASE: agripulse_db
+      MYSQL_USER: agriuser
+      MYSQL_PASSWORD: AgriPulse@2026!
+    volumes:
+      - mysql_backup_data:/var/lib/mysql
+    networks:
+      - agripulse-net
+
+networks:
+  agripulse-net:
+    driver: bridge
+
+volumes:
+  mysql_backup_data:

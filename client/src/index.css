@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-gray-50 text-gray-900 antialiased; font-family: 'Inter', system-ui, sans-serif; }
+  * { @apply border-gray-200; }
+}
+
+@layer components {
+  .btn-primary { @apply inline-flex items-center gap-2 px-4 py-2 bg-farm-green text-white font-semibold rounded-lg hover:bg-primary-800 active:bg-primary-900 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed; }
+  .btn-secondary { @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 font-medium rounded-lg border hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150 disabled:opacity-50; }
+  .dark .btn-secondary { @apply bg-transparent text-gray-300 border-gray-600 hover:bg-gray-700 hover:text-white; }
+  .btn-danger { @apply inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 active:bg-red-800 transition-colors duration-150 disabled:opacity-50; }
+  .card { @apply bg-white rounded-xl border shadow-sm; }
+  .dark .card { background: linear-gradient(135deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,.01) 100%) !important; border-color: rgba(255,255,255,.07) !important; box-shadow: 0 0 24px rgba(99,102,241,.12), 0 4px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04) inset !important; backdrop-filter: blur(20px) !important; }
+  .input { @apply w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder:text-gray-400 transition bg-white text-gray-900; }
+  .dark .input { background: #21262d !important; border-color: rgba(99,143,255,.2) !important; color: #e2ede6 !important; }
+  .dark .input::placeholder { color: #4d6b57; }
+  .label { @apply block text-sm font-medium text-gray-700 mb-1; }
+  .dark .label { color: #8aab94 !important; }
+  .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium; }
+  .badge-green  { @apply badge bg-green-100 text-green-800; }
+  .badge-red    { @apply badge bg-red-100 text-red-800; }
+  .badge-yellow { @apply badge bg-yellow-100 text-yellow-800; }
+  .badge-blue   { @apply badge bg-blue-100 text-blue-800; }
+  .badge-gray   { @apply badge bg-gray-100 text-gray-600; }
+  .dark .badge-green  { background: rgba(16,185,129,.15) !important; color: #6ee7b7 !important; }
+  .dark .badge-red    { background: rgba(239,68,68,.15)  !important; color: #fca5a5 !important; }
+  .dark .badge-yellow { background: rgba(245,158,11,.15) !important; color: #fcd34d !important; }
+  .dark .badge-blue   { background: rgba(59,130,246,.15) !important; color: #93c5fd !important; }
+  .dark .badge-gray   { background: rgba(107,114,128,.15) !important; color: #9ca3af !important; }
+  .stat-card { @apply card p-5 flex items-center gap-4; }
+  .page-header { @apply flex items-center justify-between mb-6; }
+  .page-title { @apply text-2xl font-bold text-gray-900; }
+  .dark .page-title { color: #e2ede6 !important; }
+  .table-wrapper { @apply overflow-x-auto rounded-xl border bg-white; }
+  .dark .table-wrapper { background: linear-gradient(135deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.01) 100%) !important; border-color: rgba(255,255,255,.06) !important; box-shadow: 0 0 20px rgba(99,102,241,.08), 0 4px 24px rgba(0,0,0,.3) !important; backdrop-filter: blur(12px) !important; }
+  table { @apply w-full text-sm; }
+  thead th { @apply px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50; }
+  .dark thead th { background: #1c2128 !important; color: #4d6b57 !important; border-color: rgba(59,130,246,.08) !important; }
+  tbody td { @apply px-4 py-3 border-t border-gray-100; }
+  .dark tbody td { border-color: rgba(59,130,246,.06) !important; color: #c9ddd0 !important; }
+  tbody tr { @apply hover:bg-gray-50 transition-colors; }
+  .dark tbody tr:hover { background: #1c2128 !important; }
+  .dark .text-gray-900 { color: #e2ede6 !important; }
+  .dark .text-gray-700 { color: #8aab94 !important; }
+  .dark .text-gray-600 { color: #8aab94 !important; }
+  .dark .text-gray-500 { color: #4d6b57 !important; }
+  .dark .text-gray-400 { color: #3a5543 !important; }
+  .dark .bg-white   { background: #161b22 !important; }
+  .dark .bg-gray-50 { background: #1c2128 !important; }
+  .dark .border-gray-100 { border-color: rgba(255,255,255,.04) !important; }
+  .dark .border-gray-200 { border-color: rgba(255,255,255,.06) !important; }
+  .dark .border-gray-300 { border-color: rgba(255,255,255,.1)  !important; }
+  .dark select option { background: #21262d; color: #e2ede6; }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { @apply bg-gray-100; }
+.dark ::-webkit-scrollbar-track { background: #161b22; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 rounded; }
+.dark ::-webkit-scrollbar-thumb { background: #2d3748; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.animate-in { animation: fadeIn 0.2s ease-out; }

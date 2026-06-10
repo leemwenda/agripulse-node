@@ -1,0 +1,49 @@
+{
+  "name": "agripulse-v2",
+  "version": "2.0.0",
+  "description": "AgriPulse Dairy Farm Management System - Modern Stack",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\" --names \"API,WEB\" --prefix-colors \"cyan,green\"",
+    "server": "cd . && npx nodemon --exec ts-node src/index.ts",
+    "client": "cd client && npm run dev",
+    "build:server": "tsc",
+    "build:client": "cd client && npm run build",
+    "build": "npm run build:server && npm run build:client && sudo cp -r /home/mwenda/agripulse/client/dist/. /var/www/agripulse/client/dist/",
+    "start": "node dist/index.js",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:studio": "npx prisma studio"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.9.16",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/nodemailer": "^6.4.17",
+    "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.16",
+    "concurrently": "^9.1.0",
+    "nodemon": "^3.1.7",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}

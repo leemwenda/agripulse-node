@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /animals
+Disallow: /health
+Disallow: /breeding
+Disallow: /financial
+Disallow: /reports
+Disallow: /ai-advisor
+Disallow: /workers
+Disallow: /profile
+Disallow: /system
+Disallow: /api/
+
+Sitemap: https://agripulse.me/sitemap.xml

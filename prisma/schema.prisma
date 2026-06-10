@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+enum Role {
+  superadmin
+  admin
+  worker
+}
+
+enum AnimalStatus {
+  active
+  sold
+  deceased
+}
+
+enum AnimalGender {
+  male
+  female
+}
+
+enum BreedingStatus {
+  pending
+  pregnant
+  gave_birth
+  failed
+}
+
+enum TransactionType {
+  income
+  expense
+}
+
+enum WorkerStatus {
+  active
+  inactive
+}
+
+enum IssueCategory {
+  bug
+  feature_request
+  performance
+  other
+}
+
+enum IssuePriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum IssueStatus {
+  open
+  in_review
+  resolved
+  closed
+}
+
+enum AnnouncementType {
+  info
+  success
+  warning
+  update
+}
+
+enum RegistrationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum FlagType {
+  toggle
+  text
+  number
+  select
+}
+
+model User {
+  id                 Int                @id @default(autoincrement())
+  name               String
+  email              String             @unique
+  password           String
+  role               Role               @default(worker)
+  farmId             Int?               @map("farm_id")
+  isActive           Boolean            @default(true) @map("is_active")
+  registrationStatus RegistrationStatus @default(approved) @map("registration_status")
+  googleId           String?            @unique @map("google_id")
+  lastLogin          DateTime?          @map("last_login")
+  createdAt          DateTime           @default(now()) @map("created_at")
+
+  farm                  User?                  @relation("FarmWorkers", fields: [farmId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  workers               User[]                 @relation("FarmWorkers")
+  animals               Animal[]
+  milkProduction        MilkProduction[]
+  healthRecords         HealthRecord[]
+  breeding              Breeding[]
+  financialTransactions FinancialTransaction[]
+  activityLogs          ActivityLog[]
+  systemIssues          SystemIssue[]          @relation("ReportedIssues")
+  resolvedIssues        SystemIssue[]          @relation("ResolvedIssues")
+  announcements         SystemAnnouncement[]
+  featureFlags          FeatureFlag[]
+  rememberTokens        RememberToken[]
+  emailVerifications    EmailVerification[]
+  aiChatSessions        AiChatSession[]
+  loginAttempts         LoginAttempt[]
+
+  @@map("users")
+}
+
+model RememberToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("remember_tokens")
+}
+
+model LoginAttempt {
+  id          Int      @id @default(autoincrement())
+  email       String
+  ipAddress   String?  @map("ip_address")
+  userId      Int?     @map("user_id")
+  attemptedAt DateTime @default(now()) @map("attempted_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@map("login_attempts")
+}
+
+model Animal {
+  id          Int          @id @default(autoincrement())
+  farmId      Int          @map("farm_id")
+  name        String
+  tagNumber   String       @unique @map("tag_number")
+  breed       String
+  gender      AnimalGender
+  dateOfBirth DateTime     @map("date_of_birth") @db.Date
+  color       String?
+  notes       String?      @db.Text
+  status      AnimalStatus @default(active)
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  farm           User             @relation(fields: [farmId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  milkProduction MilkProduction[]
+  healthRecords  HealthRecord[]
+  breeding       Breeding[]
+
+  @@map("animals")
+}
+
+model MilkProduction {
+  id             Int      @id @default(autoincrement())
+  animalId       Int      @map("animal_id")
+  farmId         Int      @map("farm_id")
+  productionDate DateTime @map("production_date") @db.Date
+  quantityLiters Decimal  @map("quantity_liters") @db.Decimal(6, 2)
+  notes          String?  @db.Text
+  recordedBy     Int      @map("recorded_by")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  animal     Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordedByUser User   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([animalId, productionDate])
+  @@map("milk_production")
+}
+
+model HealthRecord {
+  id          Int      @id @default(autoincrement())
+  animalId    Int      @map("animal_id")
+  farmId      Int      @map("farm_id")
+  recordDate  DateTime @map("record_date") @db.Date
+  condition   String
+  treatment   String?  @db.Text
+  doctorName  String?  @map("doctor_name")
+  vaccination String?
+  notes       String?  @db.Text
+  recordedBy  Int      @map("recorded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  animal         Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordedByUser User   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("health_records")
+}
+
+model Breeding {
+  id                Int            @id @default(autoincrement())
+  animalId          Int            @map("animal_id")
+  farmId            Int            @map("farm_id")
+  serviceDate       DateTime       @map("service_date") @db.Date
+  bullName          String?        @map("bull_name")
+  expectedBirthDate DateTime?      @map("expected_birth_date") @db.Date
+  actualBirthDate   DateTime?      @map("actual_birth_date") @db.Date
+  pregnancyStatus   BreedingStatus @default(pending) @map("pregnancy_status")
+  notes             String?        @db.Text
+  recordedBy        Int            @map("recorded_by")
+  createdAt         DateTime       @default(now()) @map("created_at")
+
+  animal         Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordedByUser User   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("breeding")
+}
+
+model FinancialTransaction {
+  id              Int             @id @default(autoincrement())
+  farmId          Int             @map("farm_id")
+  type            TransactionType
+  category        String
+  amount          Decimal         @db.Decimal(10, 2)
+  description     String?         @db.Text
+  transactionDate DateTime        @map("transaction_date") @db.Date
+  recordedBy      Int             @map("recorded_by")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  recordedByUser User @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("financial_transactions")
+}
+
+model FeatureFlag {
+  id          Int      @id @default(autoincrement())
+  flagKey     String   @unique @map("flag_key")
+  label       String
+  description String?  @db.Text
+  type        FlagType @default(toggle)
+  value       String?  @db.VarChar(255)
+  options     String?  @db.Text
+  category    String?  @default("General")
+  updatedBy   Int?     @map("updated_by")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  updatedByUser User? @relation(fields: [updatedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@map("feature_flags")
+}
+
+model SystemIssue {
+  id          Int           @id @default(autoincrement())
+  reportedBy  Int           @map("reported_by")
+  title       String
+  description String        @db.Text
+  category    IssueCategory @default(bug)
+  priority    IssuePriority @default(medium)
+  status      IssueStatus   @default(open)
+  adminNote   String?       @map("admin_note") @db.Text
+  resolvedBy  Int?          @map("resolved_by")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  reporter User  @relation("ReportedIssues", fields: [reportedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  resolver User? @relation("ResolvedIssues", fields: [resolvedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@map("system_issues")
+}
+
+model SystemAnnouncement {
+  id        Int              @id @default(autoincrement())
+  title     String
+  body      String           @db.Text
+  type      AnnouncementType @default(info)
+  isActive  Boolean          @default(true) @map("is_active")
+  createdBy Int              @map("created_by")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  createdByUser User @relation(fields: [createdBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("system_announcements")
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  action    String
+  entity    String?
+  entityId  Int?     @map("entity_id")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@map("activity_log")
+}
+
+model AiChatSession {
+  id        Int      @id @default(autoincrement())
+  farmId    Int      @map("farm_id")
+  userId    Int      @map("user_id")
+  title     String   @default("New Conversation")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  conversations AiConversation[]
+
+  @@map("ai_chat_sessions")
+}
+
+model AiConversation {
+  id        Int      @id @default(autoincrement())
+  sessionId Int      @map("session_id")
+  role      String
+  message   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session AiChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("ai_conversations")
+}
+
+model EmailVerification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  tokenHash String   @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("email_verifications")
+}
+
+
