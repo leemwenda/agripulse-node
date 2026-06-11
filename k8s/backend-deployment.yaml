@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agripulse-backend
+  namespace: agripulse
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agripulse-backend
+  template:
+    metadata:
+      labels:
+        app: agripulse-backend
+    spec:
+      containers:
+      - name: agripulse-backend
+        image: agripulse-backend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        envFrom:
+        - secretRef:
+            name: agripulse-secret
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agripulse-backend
+  namespace: agripulse
+spec:
+  selector:
+    app: agripulse-backend
+  ports:
+  - port: 5000
+    targetPort: 5000

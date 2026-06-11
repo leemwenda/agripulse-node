@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agripulse-frontend
+  namespace: agripulse
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agripulse-frontend
+  template:
+    metadata:
+      labels:
+        app: agripulse-frontend
+    spec:
+      containers:
+      - name: agripulse-frontend
+        image: agripulse-frontend:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agripulse-frontend
+  namespace: agripulse
+spec:
+  selector:
+    app: agripulse-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+  type: NodePort

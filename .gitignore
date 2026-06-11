@@ -12,3 +12,4 @@ dist/
 .env.production
 *.log
 .pm2/
+k8s/secret.yaml

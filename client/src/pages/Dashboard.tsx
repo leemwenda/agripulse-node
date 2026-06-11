@@ -81,36 +81,39 @@ function WeatherWidget({ isDark }: { isDark: boolean }) {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
+  const fetchWeatherByCoords = async (lat: number, lon: number) => {
+    try {
+      const [wRes, gRes] = await Promise.all([
+        fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+          `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,visibility` +
+          `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
+        ),
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`),
+      ]);
+      const wJson = await wRes.json();
+      const gJson = await gRes.json();
+      const { condition, description } = wmoToCondition(wJson.current.weather_code);
+      setWeather({
+        temp:       Math.round(wJson.current.temperature_2m),
+        feelsLike:  Math.round(wJson.current.apparent_temperature),
+        condition, description,
+        humidity:   wJson.current.relative_humidity_2m,
+        windSpeed:  Math.round(wJson.current.wind_speed_10m),
+        visibility: Math.round((wJson.current.visibility || 10000) / 1000),
+        city:    gJson.address?.city || gJson.address?.town || gJson.address?.village || 'Nairobi',
+        country: gJson.address?.country_code?.toUpperCase() || 'KE',
+      });
+    } catch { setError('Weather unavailable'); }
+    finally  { setLoading(false); }
+  };
+
   useEffect(() => {
-    if (!navigator.geolocation) { setError('Geolocation not supported'); setLoading(false); return; }
+    if (!navigator.geolocation) { fetchWeatherByCoords(-1.2921, 36.8219); return; }
     navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const [wRes, gRes] = await Promise.all([
-            fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}` +
-              `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,visibility` +
-              `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
-            ),
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`),
-          ]);
-          const wJson = await wRes.json();
-          const gJson = await gRes.json();
-          const { condition, description } = wmoToCondition(wJson.current.weather_code);
-          setWeather({
-            temp:       Math.round(wJson.current.temperature_2m),
-            feelsLike:  Math.round(wJson.current.apparent_temperature),
-            condition, description,
-            humidity:   wJson.current.relative_humidity_2m,
-            windSpeed:  Math.round(wJson.current.wind_speed_10m),
-            visibility: Math.round((wJson.current.visibility || 10000) / 1000),
-            city:    gJson.address?.city || gJson.address?.town || gJson.address?.village || 'Your location',
-            country: gJson.address?.country_code?.toUpperCase() || '',
-          });
-        } catch { setError('Weather unavailable'); }
-        finally  { setLoading(false); }
-      },
-      () => { setError('Location access denied'); setLoading(false); }
+      ({ coords }) => { fetchWeatherByCoords(coords.latitude, coords.longitude); },
+      () => { fetchWeatherByCoords(-1.2921, 36.8219); },
+      { timeout: 5000 }
     );
   }, []);
 
