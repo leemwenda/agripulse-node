@@ -14,7 +14,7 @@ To build a sustainable, resilient, and equitable agricultural future through inc
 
 ## Mission
 
-To empower farmers and agricultural stakeholders by transforming complex agricultural data into practical, localized, and actionable insights that improve livelihoods and food security. :contentReference[oaicite:2]{index=2}
+To empower farmers and agricultural stakeholders by transforming complex agricultural data into practical, localized, and actionable insights that improve livelihoods and food security. :contentReference
 
 ---
 
