@@ -101,18 +101,30 @@ function WeatherWidget({ isDark }: { isDark: boolean }) {
         humidity:   wJson.current.relative_humidity_2m,
         windSpeed:  Math.round(wJson.current.wind_speed_10m),
         visibility: Math.round((wJson.current.visibility || 10000) / 1000),
-        city:    gJson.address?.city || gJson.address?.town || gJson.address?.village || 'Nairobi',
-        country: gJson.address?.country_code?.toUpperCase() || 'KE',
+        city:    gJson.address?.city || gJson.address?.town || gJson.address?.village || gJson.address?.county || 'Unknown',
+        country: gJson.address?.country_code?.toUpperCase() || '',
       });
     } catch { setError('Weather unavailable'); }
     finally  { setLoading(false); }
   };
 
   useEffect(() => {
-    if (!navigator.geolocation) { fetchWeatherByCoords(-1.2921, 36.8219); return; }
+    if (!navigator.geolocation) {
+      fetch('https://ipapi.co/json/')
+        .then(r => r.json())
+        .then(d => fetchWeatherByCoords(d.latitude, d.longitude))
+        .catch(() => fetchWeatherByCoords(-1.2921, 36.8219));
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => { fetchWeatherByCoords(coords.latitude, coords.longitude); },
-      () => { fetchWeatherByCoords(-1.2921, 36.8219); },
+      () => {
+        // Fallback: IP-based geolocation
+        fetch('https://ipapi.co/json/')
+          .then(r => r.json())
+          .then(d => fetchWeatherByCoords(d.latitude, d.longitude))
+          .catch(() => fetchWeatherByCoords(-1.2921, 36.8219));
+      },
       { timeout: 5000 }
     );
   }, []);
@@ -336,12 +348,12 @@ export function DashboardPage() {
 
         {/* NEW — Due Soon */}
         <StatCard isDark={isDark}
-          icon={<AlertTriangle className={`w-6 h-6 ${dueSoonCount > 0 ? 'text-amber-400' : 'text-gray-400'}`} />}
+          icon={<AlertTriangle className={`w-6 h-6 text-amber-400`} />}
           label="Due Soon" value={dueSoonCount}
           sub="Calving within 14 days"
-          iconBgDark={dueSoonCount > 0 ? 'rgba(245,158,11,.15)' : 'rgba(107,114,128,.1)'}
-          iconBgLight={dueSoonCount > 0 ? '#fffbeb' : '#f9fafb'}
-          glowColor={dueSoonCount > 0 ? '#f59e0b' : undefined} />
+          iconBgDark='rgba(245,158,11,.15)'
+          iconBgLight='#fffbeb'
+          glowColor='#f59e0b' />
 
         <StatCard isDark={isDark}
           icon={<Wallet className={`w-6 h-6 ${stats.monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />}
