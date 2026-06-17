@@ -168,11 +168,11 @@ model MilkProduction {
   productionDate DateTime @map("production_date") @db.Date
   quantityLiters Decimal  @map("quantity_liters") @db.Decimal(6, 2)
   notes          String?  @db.Text
-  recordedBy     Int      @map("recorded_by")
+  recordedBy     Int?      @map("recorded_by")
   createdAt      DateTime @default(now()) @map("created_at")
 
   animal     Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  recordedByUser User   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordedByUser User?   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([animalId, productionDate])
   @@map("milk_production")
@@ -188,11 +188,11 @@ model HealthRecord {
   doctorName  String?  @map("doctor_name")
   vaccination String?
   notes       String?  @db.Text
-  recordedBy  Int      @map("recorded_by")
+  recordedBy  Int?      @map("recorded_by")
   createdAt   DateTime @default(now()) @map("created_at")
 
   animal         Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  recordedByUser User   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordedByUser User?   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("health_records")
 }
@@ -207,11 +207,11 @@ model Breeding {
   actualBirthDate   DateTime?      @map("actual_birth_date") @db.Date
   pregnancyStatus   BreedingStatus @default(pending) @map("pregnancy_status")
   notes             String?        @db.Text
-  recordedBy        Int            @map("recorded_by")
+  recordedBy        Int?            @map("recorded_by")
   createdAt         DateTime       @default(now()) @map("created_at")
 
   animal         Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  recordedByUser User   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordedByUser User?   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("breeding")
 }
@@ -224,10 +224,10 @@ model FinancialTransaction {
   amount          Decimal         @db.Decimal(10, 2)
   description     String?         @db.Text
   transactionDate DateTime        @map("transaction_date") @db.Date
-  recordedBy      Int             @map("recorded_by")
+  recordedBy      Int?             @map("recorded_by")
   createdAt       DateTime        @default(now()) @map("created_at")
 
-  recordedByUser User @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordedByUser User? @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("financial_transactions")
 }

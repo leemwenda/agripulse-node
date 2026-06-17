@@ -598,16 +598,22 @@ adminRouter.post('/announcements', async (req: Request, res: Response): Promise<
     data: { ...data, createdBy: req.user!.id },
   });
 
-  // Broadcast email to all active users
-  const allUsers = await prisma.user.findMany({
-    where: { isActive: true },
-    select: { name: true, email: true },
-  });
-  for (const user of allUsers) {
-    await mailAnnouncement(user.email, user.name, data.title, data.body, data.type);
-  }
+  const recipientCount = await prisma.user.count({ where: { isActive: true } });
+  res.status(201).json({ announcement, emailsQueued: recipientCount });
 
-  res.status(201).json({ announcement });
+  setImmediate(async () => {
+    const allUsers = await prisma.user.findMany({ where: { isActive: true }, select: { name: true, email: true } });
+    let sent = 0, failed = 0;
+    for (const user of allUsers) {
+      try {
+        await mailAnnouncement(user.email, user.name, data.title, data.body, data.type);
+        sent++;
+        await new Promise(r => setTimeout(r, 150));
+      } catch (e) { failed++; }
+    }
+    console.log("[Broadcast] " + sent + " sent, " + failed + " failed");
+  });
+
 });
 
 adminRouter.get('/issues', async (_req: Request, res: Response) => {
