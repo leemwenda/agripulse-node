@@ -1636,9 +1636,117 @@ function NotificationsTab({ onMarkRead }: { onMarkRead: () => void }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// EMAIL BLAST TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function EmailBlastTab() {
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
+  const [blastId, setBlastId] = useState<string | null>(null);
+  const [report, setReport] = useState<{ total: number; sent: number; failed: number; failures: { email: string; name: string; error: string }[]; done: boolean } | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const pollReport = (id: string) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => {
+      api.get(`/admin/email-blast/${id}/report`)
+        .then(({ data }) => {
+          setReport(data.report);
+          if (data.report.done && pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        })
+        .catch(() => { if (pollRef.current) clearInterval(pollRef.current); });
+    }, 1500);
+  };
+
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!subject.trim() || !body.trim()) return;
+    setSubmitting(true);
+    try {
+      const { data } = await api.post('/admin/email-blast', { subject, body });
+      setBlastId(data.blastId);
+      setReport({ total: data.emailsQueued, sent: 0, failed: 0, failures: [], done: false });
+      setToast({ msg: `Sending to ${data.emailsQueued} users…` });
+      pollReport(data.blastId);
+      setSubject(''); setBody('');
+    } catch {
+      setToast({ msg: 'Failed to send', type: 'error' });
+    } finally { setSubmitting(false); }
+  };
+
+  const retry = async () => {
+    if (!blastId) return;
+    setRetrying(true);
+    try {
+      await api.post(`/admin/email-blast/${blastId}/retry`, { subject });
+      pollReport(blastId);
+    } catch { setToast({ msg: 'Retry failed', type: 'error' }); }
+    finally { setRetrying(false); }
+  };
+
+  return (
+    <>
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+      <Card>
+        <CardHead title="Send custom email to all users" sub="This sends a direct email — no announcement record is created" />
+        <form onSubmit={send} style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label className="sp-label">Subject</label>
+            <input className="sp-input sp-input-full" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Email subject…" />
+          </div>
+          <div>
+            <label className="sp-label">Message body</label>
+            <textarea className="sp-textarea" value={body} onChange={e => setBody(e.target.value)} placeholder="Write your message… (line breaks are preserved)" rows={6} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Btn type="submit" variant="primary" disabled={submitting || !subject.trim() || !body.trim()}>
+              {submitting ? 'Sending…' : '📧 Send to all users'}
+            </Btn>
+            {report && !report.done && (
+              <span style={{ fontSize: 12, color: 'var(--c-text-3)' }}>Sending {report.sent}/{report.total}…</span>
+            )}
+          </div>
+        </form>
+
+        {report && (
+          <div style={{ padding: '14px 18px', borderTop: '1px solid var(--c-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: report.failures.length > 0 ? 10 : 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text)' }}>
+                {report.done ? '✅ Delivery complete' : '⏳ Sending…'}
+              </span>
+              <Badge label={`${report.sent} sent`} color="green" />
+              {report.failed > 0 && <Badge label={`${report.failed} failed`} color="red" />}
+              <span style={{ fontSize: 11, color: 'var(--c-text-3)' }}>{report.sent + report.failed} / {report.total} processed</span>
+              {report.done && report.failures.length > 0 && (
+                <Btn size="sm" variant="amber" onClick={retry} disabled={retrying}>
+                  {retrying ? 'Retrying…' : `Retry ${report.failures.length} failed`}
+                </Btn>
+              )}
+            </div>
+            {report.failures.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {report.failures.map((f, i) => (
+                  <div key={i} style={{ fontSize: 11, color: 'var(--c-text-3)' }}>
+                    <span style={{ color: 'var(--c-red)', fontWeight: 500 }}>{f.email}</span> — {f.error}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // NAV CONFIG
 // ══════════════════════════════════════════════════════════════════════════════
-type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'features' | 'audit' | 'notifications';
+type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications';
 
 const NAV: { section: string; items: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
   {
@@ -1655,6 +1763,7 @@ const NAV: { section: string; items: { id: TabId; label: string; icon: React.Rea
       { id: 'users', label: 'Users', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg> },
       { id: 'issues', label: 'Issues', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg> },
       { id: 'announcements', label: 'Announcements', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg> },
+      { id: 'email_blast', label: 'Email Blast', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
       { id: 'features', label: 'Feature Flags', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" /></svg> },
     ],
   },
@@ -1674,6 +1783,7 @@ const TAB_META: Record<TabId, { title: string; sub: string }> = {
   users: { title: 'Users', sub: 'Manage all registered users and their access' },
   issues: { title: 'Issues', sub: 'Review and resolve system issues reported by users' },
   announcements: { title: 'Announcements', sub: 'Publish system-wide messages to all users' },
+  email_blast: { title: 'Email Blast', sub: 'Send a custom email directly to all users' },
   features: { title: 'Feature Flags', sub: 'Toggle platform features and system settings' },
   audit: { title: 'Audit Log', sub: 'Full history of all admin actions and events' },
   notifications: { title: 'Notifications', sub: 'Recent alerts and system events' },
@@ -1805,6 +1915,7 @@ function SuperAdminPanel() {
           {tab === 'users' && <UsersTab />}
           {tab === 'issues' && <IssuesTab />}
           {tab === 'announcements' && <AnnouncementsTab />}
+          {tab === 'email_blast' && <EmailBlastTab />}
           {tab === 'features' && <FeaturesTab />}
           {tab === 'audit' && <AuditTab />}
           {tab === 'notifications' && <NotificationsTab onMarkRead={() => setNotifCount(0)} />}
