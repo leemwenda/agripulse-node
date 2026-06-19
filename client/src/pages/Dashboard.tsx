@@ -81,36 +81,85 @@ function WeatherWidget({ isDark }: { isDark: boolean }) {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!navigator.geolocation) { setError('Geolocation not supported'); setLoading(false); return; }
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const [wRes, gRes] = await Promise.all([
-            fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}` +
-              `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,visibility` +
-              `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
-            ),
-            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`),
-          ]);
-          const wJson = await wRes.json();
-          const gJson = await gRes.json();
-          const { condition, description } = wmoToCondition(wJson.current.weather_code);
-          setWeather({
-            temp:       Math.round(wJson.current.temperature_2m),
-            feelsLike:  Math.round(wJson.current.apparent_temperature),
-            condition, description,
-            humidity:   wJson.current.relative_humidity_2m,
-            windSpeed:  Math.round(wJson.current.wind_speed_10m),
-            visibility: Math.round((wJson.current.visibility || 10000) / 1000),
-            city:    gJson.address?.city || gJson.address?.town || gJson.address?.village || 'Your location',
-            country: gJson.address?.country_code?.toUpperCase() || '',
-          });
-        } catch { setError('Weather unavailable'); }
-        finally  { setLoading(false); }
+  const fetchWeatherByCoords = async (lat: number, lon: number) => {
+    try {
+      const [wRes, gRes] = await Promise.all([
+        fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+          `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,visibility` +
+          `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
+        ),
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`),
+      ]);
+      const wJson = await wRes.json();
+      const gJson = await gRes.json();
+      const { condition, description } = wmoToCondition(wJson.current.weather_code);
+      setWeather({
+        temp:       Math.round(wJson.current.temperature_2m),
+        feelsLike:  Math.round(wJson.current.apparent_temperature),
+        condition, description,
+        humidity:   wJson.current.relative_humidity_2m,
+        windSpeed:  Math.round(wJson.current.wind_speed_10m),
+        visibility: Math.round((wJson.current.visibility || 10000) / 1000),
+        city:    gJson.address?.city || gJson.address?.town || gJson.address?.village || gJson.address?.county || 'Unknown',
+        country: gJson.address?.country_code?.toUpperCase() || '',
+      });
+    } catch { setError('Weather unavailable'); }
+    finally  { setLoading(false); }
+  };
+
+  // IP-based geolocation with multiple fallback providers (each one used to be a
+  // single point of failure — if ipapi.co rate-limited us, we silently dropped to Nairobi)
+  const ipGeolocate = async (): Promise<{ latitude: number; longitude: number } | null> => {
+    const providers: Array<() => Promise<{ latitude: number; longitude: number } | null>> = [
+      async () => {
+        const r = await fetch('https://ipapi.co/json/');
+        if (!r.ok) throw new Error('ipapi.co failed');
+        const d = await r.json();
+        if (d.latitude == null || d.longitude == null) throw new Error('ipapi.co no coords');
+        return { latitude: d.latitude, longitude: d.longitude };
       },
-      () => { setError('Location access denied'); setLoading(false); }
+      async () => {
+        const r = await fetch('https://ipwho.is/');
+        if (!r.ok) throw new Error('ipwho.is failed');
+        const d = await r.json();
+        if (!d.success || d.latitude == null || d.longitude == null) throw new Error('ipwho.is no coords');
+        return { latitude: d.latitude, longitude: d.longitude };
+      },
+      async () => {
+        const r = await fetch('https://get.geojs.io/v1/ip/geo.json');
+        if (!r.ok) throw new Error('geojs failed');
+        const d = await r.json();
+        if (d.latitude == null || d.longitude == null) throw new Error('geojs no coords');
+        return { latitude: parseFloat(d.latitude), longitude: parseFloat(d.longitude) };
+      },
+    ];
+    for (const provider of providers) {
+      try {
+        const coords = await provider();
+        if (coords) return coords;
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const useIpFallback = () => {
+      ipGeolocate()
+        .then(coords => coords ? fetchWeatherByCoords(coords.latitude, coords.longitude) : fetchWeatherByCoords(-1.2921, 36.8219))
+        .catch(() => fetchWeatherByCoords(-1.2921, 36.8219));
+    };
+
+    if (!navigator.geolocation) {
+      useIpFallback();
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => { fetchWeatherByCoords(coords.latitude, coords.longitude); },
+      () => { useIpFallback(); },
+      { timeout: 5000 }
     );
   }, []);
 
@@ -333,12 +382,12 @@ export function DashboardPage() {
 
         {/* NEW — Due Soon */}
         <StatCard isDark={isDark}
-          icon={<AlertTriangle className={`w-6 h-6 ${dueSoonCount > 0 ? 'text-amber-400' : 'text-gray-400'}`} />}
+          icon={<AlertTriangle className={`w-6 h-6 text-amber-400`} />}
           label="Due Soon" value={dueSoonCount}
           sub="Calving within 14 days"
-          iconBgDark={dueSoonCount > 0 ? 'rgba(245,158,11,.15)' : 'rgba(107,114,128,.1)'}
-          iconBgLight={dueSoonCount > 0 ? '#fffbeb' : '#f9fafb'}
-          glowColor={dueSoonCount > 0 ? '#f59e0b' : undefined} />
+          iconBgDark='rgba(245,158,11,.15)'
+          iconBgLight='#fffbeb'
+          glowColor='#f59e0b' />
 
         <StatCard isDark={isDark}
           icon={<Wallet className={`w-6 h-6 ${stats.monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />}

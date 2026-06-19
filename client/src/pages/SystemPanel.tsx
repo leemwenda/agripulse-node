@@ -229,11 +229,19 @@ const CSS = `
     width: calc(100% - 12px);
     text-align: left;
     font-family: inherit;
-    transition: background .1s, color .1s;
+    transition: background .15s ease, color .15s ease;
     position: relative;
   }
-  .sp-nav-item:hover { background: var(--c-surface); color: var(--c-text); }
-  .sp-nav-item.active { background: var(--c-purple-bg); color: var(--c-purple); font-weight: 500; }
+  .sp-nav-item:hover {
+    background: rgba(83,74,183,0.08);
+    color: var(--c-purple);
+  }
+  .sp-nav-item.active {
+    background: rgba(83,74,183,0.12);
+    color: var(--c-purple);
+    font-weight: 500;
+    box-shadow: inset 3px 0 0 var(--c-purple);
+  }
 
   .sp-nav-badge {
     margin-left: auto;
@@ -286,9 +294,9 @@ const CSS = `
     line-height: 1;
     display: flex;
     align-items: center;
-    transition: color .1s;
+    transition: color .15s ease, background .15s ease;
   }
-  .sp-logout-btn:hover { color: var(--c-red); }
+  .sp-logout-btn:hover { color: var(--c-red); background: var(--c-red-bg); }
 
   /* Main area */
   .sp-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-x: hidden; }
@@ -322,12 +330,16 @@ const CSS = `
     display: flex;
     align-items: center;
     gap: 5px;
-    transition: background .1s;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
   }
-  .sp-top-btn:hover { background: var(--c-surface); }
+  .sp-top-btn:hover {
+    background: rgba(83,74,183,0.08);
+    border-color: rgba(83,74,183,0.25);
+    color: var(--c-purple);
+  }
   .sp-live { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--c-text-3); }
-  .sp-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-green); animation: sp-pulse 2s infinite; }
-  @keyframes sp-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .sp-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-green); animation: sp-pulse 2s infinite; box-shadow: 0 0 0 0 var(--c-green); }
+  @keyframes sp-pulse { 0%{opacity:1;box-shadow:0 0 0 0 rgba(29,158,117,.5)} 50%{opacity:.7;box-shadow:0 0 0 4px rgba(29,158,117,0)} 100%{opacity:1;box-shadow:0 0 0 0 rgba(29,158,117,0)} } 50%{opacity:.7;box-shadow:0 0 0 4px rgba(29,158,117,0)} 100%{opacity:1;box-shadow:0 0 0 0 rgba(29,158,117,0)} }
 
   .sp-content { padding: 24px; flex: 1; overflow-y: auto; }
 
@@ -338,6 +350,10 @@ const CSS = `
     border-radius: var(--radius-lg);
     overflow: hidden;
     margin-bottom: 16px;
+    transition: border-color .15s ease;
+  }
+  .sp-card:hover {
+    border-color: var(--c-purple-border);
   }
   .sp-card-head {
     padding: 14px 18px;
@@ -358,6 +374,11 @@ const CSS = `
     padding: 16px 18px;
     position: relative;
     overflow: hidden;
+    transition: border-color .15s ease;
+    cursor: default;
+  }
+  .sp-metric:hover {
+    border-color: var(--c-purple-border);
   }
   .sp-metric-label {
     font-size: 11px;
@@ -389,9 +410,10 @@ const CSS = `
     color: var(--c-text-3);
     white-space: nowrap;
   }
-  .sp-table td { padding: 11px 16px; color: var(--c-text-2); border-bottom: 1px solid var(--c-border); }
+  .sp-table td { padding: 11px 16px; color: var(--c-text-2); border-bottom: 1px solid var(--c-border); transition: background .15s ease; }
   .sp-table tbody tr:last-child td { border-bottom: none; }
-  .sp-table tbody tr:hover td { background: var(--c-surface); }
+  .sp-table tbody tr:hover td { background: rgba(83,74,183,0.05); }
+  .sp-table tbody tr:hover td:first-child { box-shadow: inset 2px 0 0 var(--c-purple); }
   .sp-table .td-bold { font-weight: 500; color: var(--c-text); }
   .sp-table .td-mono { font-family: ui-monospace, monospace; font-size: 11px; }
   .sp-table .td-muted { color: var(--c-text-3); font-size: 12px; }
@@ -471,9 +493,13 @@ const CSS = `
     font-size: 12px;
     font-family: inherit;
     outline: none;
-    transition: border-color .15s;
+    transition: border-color .18s ease, box-shadow .18s ease;
   }
-  .sp-input:focus, .sp-select:focus, .sp-textarea:focus { border-color: var(--c-purple); box-shadow: 0 0 0 2px var(--c-purple-border); }
+  .sp-input:hover, .sp-select:hover { border-color: var(--c-purple-border); }
+  .sp-input:focus, .sp-select:focus, .sp-textarea:focus {
+    border-color: var(--c-purple);
+    box-shadow: 0 0 0 3px rgba(83,74,183,.15);
+  }
   .sp-textarea { height: auto; padding: 8px 10px; resize: vertical; width: 100%; }
   .sp-input-full { width: 100%; }
   .sp-label { display: block; font-size: 11px; font-weight: 500; color: var(--c-text-3); margin-bottom: 5px; letter-spacing: .04em; }
@@ -492,16 +518,24 @@ const CSS = `
     border: 1px solid var(--c-border);
     background: var(--c-bg);
     color: var(--c-text-2);
-    transition: all .1s;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
   }
-  .sp-btn:hover { background: var(--c-surface); color: var(--c-text); }
+  .sp-btn:hover {
+    background: rgba(83,74,183,0.08);
+    border-color: rgba(83,74,183,0.3);
+    color: var(--c-purple);
+  }
+  .sp-btn:active { opacity: .85; }
   .sp-btn:disabled { opacity: .4; cursor: not-allowed; }
   .sp-btn.sm { padding: 3px 9px; font-size: 11px; }
   .sp-btn.primary { background: var(--c-purple); color: #fff; border-color: var(--c-purple); }
-  .sp-btn.primary:hover { opacity: .88; }
+  .sp-btn.primary:hover { opacity: .9; }
   .sp-btn.success { background: var(--c-green-bg); color: var(--c-green); border-color: var(--c-green-border); }
+  .sp-btn.success:hover { background: var(--c-green-bg); color: var(--c-green); border-color: var(--c-green); }
   .sp-btn.danger { background: var(--c-red-bg); color: var(--c-red); border-color: var(--c-red-border); }
+  .sp-btn.danger:hover { background: var(--c-red-bg); color: var(--c-red); border-color: var(--c-red); }
   .sp-btn.amber { background: var(--c-amber-bg); color: var(--c-amber); border-color: var(--c-amber-border); }
+  .sp-btn.amber:hover { background: var(--c-amber-bg); color: var(--c-amber); border-color: var(--c-amber); }
 
   /* Toggle */
   .sp-toggle { position: relative; width: 38px; height: 22px; cursor: pointer; flex-shrink: 0; }
@@ -536,7 +570,9 @@ const CSS = `
     gap: 16px;
     padding: 14px 18px;
     border-bottom: 1px solid var(--c-border);
+    transition: background .18s ease;
   }
+  .sp-flag-row:hover { background: rgba(83,74,183,0.05); }
   .sp-flag-row:last-child { border-bottom: none; }
   .sp-flag-name { font-size: 13px; font-weight: 500; color: var(--c-text); }
   .sp-flag-desc { font-size: 12px; color: var(--c-text-3); margin-top: 2px; }
@@ -559,7 +595,9 @@ const CSS = `
     padding: 13px 18px;
     border-bottom: 1px solid var(--c-border);
     align-items: flex-start;
+    transition: background .18s ease;
   }
+  .sp-activity-item:hover { background: var(--c-surface); }
   .sp-activity-item:last-child { border-bottom: none; }
   .sp-activity-icon {
     width: 30px;
@@ -580,10 +618,10 @@ const CSS = `
     padding: 14px 18px;
     border-bottom: 1px solid var(--c-border);
     cursor: pointer;
-    transition: background .1s;
+    transition: background .18s ease, box-shadow .18s ease;
   }
   .sp-notif-item:last-child { border-bottom: none; }
-  .sp-notif-item:hover { background: var(--c-surface); }
+  .sp-notif-item:hover { background: rgba(83,74,183,0.06); box-shadow: inset 2px 0 0 var(--c-purple); }
   .sp-notif-item.unread { background: color-mix(in srgb, var(--c-purple-bg), transparent 40%); }
   .sp-notif-dot {
     width: 7px;
@@ -606,9 +644,9 @@ const CSS = `
     border-radius: var(--radius-md);
     padding: 16px 18px;
     cursor: pointer;
-    transition: border-color .15s, box-shadow .15s;
+    transition: border-color .15s;
   }
-  .sp-farm-card:hover { border-color: var(--c-purple); box-shadow: 0 0 0 3px var(--c-purple-border); }
+  .sp-farm-card:hover { border-color: var(--c-purple); }
   .sp-farm-name { font-size: 14px; font-weight: 600; color: var(--c-text); margin-bottom: 8px; }
   .sp-farm-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
   .sp-farm-stat { font-size: 12px; color: var(--c-text-3); display: flex; align-items: center; gap: 4px; }
@@ -981,8 +1019,8 @@ function UsersTab() {
       else await api.delete(path);
       setToast({ msg: msg || 'Done', type: 'success' });
       load();
-    } catch {
-      setToast({ msg: 'Action failed', type: 'error' });
+    } catch (err: any) {
+      setToast({ msg: err?.response?.data?.message || 'Action failed', type: 'error' });
     }
   };
 
@@ -1080,8 +1118,8 @@ function UsersTab() {
                           </Btn>
                           <Btn variant="danger" size="sm"
                             onClick={() => {
-                              if (confirm(`Delete ${u.name}? This cannot be undone.`)) {
-                                doAction(`/admin/users/${u.id}`, 'delete', undefined, `${u.name} deleted`);
+                              if (confirm(`Permanently delete ${u.name}?\n\nThis will also delete every animal, milk record, health record, breeding record, and financial transaction tied to this account (and any workers under it, if it's a farm account). This cannot be undone.`)) {
+                                doAction(`/admin/users/${u.id}`, 'delete', undefined, `${u.name} and all related data deleted`);
                               }
                             }}>
                             Delete
@@ -1242,25 +1280,62 @@ function AnnouncementsTab() {
   const [type, setType] = useState('info');
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
+  const [activeReportId, setActiveReportId] = useState<number | null>(null);
+  const [report, setReport] = useState<{ total: number; sent: number; failed: number; failures: { email: string; name: string; error: string }[]; done: boolean } | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = () => {
     api.get('/admin/announcements').then(({ data }) => setAnns(data.announcements || [])).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
 
+  const pollReport = (id: number) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => {
+      api.get(`/admin/announcements/${id}/report`)
+        .then(({ data }) => {
+          setReport(data.report);
+          if (data.report.done && pollRef.current) {
+            clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
+        })
+        .catch(() => { if (pollRef.current) clearInterval(pollRef.current); });
+    }, 1500);
+  };
+
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !body.trim()) return;
     setSubmitting(true);
     try {
-      await api.post('/admin/announcements', { title, body, type });
+      const { data } = await api.post('/admin/announcements', { title, body, type });
       setTitle(''); setBody('');
-      setToast({ msg: 'Announcement published' });
+      setToast({ msg: `Sending to ${data.emailsQueued} users…` });
+      setActiveReportId(data.reportId);
+      setReport({ total: data.emailsQueued, sent: 0, failed: 0, failures: [], done: false });
+      pollReport(data.reportId);
       load();
     } catch {
       setToast({ msg: 'Failed to publish', type: 'error' });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const retryFailed = async () => {
+    if (!activeReportId) return;
+    setRetrying(true);
+    try {
+      await api.post(`/admin/announcements/${activeReportId}/retry`);
+      pollReport(activeReportId);
+    } catch {
+      setToast({ msg: 'Retry failed to start', type: 'error' });
+    } finally {
+      setRetrying(false);
     }
   };
 
@@ -1290,6 +1365,35 @@ function AnnouncementsTab() {
             </Btn>
           </div>
         </form>
+
+        {report && (
+          <div style={{ padding: '14px 18px', borderTop: '1px solid var(--c-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: report.failures.length > 0 ? 10 : 0 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text)' }}>
+                {report.done ? 'Delivery complete' : 'Sending…'}
+              </span>
+              <Badge label={`${report.sent} sent`} color="green" />
+              {report.failed > 0 && <Badge label={`${report.failed} failed`} color="red" />}
+              <span style={{ fontSize: 11, color: 'var(--c-text-3)' }}>
+                {report.sent + report.failed} / {report.total} processed
+              </span>
+              {report.done && report.failures.length > 0 && (
+                <Btn size="sm" variant="amber" onClick={retryFailed} disabled={retrying}>
+                  {retrying ? 'Retrying…' : `Retry ${report.failures.length} failed`}
+                </Btn>
+              )}
+            </div>
+            {report.failures.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {report.failures.map((f, i) => (
+                  <div key={i} style={{ fontSize: 11, color: 'var(--c-text-3)' }}>
+                    <span style={{ color: 'var(--c-red)', fontWeight: 500 }}>{f.email}</span> — {f.error}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       <Card>
