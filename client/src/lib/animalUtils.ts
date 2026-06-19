@@ -1,84 +1,118 @@
-import { AnimalCategory } from '../types';
+// ─── Animal utility helpers ───────────────────────────────────────────────
+// All derived from dateOfBirth + gender — no DB column needed.
 
+export type AnimalCategory = 'Calf' | 'Heifer' | 'Bull' | 'Cow';
+
+/**
+ * Returns age in whole months from a date-of-birth string.
+ */
 export function getAgeMonths(dateOfBirth: string): number {
   const dob = new Date(dateOfBirth);
   const now = new Date();
-  return (now.getFullYear() - dob.getFullYear()) * 12 + (now.getMonth() - dob.getMonth());
-}
-
-export function formatAge(dateOfBirth: string): string {
-  const m = getAgeMonths(dateOfBirth);
-  if (m < 1) return '< 1 month';
-  if (m < 12) return `${m} month${m !== 1 ? 's' : ''}`;
-  const y = Math.floor(m / 12), mo = m % 12;
-  if (mo === 0) return `${y} year${y !== 1 ? 's' : ''}`;
-  return `${y} yr ${mo} mo`;
+  const months =
+    (now.getFullYear() - dob.getFullYear()) * 12 +
+    (now.getMonth() - dob.getMonth());
+  // Subtract 1 if we haven't yet reached the day-of-month anniversary
+  return now.getDate() < dob.getDate() ? Math.max(0, months - 1) : Math.max(0, months);
 }
 
 /**
- * 3-arg version: getAnimalCategory(dob, gender, hasCalved)
- * hasCalved = latestBreeding?.pregnancyStatus === 'gave_birth'
- *
- * Calf   : < 12 months (either sex)
- * Heifer : female, >= 12 months, not yet calved
- * Cow    : female, >= 12 months, has calved OR >= 36 months
- * Bull   : male, >= 12 months
+ * Returns a human-readable age string, e.g. "3 months" or "2 yrs 4 mo".
+ */
+export function formatAge(dateOfBirth: string): string {
+  const months = getAgeMonths(dateOfBirth);
+  if (months < 12) return `${months} mo`;
+  const yrs = Math.floor(months / 12);
+  const mo  = months % 12;
+  return mo > 0 ? `${yrs} yr ${mo} mo` : `${yrs} yr`;
+}
+
+/**
+ * Classifies an animal into a management category.
+ *  - Calf   : 0–11 months (either gender)
+ *  - Heifer : 12–35 months, female, not flagged as having calved
+ *  - Bull   : male, 12+ months
+ *  - Cow    : female, 36+ months OR has calved
  */
 export function getAnimalCategory(
   dateOfBirth: string,
-  gender: string,
+  gender: 'male' | 'female',
   hasCalved = false,
 ): AnimalCategory {
-  const m = getAgeMonths(dateOfBirth);
-  if (m < 12) return 'Calf';
+  const months = getAgeMonths(dateOfBirth);
+  if (months < 12) return 'Calf';
   if (gender === 'male') return 'Bull';
-  if (hasCalved || m >= 36) return 'Cow';
+  if (hasCalved || months >= 36) return 'Cow';
   return 'Heifer';
 }
 
+// ─── Calf feeding ─────────────────────────────────────────────────────────
+
 export interface CalfFeedingStage {
-  label: string;
-  recommendation: string;
+  label: string;       // short label for badge
+  recommendation: string; // full recommendation text
   color: string;
   glowColor: string;
-}
-
-export function getCalfFeedingStage(dateOfBirth: string): CalfFeedingStage | null {
-  const m = getAgeMonths(dateOfBirth);
-  if (m >= 12) return null;
-  if (m < 2) return {
-    label: 'Colostrum / Milk',
-    recommendation: '0–2 months: Feed colostrum for the first 3–4 days, then whole milk 4–6 L/day.',
-    color: '#2563eb',
-    glowColor: '#eff6ff',
-  };
-  if (m < 4) return {
-    label: 'Milk + Starter',
-    recommendation: '2–4 months: Gradually reduce milk; introduce calf starter pellets and fresh water.',
-    color: '#7c3aed',
-    glowColor: '#f5f3ff',
-  };
-  if (m < 7) return {
-    label: 'Weaning',
-    recommendation: '4–7 months: Wean off milk; increase concentrate and good-quality hay.',
-    color: '#d97706',
-    glowColor: '#fffbeb',
-  };
-  return {
-    label: 'Grower Ration',
-    recommendation: '7–12 months: Forage-based diet with grower concentrate; monitor body condition.',
-    color: '#16a34a',
-    glowColor: '#f0fdf4',
-  };
+  eligibleForBreeding: boolean;
 }
 
 /**
- * 1-arg version — gender check is done by the caller (breeding page only shows females).
+ * Returns feeding guidance for calves (animals < 18 months).
+ * Returns null for animals that are no longer in the calf/heifer feeding stage.
+ */
+export function getCalfFeedingStage(dateOfBirth: string): CalfFeedingStage | null {
+  const months = getAgeMonths(dateOfBirth);
+
+  if (months < 3) {
+    return {
+      label: '6 L/day',
+      recommendation: `0–3 months: 6 litres of milk per day`,
+      color: '#3b82f6',
+      glowColor: 'rgba(59,130,246,.2)',
+      eligibleForBreeding: false,
+    };
+  }
+  if (months < 6) {
+    return {
+      label: '5 L/day',
+      recommendation: `3–6 months: 5 litres of milk per day`,
+      color: '#6366f1',
+      glowColor: 'rgba(99,102,241,.2)',
+      eligibleForBreeding: false,
+    };
+  }
+  if (months < 9) {
+    return {
+      label: 'Weaning',
+      recommendation: `6–9 months: Weaning stage — reduce milk gradually`,
+      color: '#f59e0b',
+      glowColor: 'rgba(245,158,11,.2)',
+      eligibleForBreeding: false,
+    };
+  }
+  if (months < 18) {
+    return {
+      label: 'Post-wean',
+      recommendation: `9–18 months: Post-weaning monitoring — solid feed focus`,
+      color: '#10b981',
+      glowColor: 'rgba(16,185,129,.2)',
+      eligibleForBreeding: false,
+    };
+  }
+  // 18+ months — eligible for service, no feeding stage badge
+  return null;
+}
+
+/**
+ * Returns true if an animal meets the minimum breeding age (18 months).
  */
 export function isBreedingEligible(dateOfBirth: string): boolean {
   return getAgeMonths(dateOfBirth) >= 18;
 }
 
+/**
+ * Returns how many months remain until breeding eligibility, or 0 if already eligible.
+ */
 export function monthsToBreedingEligibility(dateOfBirth: string): number {
   return Math.max(0, 18 - getAgeMonths(dateOfBirth));
 }
