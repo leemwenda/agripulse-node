@@ -565,8 +565,74 @@ adminRouter.put('/users/:id/status', async (req: Request, res: Response): Promis
 });
 
 adminRouter.delete('/users/:id', async (req: Request, res: Response): Promise<void> => {
-  await prisma.user.delete({ where: { id: parseInt(String(req.params.id)) } });
-  res.json({ message: 'User deleted.' });
+  const userId = parseInt(String(req.params.id));
+
+  const target = await prisma.user.findUnique({ where: { id: userId } });
+  if (!target) { res.status(404).json({ message: 'User not found.' }); return; }
+  if (target.role === 'superadmin') { res.status(403).json({ message: 'Cannot delete a superadmin account.' }); return; }
+
+  try {
+    const summary = await prisma.$transaction(async (tx) => {
+      // Workers attached to this farm (if target is a farm/admin owner) get wiped too
+      const workers = await tx.user.findMany({ where: { farmId: userId }, select: { id: true } });
+      const workerIds = workers.map(w => w.id);
+      const allIds = [userId, ...workerIds];
+
+      // Animals owned by this farm, plus everything that hangs off them
+      const animals = await tx.animal.findMany({ where: { farmId: userId }, select: { id: true } });
+      const animalIds = animals.map(a => a.id);
+
+      let milkDeleted = 0, healthDeleted = 0, breedingDeleted = 0;
+      if (animalIds.length) {
+        milkDeleted = (await tx.milkProduction.deleteMany({ where: { animalId: { in: animalIds } } })).count;
+        healthDeleted = (await tx.healthRecord.deleteMany({ where: { animalId: { in: animalIds } } })).count;
+        breedingDeleted = (await tx.breeding.deleteMany({ where: { animalId: { in: animalIds } } })).count;
+        await tx.animal.deleteMany({ where: { id: { in: animalIds } } });
+      }
+
+      const financeDeleted = (await tx.financialTransaction.deleteMany({ where: { farmId: userId } })).count;
+
+      // Records this user (or its workers) personally logged that weren't covered above
+      await tx.milkProduction.deleteMany({ where: { recordedBy: { in: allIds } } });
+      await tx.healthRecord.deleteMany({ where: { recordedBy: { in: allIds } } });
+      await tx.breeding.deleteMany({ where: { recordedBy: { in: allIds } } });
+      await tx.financialTransaction.deleteMany({ where: { recordedBy: { in: allIds } } });
+
+      // Issues, announcements, feature flag edits, activity/login history
+      await tx.systemIssue.deleteMany({ where: { reportedBy: { in: allIds } } });
+      await tx.systemIssue.updateMany({ where: { resolvedBy: { in: allIds } }, data: { resolvedBy: null } });
+      await tx.systemAnnouncement.deleteMany({ where: { createdBy: { in: allIds } } });
+      await tx.featureFlag.updateMany({ where: { updatedBy: { in: allIds } }, data: { updatedBy: null } });
+      await tx.activityLog.updateMany({ where: { userId: { in: allIds } }, data: { userId: null } });
+      await tx.loginAttempt.updateMany({ where: { userId: { in: allIds } }, data: { userId: null } });
+      await tx.rememberToken.deleteMany({ where: { userId: { in: allIds } } });
+      await tx.emailVerification.deleteMany({ where: { userId: { in: allIds } } });
+
+      // AI advisor chat history
+      const sessions = await tx.aiChatSession.findMany({ where: { userId: { in: allIds } }, select: { id: true } });
+      const sessionIds = sessions.map(s => s.id);
+      if (sessionIds.length) await tx.aiConversation.deleteMany({ where: { sessionId: { in: sessionIds } } });
+      await tx.aiChatSession.deleteMany({ where: { userId: { in: allIds } } });
+
+      // Workers go before the farm owner itself
+      if (workerIds.length) await tx.user.deleteMany({ where: { id: { in: workerIds } } });
+      await tx.user.delete({ where: { id: userId } });
+
+      return {
+        workersDeleted: workerIds.length,
+        animalsDeleted: animalIds.length,
+        milkRecordsDeleted: milkDeleted,
+        healthRecordsDeleted: healthDeleted,
+        breedingRecordsDeleted: breedingDeleted,
+        financialRecordsDeleted: financeDeleted,
+      };
+    });
+
+    res.json({ message: `${target.name} and all related farm data deleted.`, summary });
+  } catch (err) {
+    console.error('[Admin] User delete failed:', err);
+    res.status(500).json({ message: 'Delete failed. The user may still have records that could not be removed automatically.' });
+  }
 });
 
 adminRouter.get('/features', async (_req: Request, res: Response) => {
@@ -591,6 +657,17 @@ adminRouter.get('/announcements', async (_req: Request, res: Response) => {
   res.json({ announcements });
 });
 
+// In-memory delivery report store, keyed by announcement id.
+// Lets the admin panel poll for real send/fail status instead of trusting a fire-and-forget log line.
+interface BroadcastReport {
+  total: number;
+  sent: number;
+  failed: number;
+  failures: { email: string; name: string; error: string }[];
+  done: boolean;
+}
+const broadcastReports = new Map<number, BroadcastReport>();
+
 adminRouter.post('/announcements', async (req: Request, res: Response): Promise<void> => {
   const schema = z.object({ title: z.string().min(1), body: z.string().min(1), type: z.enum(['info','success','warning','update']).optional().default('info') });
   const data = schema.parse(req.body);
@@ -598,22 +675,63 @@ adminRouter.post('/announcements', async (req: Request, res: Response): Promise<
     data: { ...data, createdBy: req.user!.id },
   });
 
-  const recipientCount = await prisma.user.count({ where: { isActive: true } });
-  res.status(201).json({ announcement, emailsQueued: recipientCount });
+  const allUsers = await prisma.user.findMany({ where: { isActive: true }, select: { name: true, email: true } });
+  const report: BroadcastReport = { total: allUsers.length, sent: 0, failed: 0, failures: [], done: false };
+  broadcastReports.set(announcement.id, report);
+
+  res.status(201).json({ announcement, emailsQueued: allUsers.length, reportId: announcement.id });
 
   setImmediate(async () => {
-    const allUsers = await prisma.user.findMany({ where: { isActive: true }, select: { name: true, email: true } });
-    let sent = 0, failed = 0;
     for (const user of allUsers) {
       try {
         await mailAnnouncement(user.email, user.name, data.title, data.body, data.type);
-        sent++;
+        report.sent++;
         await new Promise(r => setTimeout(r, 150));
-      } catch (e) { failed++; }
+      } catch (e: unknown) {
+        report.failed++;
+        report.failures.push({ email: user.email, name: user.name, error: e instanceof Error ? e.message : String(e) });
+      }
     }
-    console.log("[Broadcast] " + sent + " sent, " + failed + " failed");
+    report.done = true;
+    console.log(`[Broadcast] Announcement #${announcement.id}: ${report.sent} sent, ${report.failed} failed`);
   });
+});
 
+// Poll this to find out who was actually missed — fixes silent "trust me it sent" behavior
+adminRouter.get('/announcements/:id/report', (req: Request, res: Response): void => {
+  const report = broadcastReports.get(parseInt(String(req.params.id)));
+  if (!report) { res.status(404).json({ message: 'No delivery report for this announcement (server may have restarted).' }); return; }
+  res.json({ report });
+});
+
+// Retry only the addresses that failed, instead of re-blasting everyone
+adminRouter.post('/announcements/:id/retry', async (req: Request, res: Response): Promise<void> => {
+  const annId = parseInt(String(req.params.id));
+  const report = broadcastReports.get(annId);
+  if (!report || report.failures.length === 0) { res.status(404).json({ message: 'No failed deliveries to retry.' }); return; }
+
+  const announcement = await prisma.systemAnnouncement.findUnique({ where: { id: annId } });
+  if (!announcement) { res.status(404).json({ message: 'Announcement not found.' }); return; }
+
+  const toRetry = [...report.failures];
+  report.failures = [];
+  report.done = false;
+  res.json({ retrying: toRetry.length });
+
+  setImmediate(async () => {
+    for (const u of toRetry) {
+      try {
+        await mailAnnouncement(u.email, u.name, announcement.title, announcement.body, announcement.type);
+        report.sent++;
+        report.failed--;
+        await new Promise(r => setTimeout(r, 150));
+      } catch (e: unknown) {
+        report.failures.push({ email: u.email, name: u.name, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    report.done = true;
+    console.log(`[Broadcast] Retry for #${annId}: ${toRetry.length - report.failures.length} recovered, ${report.failures.length} still failing`);
+  });
 });
 
 adminRouter.get('/issues', async (_req: Request, res: Response) => {

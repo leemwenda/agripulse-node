@@ -81,51 +81,36 @@ function WeatherWidget({ isDark }: { isDark: boolean }) {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState<string | null>(null);
 
-  const fetchWeatherByCoords = async (lat: number, lon: number) => {
-    try {
-      const [wRes, gRes] = await Promise.all([
-        fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
-          `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,visibility` +
-          `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
-        ),
-        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`),
-      ]);
-      const wJson = await wRes.json();
-      const gJson = await gRes.json();
-      const { condition, description } = wmoToCondition(wJson.current.weather_code);
-      setWeather({
-        temp:       Math.round(wJson.current.temperature_2m),
-        feelsLike:  Math.round(wJson.current.apparent_temperature),
-        condition, description,
-        humidity:   wJson.current.relative_humidity_2m,
-        windSpeed:  Math.round(wJson.current.wind_speed_10m),
-        visibility: Math.round((wJson.current.visibility || 10000) / 1000),
-        city:    gJson.address?.city || gJson.address?.town || gJson.address?.village || gJson.address?.county || 'Unknown',
-        country: gJson.address?.country_code?.toUpperCase() || '',
-      });
-    } catch { setError('Weather unavailable'); }
-    finally  { setLoading(false); }
-  };
-
   useEffect(() => {
-    if (!navigator.geolocation) {
-      fetch('https://ipapi.co/json/')
-        .then(r => r.json())
-        .then(d => fetchWeatherByCoords(d.latitude, d.longitude))
-        .catch(() => fetchWeatherByCoords(-1.2921, 36.8219));
-      return;
-    }
+    if (!navigator.geolocation) { setError('Geolocation not supported'); setLoading(false); return; }
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { fetchWeatherByCoords(coords.latitude, coords.longitude); },
-      () => {
-        // Fallback: IP-based geolocation
-        fetch('https://ipapi.co/json/')
-          .then(r => r.json())
-          .then(d => fetchWeatherByCoords(d.latitude, d.longitude))
-          .catch(() => fetchWeatherByCoords(-1.2921, 36.8219));
+      async ({ coords }) => {
+        try {
+          const [wRes, gRes] = await Promise.all([
+            fetch(
+              `https://api.open-meteo.com/v1/forecast?latitude=${coords.latitude}&longitude=${coords.longitude}` +
+              `&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,visibility` +
+              `&temperature_unit=celsius&wind_speed_unit=kmh&timezone=auto`
+            ),
+            fetch(`https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`),
+          ]);
+          const wJson = await wRes.json();
+          const gJson = await gRes.json();
+          const { condition, description } = wmoToCondition(wJson.current.weather_code);
+          setWeather({
+            temp:       Math.round(wJson.current.temperature_2m),
+            feelsLike:  Math.round(wJson.current.apparent_temperature),
+            condition, description,
+            humidity:   wJson.current.relative_humidity_2m,
+            windSpeed:  Math.round(wJson.current.wind_speed_10m),
+            visibility: Math.round((wJson.current.visibility || 10000) / 1000),
+            city:    gJson.address?.city || gJson.address?.town || gJson.address?.village || 'Your location',
+            country: gJson.address?.country_code?.toUpperCase() || '',
+          });
+        } catch { setError('Weather unavailable'); }
+        finally  { setLoading(false); }
       },
-      { timeout: 5000 }
+      () => { setError('Location access denied'); setLoading(false); }
     );
   }, []);
 
@@ -348,12 +333,12 @@ export function DashboardPage() {
 
         {/* NEW — Due Soon */}
         <StatCard isDark={isDark}
-          icon={<AlertTriangle className={`w-6 h-6 text-amber-400`} />}
+          icon={<AlertTriangle className={`w-6 h-6 ${dueSoonCount > 0 ? 'text-amber-400' : 'text-gray-400'}`} />}
           label="Due Soon" value={dueSoonCount}
           sub="Calving within 14 days"
-          iconBgDark='rgba(245,158,11,.15)'
-          iconBgLight='#fffbeb'
-          glowColor='#f59e0b' />
+          iconBgDark={dueSoonCount > 0 ? 'rgba(245,158,11,.15)' : 'rgba(107,114,128,.1)'}
+          iconBgLight={dueSoonCount > 0 ? '#fffbeb' : '#f9fafb'}
+          glowColor={dueSoonCount > 0 ? '#f59e0b' : undefined} />
 
         <StatCard isDark={isDark}
           icon={<Wallet className={`w-6 h-6 ${stats.monthProfit >= 0 ? 'text-emerald-500' : 'text-red-500'}`} />}
