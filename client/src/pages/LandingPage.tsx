@@ -139,14 +139,14 @@ export default function LandingPage() {
           transition: background .2s, transform .15s, box-shadow .2s;
           box-shadow: 0 4px 20px rgba(15,61,32,.25);
         }
-        .lp-btn-primary:hover { background: var(--green-mid); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(15,61,32,.3); }
+        .lp-btn-primary:hover { background: var(--green-mid); }
         .lp-btn-secondary {
           background: white; color: var(--green-deep); padding: .85rem 2rem; border-radius: 50px;
           font-size: .95rem; font-weight: 600; text-decoration: none;
           display: inline-flex; align-items: center; gap: 8px;
           border: 1.5px solid var(--border); transition: border-color .2s, transform .15s, color .2s;
         }
-        .lp-btn-secondary:hover { border-color: var(--green-mid); color: var(--green-mid); transform: translateY(-2px); }
+        .lp-btn-secondary:hover { border-color: var(--green-mid); color: var(--green-mid); }
 
         .lp-hero-stats { display: flex; gap: 2rem; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
         .lp-stat-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--green-deep); }
@@ -288,7 +288,7 @@ export default function LandingPage() {
           font-size: .95rem; font-weight: 600; border: none; cursor: pointer;
           font-family: 'DM Sans', sans-serif; transition: background .2s, transform .15s; width: 100%;
         }
-        .btn-submit:hover { background: var(--green-mid); transform: translateY(-2px); }
+        .btn-submit:hover { background: var(--green-mid); }
         .lp-contact-info h3 {
           font-family: 'Playfair Display', serif; font-size: 1.6rem;
           color: var(--green-deep); margin-bottom: 1rem;
