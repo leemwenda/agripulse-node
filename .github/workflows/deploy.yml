@@ -1,0 +1,52 @@
+name: Deploy AgriPulse
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to droplet
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.DROPLET_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd /home/mwenda/agripulse
+
+            echo "==> Pulling latest code"
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "==> Building server"
+            npm run build:server
+
+            echo "==> Building client"
+            rm -rf client/dist client/node_modules/.vite
+            cd client
+            npm install --no-audit --no-fund
+            npm run build
+            cd ..
+
+            echo "==> Deploying client build"
+            sudo cp -r client/dist/. /var/www/agripulse/client/dist/
+
+            echo "==> Restarting app"
+            pm2 restart agripulse
+            pm2 save
+
+            echo "==> Verifying site"
+            sleep 2
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://agripulse.me/api/health || echo "000")
+            echo "Health check: HTTP $HTTP"
+            if [ "$HTTP" != "200" ] && [ "$HTTP" != "401" ]; then
+              echo "WARNING: site did not return a healthy status after deploy"
+              exit 1
+            fi
+
+            echo "==> Deploy complete"
