@@ -574,7 +574,7 @@ adminRouter.delete('/users/:id', async (req: Request, res: Response): Promise<vo
   try {
     const summary = await prisma.$transaction(async (tx) => {
       // Workers attached to this farm (if target is a farm/admin owner) get wiped too
-      const workers = await tx.user.findMany({ where: { farmId: userId }, select: { id: true } });
+      const workers = await tx.user.findMany({ where: { farmId: userId, id: { not: userId } }, select: { id: true } });
       const workerIds = workers.map(w => w.id);
       const allIds = [userId, ...workerIds];
 
