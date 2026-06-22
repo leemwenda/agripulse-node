@@ -81,7 +81,13 @@ export async function alertUnauthorizedAccess(ip: string, path: string, userEmai
 }
 
 // ── Suspicious request detection ─────────────────────────────
+const recentSuspiciousAlerts = new Map<string, number>();
+
 export async function alertSuspiciousRequest(ip: string, path: string, reason: string): Promise<void> {
+  const now = Date.now();
+  const last = recentSuspiciousAlerts.get(ip) || 0;
+  if (now - last < 10 * 60 * 1000) return;
+  recentSuspiciousAlerts.set(ip, now);
   try {
     await mailSecurityAlert({
       type: 'suspicious_request',

@@ -42,7 +42,7 @@ function SlideshowBg() {
         ))}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(90deg,rgba(5,10,18,.15) 0%,rgba(5,10,18,.3) 40%,rgba(5,10,18,.85) 65%,rgba(5,10,18,.98) 100%)',
+          background: 'linear-gradient(90deg,rgba(5,10,18,.25) 0%,rgba(5,10,18,.5) 40%,rgba(5,10,18,.88) 60%,rgba(5,10,18,.97) 100%)',
         }} />
         <div style={{ position: 'absolute', bottom: 18, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 7, zIndex: 2 }}>
           {COW_IMAGES.map((_, i) => (
@@ -66,54 +66,38 @@ function LeftPanel() {
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center',
-      padding: '60px 64px',
-      background: 'linear-gradient(90deg,rgba(5,10,18,.35) 0%,transparent 100%)',
+      padding: 'clamp(40px,6vw,80px) clamp(32px,6vw,72px)',
     }} className="hidden lg:flex">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 72 }}>
-        <img src="/logo.png" alt="AgriPulse" style={{ width: 56, height: 56, objectFit: 'contain', filter: 'drop-shadow(0 4px 18px rgba(16,185,129,.55))' }} />
-        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>AgriPulse</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 56 }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 10, overflow: 'hidden',
+          background: '#fff', padding: 4, flexShrink: 0,
+          boxShadow: '0 2px 12px rgba(0,0,0,.3)',
+        }}>
+          <img src="/logo.png" alt="AgriPulse" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        </div>
+        <span style={{ fontSize: '1rem', fontWeight: 700, color: '#fff', letterSpacing: '.5px' }}>AgriPulse</span>
       </div>
       <h1 style={{
-        fontFamily: 'Inter, sans-serif', fontSize: 'clamp(3rem,5.5vw,5rem)',
-        fontWeight: 800, lineHeight: 1.0, color: '#fff', marginBottom: 8,
-        letterSpacing: '-2px', textShadow: '0 2px 20px rgba(0,0,0,.6)',
+        fontSize: 'clamp(3.5rem,6vw,6rem)',
+        fontWeight: 800, lineHeight: 1.0, color: '#fff', marginBottom: 0,
+        letterSpacing: '-3px', textShadow: '0 2px 30px rgba(0,0,0,.5)',
       }}>
-        Welcome<br />
-        <span style={{ background: 'linear-gradient(90deg,#10b981 0%,#34d399 60%,#6ee7b7 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>to the farm.</span>
+        Welcome!
       </h1>
-      <div style={{ width: 44, height: 3, background: 'linear-gradient(90deg,#10b981,transparent)', borderRadius: 99, margin: '22px 0 24px' }} />
-      <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,.60)', lineHeight: 1.75, maxWidth: 340, marginBottom: 48 }}>
+      <div style={{ width: 40, height: 3, background: '#10b981', borderRadius: 99, margin: '20px 0 20px' }} />
+      <p style={{ fontSize: '0.88rem', color: 'rgba(255,255,255,.55)', lineHeight: 1.8, maxWidth: 320, marginBottom: 40 }}>
         A complete dairy farm management platform — built for farmers who want control over every aspect of their operation.
       </p>
-      <div style={{ display: 'flex', gap: 24, marginBottom: 40, flexWrap: 'wrap' }}>
-        {[{ val: '∞', label: 'Animals Tracked' }, { val: '24/7', label: 'Farm Monitoring' }, { val: 'AI', label: 'Powered Advisor' }].map((s, i, arr) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: '1.8rem', fontWeight: 800, color: '#10b981', lineHeight: 1 }}>{s.val}</div>
-              <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,.45)', marginTop: 3 }}>{s.label}</div>
-            </div>
-            {i < arr.length - 1 && <div style={{ width: 1, height: 36, background: 'rgba(255,255,255,.08)' }} />}
-          </div>
-        ))}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {['Milk production tracking with batch entry', 'Animal health, vaccinations & vet records', 'Breeding & pregnancy monitoring', 'Income, expense & profit reports', 'Role-based access for your whole team'].map((f, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, flexShrink: 0, background: 'rgba(16,185,129,.15)', border: '1px solid rgba(16,185,129,.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="2.5" style={{ width: 13, height: 13 }}><polyline points="20 6 9 17 4 12" /></svg>
-            </div>
-            <span style={{ fontSize: '0.82rem', fontWeight: 500, color: 'rgba(255,255,255,.65)' }}>{f}</span>
-          </div>
-        ))}
-      </div>
+
     </div>
   );
 }
 
 function GlassCard({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(16px, 4vw, 40px) clamp(12px, 4vw, 32px)', background: 'rgba(5,10,18,.55)', backdropFilter: 'blur(24px)', borderLeft: '1px solid rgba(255,255,255,.06)', width: '100%', maxWidth: '460px', flex: '1 1 auto' }}>
-      <div style={{ width: '100%', maxWidth: 420, background: 'rgba(8,14,26,.6)', backdropFilter: 'blur(32px)', border: '1px solid rgba(255,255,255,.09)', borderRadius: 20, padding: 'clamp(24px, 5vw, 40px) clamp(16px, 5vw, 36px)', boxShadow: '0 0 0 1px rgba(255,255,255,.03) inset, 0 24px 64px rgba(0,0,0,.6)', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(16px, 4vw, 40px) clamp(12px, 4vw, 40px)', background: 'rgba(20,10,40,.45)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderLeft: '1px solid rgba(255,255,255,.08)', width: '100%', maxWidth: '500px', flex: '1 1 auto' }}>
+      <div style={{ width: '100%', maxWidth: 440, background: 'rgba(15,8,35,.65)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 24, padding: 'clamp(28px, 5vw, 44px) clamp(20px, 5vw, 40px)', boxShadow: '0 0 0 1px rgba(255,255,255,.04) inset, 0 32px 80px rgba(0,0,0,.7)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg,transparent 0%,rgba(16,185,129,.5) 30%,rgba(59,130,246,.4) 70%,transparent 100%)' }} />
         {children}
       </div>
@@ -239,6 +223,7 @@ export function LoginPage() {
   const [showForgot, setShowForgot] = useState(false);
   const errorMap: Record<string, string> = { google_cancelled: 'Google sign-in was cancelled.', google_failed: 'Google sign-in failed. Please try again.', account_inactive: 'Your account is inactive. Contact support.' };
   const urlError = params.get('error');
+  const resetSuccess = params.get('reset') === 'success';
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault(); setError(''); setLoading(true);
@@ -259,6 +244,7 @@ export function LoginPage() {
             <h2 style={{ fontFamily: 'Inter,sans-serif', fontSize: '1.6rem', fontWeight: 700, color: '#fff', marginBottom: 5 }}>Sign in</h2>
             <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,.38)' }}>Enter your credentials to access the dashboard</p>
           </div>
+          {resetSuccess && <div style={{ marginBottom: 16 }}><Alert type="success" message="Your password has been reset successfully. Please sign in." /></div>}
           {urlError && <div style={{ marginBottom: 16 }}><Alert type="error" message={errorMap[urlError] || 'An error occurred.'} /></div>}
           {error && <div style={{ marginBottom: 16 }}><Alert type="error" message={error} /></div>}
           <GoogleBtn label="Sign in with Google" />

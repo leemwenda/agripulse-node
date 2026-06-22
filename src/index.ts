@@ -75,7 +75,7 @@ app.use((req, res, next) => {
   const query = JSON.stringify(req.query || '');
   const combined = body + query + path;
   
-  const sqlPatterns = /(\'|\"|;|--|\/\*|\*\/|xp_|union|select|insert|drop|delete|update|exec|script)/i;
+  const sqlPatterns = /(\bunion\b.{1,20}\bselect\b|\bselect\b.{1,40}\bfrom\b|\bdrop\b\s+\btable\b|\bor\b\s+1\s*=\s*1|--\s|\/\*.*\*\/|;\s*drop\b)/i;
   const xssPatterns = /<script|javascript:|onerror=|onload=/i;
   
   if (sqlPatterns.test(combined) || xssPatterns.test(combined)) {

@@ -1,8 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function LandingPage() {
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 80);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     document.title = 'AgriPulse — Smart Dairy Farm Management';
@@ -53,64 +60,106 @@ export default function LandingPage() {
 
         /* ── NAV ── */
         .lp-nav {
-          position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-          display: flex; align-items: center; justify-content: space-between;
-          padding: .6rem 2rem;
-          background: rgba(250,248,243,0.93);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid var(--border);
+          position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+          z-index: 100; width: calc(100% - 3rem); max-width: 1100px;
+          display: grid; grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          padding: .5rem .6rem .5rem 1.2rem;
+          background: rgba(255,255,255,.12);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255,255,255,.25);
+          border-radius: 99px;
+          box-shadow: 0 4px 32px rgba(0,0,0,.15);
+          transition: background .3s, border-color .3s, box-shadow .3s;
         }
+        .lp-nav.scrolled {
+          background: rgba(250,248,243,.97);
+          border-color: rgba(15,61,32,.12);
+          box-shadow: 0 4px 24px rgba(0,0,0,.1);
+        }
+        .lp-nav.scrolled .lp-nav-links a { color: var(--text-mid); }
+        .lp-nav.scrolled .lp-nav-links a:hover { color: var(--green-mid); }
+        .lp-nav.scrolled .lp-nav-logo { color: var(--green-deep); }
+        .lp-nav.scrolled .lp-btn-login { background: var(--green-deep) !important; color: #fff !important; border-color: var(--green-deep) !important; }
+        .lp-nav.scrolled .lp-btn-register { background: #fff !important; color: var(--green-deep) !important; box-shadow: 0 2px 8px rgba(15,61,32,.2) !important; }
+        .lp-nav.scrolled .lp-hamburger span { background: var(--green-deep); }
+        .lp-nav-center { display: flex; align-items: center; justify-content: center; gap: 1.8rem; }
+        .lp-nav-right { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; }
         .lp-nav-logo {
           font-family: 'Playfair Display', serif;
           font-size: 1.45rem; font-weight: 700;
-          color: var(--green-deep); text-decoration: none;
+          color: #fff; text-decoration: none;
           display: flex; align-items: center; gap: 8px;
         }
 
         .lp-nav-links { display: flex; align-items: center; gap: 2rem; }
         .lp-nav-links a {
-          font-size: .9rem; color: var(--text-mid); text-decoration: none;
+          font-size: .9rem; color: rgba(255,255,255,.9); text-decoration: none;
           font-weight: 500; transition: color .2s;
         }
-        .lp-nav-links a:hover { color: var(--green-mid); }
+        .lp-nav-links a:hover { color: #6ee7b7; }
         .lp-btn-login {
-          background: var(--green-deep); color: white;
+          background: rgba(255,255,255,.2); color: #fff;
           padding: .5rem 1.3rem; border-radius: 50px;
           font-size: .88rem; font-weight: 600; text-decoration: none;
+          border: 1px solid rgba(255,255,255,.4);
           transition: background .2s, transform .15s; display: inline-block;
         }
-        .lp-btn-login:hover { background: var(--green-mid); transform: translateY(-1px); }
+        .lp-btn-login:hover { background: rgba(255,255,255,.3); transform: translateY(-1px); }
         .lp-btn-register {
-          background: var(--green-bright); color: white;
-          padding: .5rem 1.2rem; border-radius: 50px;
-          font-size: .88rem; font-weight: 600; text-decoration: none;
-          transition: background .2s, transform .15s; display: inline-block;
+          background: #fff; color: #0f3d20 !important;
+          padding: .5rem 1.4rem; border-radius: 50px;
+          font-size: .88rem; font-weight: 700; text-decoration: none;
+          box-shadow: 0 2px 12px rgba(0,0,0,.15);
+          transition: background .2s, transform .15s, box-shadow .2s; display: inline-block;
         }
-        .lp-btn-register:hover { background: var(--green-mid); transform: translateY(-1px); }
+        .lp-btn-register:hover { background: #e8f5ed; color: #0f3d20 !important; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0,0,0,.2); }
 
         /* ── HERO ── */
         .lp-hero {
           min-height: 100vh; display: flex; align-items: center;
-          padding: 8rem 2rem 4rem; position: relative; overflow: hidden;
+          padding: 7rem 2rem 4rem; position: relative; overflow: hidden;
         }
         .lp-hero-bg {
           position: absolute; inset: 0; pointer-events: none;
-          background:
-            radial-gradient(ellipse 60% 60% at 80% 40%, rgba(45,166,83,.12) 0%, transparent 70%),
-            radial-gradient(ellipse 40% 50% at 10% 80%, rgba(15,61,32,.07) 0%, transparent 60%);
+          background-image: url('/farm-hero.jpg');
+          background-size: cover; background-position: center 45%;
         }
-        .lp-hero-grid {
-          position: absolute; inset: 0; opacity: .04; pointer-events: none;
-          background-image:
-            repeating-linear-gradient(0deg, var(--green-deep) 0, var(--green-deep) 1px, transparent 0, transparent 50%),
-            repeating-linear-gradient(90deg, var(--green-deep) 0, var(--green-deep) 1px, transparent 0, transparent 50%);
-          background-size: 40px 40px;
+        .lp-hero-overlay {
+          position: absolute; inset: 0; pointer-events: none;
+          background: linear-gradient(
+            135deg,
+            rgba(5,20,10,.82) 0%,
+            rgba(10,35,15,.75) 40%,
+            rgba(5,20,10,.55) 70%,
+            rgba(0,0,0,.35) 100%
+          );
         }
+        .lp-hero-grid { display: none; }
         .lp-hero-inner {
-          max-width: 1200px; margin: 0 auto;
-          display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
+          max-width: 1100px; margin: 0 auto;
+          display: flex; flex-direction: column; justify-content: flex-end;
+          min-height: calc(100vh - 8rem);
           position: relative; z-index: 1; width: 100%;
+          padding-bottom: 3rem;
         }
+        .lp-hero-glass {
+          max-width: 680px;
+        }
+        .lp-hero-stats-bar {
+          display: flex; gap: 0; margin-top: 2.5rem;
+          background: rgba(255,255,255,.1);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255,255,255,.2);
+          border-radius: 16px; overflow: hidden;
+        }
+        .lp-stat-item {
+          flex: 1; padding: 1.2rem 1.5rem;
+          border-right: 1px solid rgba(255,255,255,.15);
+        }
+        .lp-stat-item:last-child { border-right: none; }
         .lp-hero-tag {
           display: inline-flex; align-items: center; gap: 6px;
           background: var(--green-light); color: var(--green-mid);
@@ -127,10 +176,11 @@ export default function LandingPage() {
         .lp-h1 {
           font-family: 'Playfair Display', serif;
           font-size: clamp(2.4rem, 5vw, 3.8rem);
-          line-height: 1.1; font-weight: 700; color: var(--green-deep); margin-bottom: 1.5rem;
+          line-height: 1.1; font-weight: 700; color: #fff; margin-bottom: 1.5rem;
+          text-shadow: 0 2px 20px rgba(0,0,0,.4);
         }
-        .lp-h1 em { font-style: normal; color: var(--green-bright); }
-        .lp-hero-sub { font-size: 1.05rem; line-height: 1.7; color: var(--text-mid); margin-bottom: 2.5rem; max-width: 480px; }
+        .lp-h1 em { font-style: normal; color: #6ee7b7; }
+        .lp-hero-sub { font-size: 1.05rem; line-height: 1.7; color: rgba(255,255,255,.8); margin-bottom: 2.5rem; max-width: 480px; }
         .lp-hero-cta { display: flex; gap: 1rem; flex-wrap: wrap; }
         .lp-btn-primary {
           background: var(--green-deep); color: white; padding: .85rem 2rem; border-radius: 50px;
@@ -148,9 +198,9 @@ export default function LandingPage() {
         }
         .lp-btn-secondary:hover { border-color: var(--green-mid); color: var(--green-mid); }
 
-        .lp-hero-stats { display: flex; gap: 2rem; margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
-        .lp-stat-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; color: var(--green-deep); }
-        .lp-stat-lbl { font-size: .82rem; color: var(--text-muted); margin-top: 2px; }
+        .lp-hero-stats { display: none; }
+        .lp-stat-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; color: #6ee7b7; }
+        .lp-stat-lbl { font-size: .82rem; color: rgba(255,255,255,.6); margin-top: 2px; }
 
         /* Hero card */
         .lp-hero-visual { position: relative; }
@@ -339,12 +389,48 @@ export default function LandingPage() {
         .fade-up.visible { opacity: 1; transform: translateY(0); }
 
         /* ── RESPONSIVE ── */
+        /* ── MOBILE MENU ── */
+        .lp-hamburger {
+          display: none; flex-direction: column; justify-content: center; gap: 5px;
+          width: 36px; height: 36px; background: none; border: none; cursor: pointer; padding: 0;
+        }
+        .lp-hamburger span { display: block; width: 100%; height: 2px; background: #fff; border-radius: 2px; transition: transform .25s, opacity .25s; }
+        .lp-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .lp-hamburger.open span:nth-child(2) { opacity: 0; }
+        .lp-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+        .lp-mobile-panel {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 99;
+          background: rgba(10,30,15,.85);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border-bottom: 1px solid rgba(255,255,255,.15);
+          box-shadow: 0 12px 30px rgba(0,0,0,.3);
+          display: flex; flex-direction: column; gap: 0;
+          padding: 4.2rem 1.5rem 1.5rem;
+          transform: translateY(-100%); opacity: 0; pointer-events: none;
+          transition: transform .25s ease, opacity .25s ease;
+        }
+        .lp-mobile-panel.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+        .lp-mobile-panel a {
+          font-size: 1rem; color: rgba(255,255,255,.85); text-decoration: none; font-weight: 500;
+          padding: .9rem 0; border-bottom: 1px solid rgba(255,255,255,.1);
+        }
+        .lp-mobile-panel .lp-btn-login {
+          text-align: center; margin-top: .8rem;
+          background: rgba(255,255,255,.15) !important; color: #fff !important;
+          border: 1px solid rgba(255,255,255,.3) !important;
+        }
+        .lp-mobile-panel .lp-btn-register {
+          text-align: center; margin-top: .5rem;
+          background: #fff !important; color: var(--green-deep) !important;
+        }
         @media (max-width: 900px) {
-          .lp-hero-inner { grid-template-columns: 1fr; text-align: center; }
-          .lp-hero-sub { margin: 0 auto 2.5rem; }
+          .lp-hamburger { display: flex; }
+          .lp-hero-inner { text-align: center; }
+          .lp-hero-glass { max-width: 100%; }
           .lp-hero-cta { justify-content: center; }
-          .lp-hero-stats { justify-content: center; }
-          .lp-hero-visual { display: none; }
+          .lp-hero-stats-bar { flex-wrap: wrap; }
+          .lp-stat-item { min-width: 45%; border-right: none; border-bottom: 1px solid rgba(255,255,255,.15); }
           .lp-features-grid { grid-template-columns: 1fr 1fr; }
           .lp-testi-grid { grid-template-columns: 1fr 1fr; }
           .lp-how-inner { grid-template-columns: 1fr; }
@@ -355,42 +441,60 @@ export default function LandingPage() {
           .lp-features-grid { grid-template-columns: 1fr; }
           .lp-testi-grid { grid-template-columns: 1fr; }
           .lp-section, .lp-features, .lp-testi { padding: 4rem 1.25rem; }
-          .lp-nav { padding: .5rem 1.25rem; }
+          .lp-nav { top: 10px; width: calc(100% - 1.5rem); padding: .5rem .5rem .5rem 1rem; }
         }
       `}</style>
 
       <div className="lp-root">
 
         {/* ── NAV ── */}
-        <nav className="lp-nav">
+        <nav className={`lp-nav${scrolled ? ' scrolled' : ''}`}>
           <a href="#home" className="lp-nav-logo">
-            <img src="/agripulse-logo.jpeg" alt="AgriPulse" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '6px' }} />
+            <img src="/agripulse-logo.png" alt="AgriPulse" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '6px', background: 'white', padding: '4px' }} />
             AgriPulse
           </a>
-          <div className="lp-nav-links">
+          <div className="lp-nav-center lp-nav-links">
             <a href="#features">Features</a>
             <a href="#how">How it works</a>
             <a href="#testimonials">Stories</a>
             <a href="#contact">Contact</a>
+          </div>
+          <div className="lp-nav-right">
             <Link to="/login" className="lp-btn-login">Sign In</Link>
             <Link to="/register" className="lp-btn-register">Get Started →</Link>
+            <button
+              className={`lp-hamburger ${mobileOpen ? 'open' : ''}`}
+              onClick={() => setMobileOpen(p => !p)}
+              aria-label="Toggle menu"
+            >
+              <span /><span /><span />
+            </button>
           </div>
         </nav>
+        <div className={`lp-mobile-panel ${mobileOpen ? 'open' : ''}`}>
+          <a href="#features" onClick={() => setMobileOpen(false)}>Features</a>
+          <a href="#how" onClick={() => setMobileOpen(false)}>How it works</a>
+          <a href="#testimonials" onClick={() => setMobileOpen(false)}>Stories</a>
+          <a href="#contact" onClick={() => setMobileOpen(false)}>Contact</a>
+          <Link to="/login" className="lp-btn-login" onClick={() => setMobileOpen(false)}>Sign In</Link>
+          <Link to="/register" className="lp-btn-register" onClick={() => setMobileOpen(false)}>Get Started →</Link>
+        </div>
 
         {/* ── HERO ── */}
         <section className="lp-hero" id="home">
           <div className="lp-hero-bg" />
+          <div className="lp-hero-overlay" />
           <div className="lp-hero-grid" />
           <div className="lp-hero-inner">
-            <div>
-              <div className="lp-hero-tag">
+            <div className="lp-hero-glass">
+              <div className="lp-hero-tag" style={{ background: 'rgba(45,166,83,.25)', borderColor: 'rgba(45,166,83,.5)', color: '#6ee7b7', display: 'inline-flex', marginBottom: '1.5rem' }}>
                 <span className="lp-tag-dot" />
                 Smart Livestock Management
               </div>
-              <h1 className="lp-h1">
+              <h1 className="lp-h1" style={{ fontSize: 'clamp(2.8rem,6vw,5rem)', lineHeight: 1.0, marginBottom: '1.2rem' }}>
                 Run your farm<br />with <em>precision</em><br />and confidence
               </h1>
-              <p className="lp-hero-sub">
+              <p style={{ fontSize: '1.05rem', color: 'rgba(255,255,255,.75)', lineHeight: 1.7, marginBottom: '2rem', maxWidth: 520 }}>
                 AgriPulse gives farm owners a complete platform to track animals, milk production, health records, finances, and workers — all in one place.
               </p>
               <div className="lp-hero-cta">
@@ -398,43 +502,21 @@ export default function LandingPage() {
                   <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                   Start Free Today
                 </Link>
-                <Link to="/login" className="lp-btn-secondary">Sign In →</Link>
-              </div>
-              <div className="lp-hero-stats">
-                <div><div className="lp-stat-num">500+</div><div className="lp-stat-lbl">Active Farms</div></div>
-                <div><div className="lp-stat-num">98%</div><div className="lp-stat-lbl">Uptime</div></div>
-                <div><div className="lp-stat-num">24/7</div><div className="lp-stat-lbl">Access</div></div>
+                <Link to="/login" className="lp-btn-secondary" style={{ color: '#fff', borderColor: 'rgba(255,255,255,.4)', background: 'rgba(255,255,255,.1)' }}>Sign In →</Link>
               </div>
             </div>
-
-            <div className="lp-hero-visual">
-              <div className="lp-card-main">
-                <div className="lp-card-hdr">
-                  <span className="lp-card-title">Milk Production — This Week</span>
-                  <span className="lp-card-badge">Live</span>
+            <div className="lp-hero-stats-bar">
+              {[
+                { num: '500+', lbl: 'Active Farms' },
+                { num: '98%',  lbl: 'Uptime' },
+                { num: '24/7', lbl: 'Farm Access' },
+                { num: 'AI',   lbl: 'Powered Advisor' },
+              ].map(({ num, lbl }) => (
+                <div key={lbl} className="lp-stat-item">
+                  <div className="lp-stat-num">{num}</div>
+                  <div className="lp-stat-lbl">{lbl}</div>
                 </div>
-                <div className="lp-mini-chart">
-                  {[45,60,50,80,70,90,65].map((h, i) => (
-                    <div key={i} className={`lp-bar ${h >= 80 ? 'on' : ''}`} style={{ height: `${h}%` }} />
-                  ))}
-                </div>
-                <div className="lp-metrics">
-                  <div className="lp-metric"><div className="lp-metric-val">347 L</div><div className="lp-metric-lbl">Today's yield</div></div>
-                  <div className="lp-metric"><div className="lp-metric-val">42</div><div className="lp-metric-lbl">Active animals</div></div>
-                  <div className="lp-metric"><div className="lp-metric-val">KSh 18K</div><div className="lp-metric-lbl">Weekly revenue</div></div>
-                  <div className="lp-metric"><div className="lp-metric-val">96%</div><div className="lp-metric-lbl">Herd health</div></div>
-                </div>
-              </div>
-              <div className="lp-float lp-float-1">
-                <div className="lp-float-icon">🐄</div>
-                <div className="lp-float-lbl">New animal added</div>
-                <div className="lp-float-val">Daisy · ID #0042 <span className="lp-green">✓</span></div>
-              </div>
-              <div className="lp-float lp-float-2">
-                <div className="lp-float-icon">💰</div>
-                <div className="lp-float-lbl">Revenue this month</div>
-                <div className="lp-float-val">KSh 72,400 <span className="lp-green">↑ 12%</span></div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
@@ -631,7 +713,7 @@ export default function LandingPage() {
             <div className="lp-footer-top">
               <div className="lp-footer-brand">
                 <a href="#home" className="lp-footer-logo">
-                  <img src="/agripulse-logo.jpeg" alt="AgriPulse" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '6px', background: 'white', padding: '2px' }} />
+                  <img src="/agripulse-logo.png" alt="AgriPulse" style={{ width: '38px', height: '38px', objectFit: 'contain', borderRadius: '6px', background: 'white', padding: '2px' }} />
                   AgriPulse
                 </a>
                 <p>Smart farm management for modern livestock farmers. Track, manage, and grow your farm with confidence.</p>
