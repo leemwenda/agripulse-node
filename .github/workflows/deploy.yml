@@ -34,7 +34,7 @@ jobs:
             cd ..
 
             echo "==> Deploying client build"
-            sudo cp -r client/dist/. /var/www/agripulse/client/dist/
+            sudo cp -r /home/mwenda/agripulse/client/dist/. /var/www/agripulse/client/dist/
 
             echo "==> Restarting app"
             pm2 restart agripulse
