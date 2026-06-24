@@ -1,12 +1,11 @@
 import nodemailer from 'nodemailer';
 import fs from 'fs';
-import { generateMonthlyPDF } from './pdf.service';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Provider {
   name: string;
   dailyLimit: number;
-  send: (to: string, from: string, subject: string, html: string, attachment?: { name: string; content: string }) => Promise<void>;
+  send: (to: string, from: string, subject: string, html: string) => Promise<void>;
 }
 interface Tracker { date: string; counts: Record<string, number>; }
 
@@ -38,41 +37,41 @@ function forceExhaust(name: string, limit: number): void {
 const PROVIDERS: Provider[] = [
   {
     name: 'postfix', dailyLimit: 1,  // disabled: DO blocks port 465
-    send: async (to, from, subject, html, attachment) => {
+    send: async (to, from, subject, html) => {
       const t = nodemailer.createTransport({ host: '127.0.0.1', port: 25, secure: false, tls: { rejectUnauthorized: false } });
       await t.sendMail({ from, to, subject, html });
     },
   },
   {
     name: 'brevo', dailyLimit: 290,
-    send: async (to, from, subject, html, attachment) => {
+    send: async (to, from, subject, html) => {
       const apiKey = process.env.BREVO_API_KEY;
       if (!apiKey) throw new Error('BREVO_API_KEY not set');
       const m = from.match(/^(.*?)\s*<(.+?)>$/);
       const res = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: { name: m ? m[1].trim() : 'AgriPulse', email: m ? m[2].trim() : from }, to: [{ email: to }], subject, htmlContent: html, attachment: attachment ? [{ name: attachment.name, content: attachment.content }] : undefined }),
+        body: JSON.stringify({ sender: { name: m ? m[1].trim() : 'AgriPulse', email: m ? m[2].trim() : from }, to: [{ email: to }], subject, htmlContent: html }),
       });
       if (!res.ok) throw new Error(`Brevo ${res.status}: ${await res.text()}`);
     },
   },
   {
     name: 'resend', dailyLimit: 95,
-    send: async (to, from, subject, html, attachment) => {
+    send: async (to, from, subject, html) => {
       const apiKey = process.env.RESEND_API_KEY;
       if (!apiKey) throw new Error('RESEND_API_KEY not set');
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to, subject, html, attachments: attachment ? [{ filename: attachment.name, content: attachment.content }] : undefined }),
+        body: JSON.stringify({ from, to, subject, html }),
       });
       if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
     },
   },
   {
     name: 'mailjet', dailyLimit: 190,
-    send: async (to, from, subject, html, attachment) => {
+    send: async (to, from, subject, html) => {
       const apiKey = process.env.MAILJET_API_KEY;
       const secret = process.env.MAILJET_SECRET_KEY;
       if (!apiKey || !secret) throw new Error('MAILJET keys not set');
@@ -81,7 +80,7 @@ const PROVIDERS: Provider[] = [
       const res = await fetch('https://api.mailjet.com/v3.1/send', {
         method: 'POST',
         headers: { 'Authorization': `Basic ${creds}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ Messages: [{ From: { Email: m ? m[2].trim() : from, Name: m ? m[1].trim() : 'AgriPulse' }, To: [{ Email: to }], Subject: subject, HTMLPart: html, Attachments: attachment ? [{ ContentType: 'application/pdf', Filename: attachment.name, Base64Content: attachment.content }] : undefined }] }),
+        body: JSON.stringify({ Messages: [{ From: { Email: m ? m[2].trim() : from, Name: m ? m[1].trim() : 'AgriPulse' }, To: [{ Email: to }], Subject: subject, HTMLPart: html }] }),
       });
       if (!res.ok) throw new Error(`Mailjet ${res.status}: ${await res.text()}`);
     },
@@ -95,14 +94,14 @@ const SITE  = process.env.SITE_NAME   || 'AgriPulse';
 const URL   = process.env.CLIENT_URL  || 'https://agripulse.me';
 const LOGO  = 'https://agripulse.me/agripulse-logo.png';
 
-async function send(to: string, subject: string, html: string, attachment?: { name: string; content: string }): Promise<void> {
+async function send(to: string, subject: string, html: string): Promise<void> {
   for (const provider of PROVIDERS) {
     if (provider.dailyLimit > 0 && getCount(provider.name) >= provider.dailyLimit) {
       console.log(`[Mail] "${provider.name}" at limit (${getCount(provider.name)}/${provider.dailyLimit}), trying next...`);
       continue;
     }
     try {
-      await provider.send(to, FROM, subject, html, attachment);
+      await provider.send(to, FROM, subject, html);
       increment(provider.name);
       const count = getCount(provider.name);
       const limit = provider.dailyLimit > 0 ? `/${provider.dailyLimit}` : '/∞';
@@ -385,8 +384,6 @@ export async function mailMonthlyOverview(email: string, name: string, data: {
 }): Promise<void> {
   const profit = data.monthIncome - data.monthExpense;
   const profitText = profit>=0?`KSh ${profit.toLocaleString()} profit`:`KSh ${Math.abs(profit).toLocaleString()} loss`;
-  const pdfBuffer = await generateMonthlyPDF({ ...data, farmName: name });
-  const pdfAttachment = { name: `AgriPulse-Monthly-Report-${data.month.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer.toString('base64') };
   await send(email, `Monthly Farm Overview — ${data.month}`, base(`Monthly Overview: ${data.month} 📅`, `
     ${p(`Hello <strong>${name}</strong>,`)}
     ${p(`Here is your complete ${SITE} farm performance overview for <strong>${data.month}</strong>.`)}
@@ -401,7 +398,7 @@ export async function mailMonthlyOverview(email: string, name: string, data: {
     ${infoCard('Monthly Finances', [['Total Income',`KSh ${data.monthIncome.toLocaleString()}`],['Total Expenses',`KSh ${data.monthExpense.toLocaleString()}`],['Net Profit / Loss',profitText]])}
     ${profit<0?alertBox('Your farm recorded a net loss this month. Review your expense categories.','warning'):alertBox(`Your farm recorded a net profit of KSh ${profit.toLocaleString()} this month. Great work!`,'success')}
     ${btn('View Full Monthly Reports',`${URL}/reports`)}
-  `), pdfAttachment);
+  `));
 }
 
 export async function mailEmailVerification(email: string, name: string, token: string): Promise<void> {

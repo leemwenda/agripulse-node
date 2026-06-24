@@ -1,0 +1,25 @@
+{
+  "name": "AgriPulse — Smart Dairy Farm Management",
+  "short_name": "AgriPulse",
+  "description": "Kenya's leading smart dairy and livestock management platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity", "agriculture"],
+  "lang": "en-KE",
+  "scope": "/"
+}

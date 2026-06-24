@@ -101,6 +101,18 @@ app.use('/api/profile',       profileRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/issues',        issuesRouter);
 
+
+// ── Sentry test route (remove after testing) ─────────────────
+app.get('/api/debug-sentry', (_req, _res) => {
+  throw new Error('Sentry test error from AgriPulse API');
+});
+
+
+// ── Sentry test route (remove after testing) ─────────────────
+app.get('/api/debug-sentry', (_req, _res) => {
+  throw new Error('Sentry test error from AgriPulse API');
+});
+
 // ── Health check ─────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', version: '2.0.0', name: 'AgriPulse API' });

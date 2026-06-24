@@ -1,15 +1,23 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /superadmin/
+Disallow: /_next/
 Disallow: /dashboard
 Disallow: /animals
-Disallow: /health
-Disallow: /breeding
-Disallow: /financial
-Disallow: /reports
-Disallow: /ai-advisor
-Disallow: /workers
+Disallow: /milk-production
+Disallow: /health-records
+Disallow: /finances
+Disallow: /settings
 Disallow: /profile
-Disallow: /system
-Disallow: /api/
+
+# Allow key public pages
+Allow: /
+Allow: /login
+Allow: /register
 
 Sitemap: https://agripulse.me/sitemap.xml
+
+# Crawl delay for courtesy
+Crawl-delay: 1
