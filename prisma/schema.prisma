@@ -20,6 +20,17 @@ enum AnimalStatus {
   deceased
 }
 
+enum AnimalCategory {
+  calf
+  heifer
+  cow
+  bull_calf
+  young_bull
+  bull
+
+  @@map("animal_category")
+}
+
 enum AnimalGender {
   male
   female
@@ -147,6 +158,7 @@ model Animal {
   tagNumber   String       @unique @map("tag_number")
   breed       String
   gender      AnimalGender
+  category    AnimalCategory? @map("category")
   dateOfBirth DateTime     @map("date_of_birth") @db.Date
   color       String?
   notes       String?      @db.Text

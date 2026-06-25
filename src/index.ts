@@ -10,6 +10,7 @@ dotenv.config();
 import authRoutes from './routes/auth.routes';
 import animalsRoutes from './routes/animals.routes';
 import { milkRouter, healthRouter, breedingRouter, financialRouter } from './routes/data.routes';
+import { startAnimalCategoryCron, updateAllAnimalCategories } from './services/animalCategory.service';
 import { dashboardRouter, workersRouter, aiRouter, adminRouter, reportsRouter, profileRouter, notificationsRouter, issuesRouter } from './routes/extra.routes';
 
 const app = express();
@@ -129,9 +130,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`\n🌿 AgriPulse API v2.0`);
   console.log(`   Server : http://localhost:${PORT}`);
   console.log(`   Client : ${process.env.CLIENT_URL}`);
   console.log(`   Mode   : ${process.env.NODE_ENV}\n`);
+  await updateAllAnimalCategories();
+  startAnimalCategoryCron();
 });

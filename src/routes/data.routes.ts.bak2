@@ -182,7 +182,7 @@ breedingRouter.post('/', async (req: Request, res: Response): Promise<void> => {
       ...rest,
       farmId,
       serviceDate: new Date(serviceDate),
-      expectedBirthDate: expectedBirthDate ? new Date(expectedBirthDate) : new Date(new Date(serviceDate).getTime() + 283 * 86400000),
+      expectedBirthDate: expectedBirthDate ? new Date(expectedBirthDate) : null,
       actualBirthDate: actualBirthDate ? new Date(actualBirthDate) : null,
       recordedBy: req.user!.id,
     },
@@ -202,7 +202,7 @@ breedingRouter.put('/:id', async (req: Request, res: Response): Promise<void> =>
     data: {
       ...rest,
       serviceDate: new Date(serviceDate),
-      expectedBirthDate: expectedBirthDate ? new Date(expectedBirthDate) : new Date(new Date(serviceDate).getTime() + 283 * 86400000),
+      expectedBirthDate: expectedBirthDate ? new Date(expectedBirthDate) : null,
       actualBirthDate: actualBirthDate ? new Date(actualBirthDate) : null,
     },
   });

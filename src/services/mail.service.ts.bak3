@@ -37,6 +37,13 @@ function forceExhaust(name: string, limit: number): void {
 // ─── Provider Pool ────────────────────────────────────────────────────────────
 const PROVIDERS: Provider[] = [
   {
+    name: 'postfix', dailyLimit: 1,  // disabled: DO blocks port 465
+    send: async (to, from, subject, html, attachment) => {
+      const t = nodemailer.createTransport({ host: '127.0.0.1', port: 25, secure: false, tls: { rejectUnauthorized: false } });
+      await t.sendMail({ from, to, subject, html });
+    },
+  },
+  {
     name: 'brevo', dailyLimit: 290,
     send: async (to, from, subject, html, attachment) => {
       const apiKey = process.env.BREVO_API_KEY;

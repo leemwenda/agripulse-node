@@ -108,57 +108,17 @@ function WeatherWidget({ isDark }: { isDark: boolean }) {
     finally  { setLoading(false); }
   };
 
-  // IP-based geolocation with multiple fallback providers (each one used to be a
-  // single point of failure — if ipapi.co rate-limited us, we silently dropped to Nairobi)
-  const ipGeolocate = async (): Promise<{ latitude: number; longitude: number } | null> => {
-    const providers: Array<() => Promise<{ latitude: number; longitude: number } | null>> = [
-      async () => {
-        const r = await fetch('https://ipapi.co/json/');
-        if (!r.ok) throw new Error('ipapi.co failed');
-        const d = await r.json();
-        if (d.latitude == null || d.longitude == null) throw new Error('ipapi.co no coords');
-        return { latitude: d.latitude, longitude: d.longitude };
-      },
-      async () => {
-        const r = await fetch('https://ipwho.is/');
-        if (!r.ok) throw new Error('ipwho.is failed');
-        const d = await r.json();
-        if (!d.success || d.latitude == null || d.longitude == null) throw new Error('ipwho.is no coords');
-        return { latitude: d.latitude, longitude: d.longitude };
-      },
-      async () => {
-        const r = await fetch('https://get.geojs.io/v1/ip/geo.json');
-        if (!r.ok) throw new Error('geojs failed');
-        const d = await r.json();
-        if (d.latitude == null || d.longitude == null) throw new Error('geojs no coords');
-        return { latitude: parseFloat(d.latitude), longitude: parseFloat(d.longitude) };
-      },
-    ];
-    for (const provider of providers) {
-      try {
-        const coords = await provider();
-        if (coords) return coords;
-      } catch {
-        continue;
-      }
-    }
-    return null;
-  };
-
+  // Browser geolocation only — falls back directly to Nairobi if denied/unavailable.
+  // (Previously cascaded through ipapi.co / ipwho.is / geojs.io — all blocked by CSP anyway.)
   useEffect(() => {
-    const useIpFallback = () => {
-      ipGeolocate()
-        .then(coords => coords ? fetchWeatherByCoords(coords.latitude, coords.longitude) : fetchWeatherByCoords(-1.2921, 36.8219))
-        .catch(() => fetchWeatherByCoords(-1.2921, 36.8219));
-    };
-
+    const NAIROBI = { latitude: -1.2921, longitude: 36.8219 };
     if (!navigator.geolocation) {
-      useIpFallback();
+      fetchWeatherByCoords(NAIROBI.latitude, NAIROBI.longitude);
       return;
     }
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => { fetchWeatherByCoords(coords.latitude, coords.longitude); },
-      () => { useIpFallback(); },
+      () => { fetchWeatherByCoords(NAIROBI.latitude, NAIROBI.longitude); },
       { timeout: 5000 }
     );
   }, []);
