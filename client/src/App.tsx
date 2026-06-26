@@ -16,12 +16,23 @@ import { ReportIssuePage } from './pages/ReportIssue';
 import { SystemPanel } from './pages/SystemPanel';
 // @ts-ignore
 import LandingPage from './pages/LandingPage';
+import AnimalPassport from './pages/AnimalPassport';
+import ChooseJourney from './pages/ChooseJourney';
 import { PageLoader } from './components/ui';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'superadmin') return <Navigate to="/system" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'worker') return <Navigate to="/dashboard" replace />;
   if (user.role === 'superadmin') return <Navigate to="/system" replace />;
   return <>{children}</>;
 }
@@ -50,20 +61,22 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify" element={<VerifyEmail />} />
+      <Route path="/journey" element={<ChooseJourney />} />
+      <Route path="/animal/:agripulseId" element={<AnimalPassport />} />
       <Route path="/system" element={<SystemRoute />} />
 
       {/* Protected pages — auth required */}
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-        <Route path="/animals" element={<PrivateRoute><AnimalsPage /></PrivateRoute>} />
-        <Route path="/animals/:id" element={<PrivateRoute><AnimalDetailPage /></PrivateRoute>} />
+        <Route path="/animals" element={<AdminRoute><AnimalsPage /></AdminRoute>} />
+        <Route path="/animals/:id" element={<AdminRoute><AnimalDetailPage /></AdminRoute>} />
         <Route path="/milk" element={<PrivateRoute><MilkPage /></PrivateRoute>} />
         <Route path="/health" element={<PrivateRoute><HealthPage /></PrivateRoute>} />
-        <Route path="/breeding" element={<PrivateRoute><BreedingPage /></PrivateRoute>} />
-        <Route path="/financial" element={<PrivateRoute><FinancialPage /></PrivateRoute>} />
-        <Route path="/workers" element={<PrivateRoute><WorkersPage /></PrivateRoute>} />
-        <Route path="/ai" element={<PrivateRoute><AIAdvisorPage /></PrivateRoute>} />
-        <Route path="/reports" element={<PrivateRoute><ReportsPage /></PrivateRoute>} />
+        <Route path="/breeding" element={<AdminRoute><BreedingPage /></AdminRoute>} />
+        <Route path="/financial" element={<AdminRoute><FinancialPage /></AdminRoute>} />
+        <Route path="/workers" element={<AdminRoute><WorkersPage /></AdminRoute>} />
+        <Route path="/ai" element={<AdminRoute><AIAdvisorPage /></AdminRoute>} />
+        <Route path="/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
         <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/issues" element={<PrivateRoute><ReportIssuePage /></PrivateRoute>} />
       </Route>

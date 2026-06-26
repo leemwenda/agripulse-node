@@ -1,6 +1,6 @@
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, useRef, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, Beef } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Beef, ArrowRightLeft, X } from 'lucide-react';
 import api from '../lib/api';
 import { Animal, AnimalCategory } from '../types';
 import { Modal, ConfirmDialog, EmptyState, PageLoader, Spinner } from '../components/ui';
@@ -61,6 +61,67 @@ export function AnimalsPage() {
   const [editId, setEditId]             = useState<number | null>(null);
   const [deleteId, setDeleteId]         = useState<number | null>(null);
   const [saving, setSaving]             = useState(false);
+  const [photoFile, setPhotoFile]       = useState<File | null>(null);
+  const [showAccept, setShowAccept]     = useState(false);
+  const [acceptCode, setAcceptCode]     = useState('');
+  const [acceptPreview, setAcceptPreview] = useState<any>(null);
+  const [acceptLoading, setAcceptLoading] = useState(false);
+  const [acceptError, setAcceptError]   = useState('');
+  const [acceptSigMode, setAcceptSigMode] = useState<'type'|'draw'>('type');
+  const [acceptSigName, setAcceptSigName] = useState('');
+  const [acceptSigData, setAcceptSigData] = useState('');
+  const acceptSigCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [acceptSubmitting, setAcceptSubmitting] = useState(false);
+
+  async function lookupTransferCode() {
+    if (!acceptCode.trim()) return;
+    setAcceptLoading(true);
+    setAcceptError('');
+    setAcceptPreview(null);
+    try {
+      const res = await api.get(`/passport/transfer/${acceptCode.trim().toUpperCase()}`);
+      setAcceptPreview({
+        animal: res.data.transfer.animal,
+        fromFarm: res.data.transfer.fromFarm,
+      });
+    } catch (err: any) {
+      setAcceptError(err?.response?.data?.error || 'Transfer code not found.');
+    } finally {
+      setAcceptLoading(false);
+    }
+  }
+
+  function getAcceptSignature(): string {
+    if (acceptSigMode === 'type' && acceptSigName.trim()) {
+      const c = document.createElement('canvas'); c.width = 300; c.height = 80;
+      const ctx = c.getContext('2d'); if (!ctx) return '';
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 300, 80);
+      ctx.font = 'italic 32px Georgia'; ctx.fillStyle = '#15803d';
+      ctx.fillText(acceptSigName, 10, 52);
+      return c.toDataURL();
+    }
+    return acceptSigData;
+  }
+
+  async function submitAcceptTransfer() {
+    const sig = getAcceptSignature();
+    if (!sig) { toast.error('Please sign before accepting.'); return; }
+    setAcceptSubmitting(true);
+    try {
+      const res = await api.post('/passport/transfer/accept', {
+        transferCode: acceptCode.trim().toUpperCase(),
+        buyerSignature: sig,
+      });
+      toast.success(`${res.data.animal?.name || 'Animal'} is now in your account.`);
+      setShowAccept(false);
+      setAcceptCode(''); setAcceptPreview(null); setAcceptSigName(''); setAcceptSigData('');
+      load();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to accept transfer.');
+    } finally {
+      setAcceptSubmitting(false);
+    }
+  }
   const { toasts, toast, remove }       = useToast();
   const navigate                        = useNavigate();
 
@@ -80,7 +141,7 @@ export function AnimalsPage() {
 
   useEffect(() => { load(); }, [search, statusFilter]);
 
-  function openAdd() { setForm(EMPTY); setEditId(null); setModalOpen(true); }
+  function openAdd() { setForm(EMPTY); setEditId(null); setPhotoFile(null); setModalOpen(true); }
   function openEdit(a: Animal) {
     setForm({ ...a, dateOfBirth: a.dateOfBirth.split('T')[0] });
     setEditId(a.id);
@@ -95,7 +156,13 @@ export function AnimalsPage() {
         await api.put(`/animals/${editId}`, form);
         toast.success('Animal updated.');
       } else {
-        await api.post('/animals', form);
+        const res = await api.post(`/animals`, form);
+        if (photoFile && res.data?.animal?.id) {
+          const fd = new FormData();
+          fd.append("photo", photoFile);
+          fd.append("isPrimary", "true");
+          await api.post(`/animals/${res.data.animal.id}/photos`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+        }
         toast.success('Animal added.');
       }
       setModalOpen(false);
@@ -152,7 +219,11 @@ export function AnimalsPage() {
           <h1 className="page-title">Animals</h1>
           <p className="text-sm text-gray-500">{total} total animals</p>
         </div>
-        <button className="btn-primary" onClick={openAdd}><Plus className="w-4 h-4" />Add Animal</button>
+        <button onClick={() => setShowAccept(true)}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/8 text-blue-500 text-sm font-semibold hover:bg-blue-500/15 transition-colors">
+        <ArrowRightLeft className="w-4 h-4" /> Accept Transfer
+      </button>
+      <button className="btn-primary" onClick={openAdd}><Plus className="w-4 h-4" />Add Animal</button>
       </div>
 
       {/* Category tabs */}
@@ -409,12 +480,17 @@ export function AnimalsPage() {
               background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.08)',
               color: '#8aab94',
             }}>
-              Age: <strong style={{ color: '#e2ede6' }}>{formatAge(form.dateOfBirth)}</strong>
-              &nbsp;&nbsp;Category: <strong style={{ color: '#e2ede6' }}>
+              Age: <strong style={{ color: 'var(--color-text, inherit)' }}>{formatAge(form.dateOfBirth)}</strong>
+              &nbsp;&nbsp;Category: <strong style={{ color: 'var(--color-text, inherit)' }}>
                 {getAnimalCategory(form.dateOfBirth, form.gender || 'female')}
               </strong>
             </div>
           )}
+          <div>
+            <label className="label">Animal Photo</label>
+            <input type="file" accept="image/*" className="input py-1.5" onChange={e => setPhotoFile(e.target.files?.[0] || null)} />
+            {photoFile && <p className="text-xs text-green-500 mt-1">Selected: {photoFile.name}</p>}
+          </div>
           <div>
             <label className="label">Notes</label>
             <textarea className="input" rows={3} value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional notes..." />
@@ -427,6 +503,135 @@ export function AnimalsPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Accept Transfer Modal */}
+      <Modal open={showAccept} onClose={() => { setShowAccept(false); setAcceptCode(''); setAcceptPreview(null); setAcceptError(''); setAcceptSigName(''); setAcceptSigData(''); }} title="Accept Animal Transfer" size="md">
+        <div className="space-y-4">
+          {!acceptPreview ? (
+            <>
+              <div>
+                <label className="label">Transfer Code</label>
+                <div className="flex gap-2">
+                  <input
+                    className="input font-mono uppercase tracking-widest"
+                    placeholder="e.g. 9982604C"
+                    value={acceptCode}
+                    onChange={e => setAcceptCode(e.target.value.toUpperCase())}
+                    maxLength={8}
+                  />
+                  <button
+                    type="button"
+                    className="btn-primary whitespace-nowrap"
+                    disabled={acceptLoading || !acceptCode.trim()}
+                    onClick={lookupTransferCode}
+                  >
+                    {acceptLoading ? 'Checking...' : 'Find'}
+                  </button>
+                </div>
+                {acceptError && <p className="text-xs text-red-500 mt-2">{acceptError}</p>}
+              </div>
+              <p className="text-xs text-gray-400">
+                Enter the transfer code shared with you by the seller to claim this animal.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="rounded-lg p-4 border border-blue-500/20 bg-blue-500/8">
+                <div className="text-xs font-bold uppercase tracking-widest text-blue-500 mb-2">You're accepting</div>
+                <div className="text-lg font-black">{acceptPreview.animal?.name}</div>
+                <div className="text-sm text-gray-400">
+                  {acceptPreview.animal?.breed} · Tag: {acceptPreview.animal?.tagNumber}
+                </div>
+                <div className="text-xs text-gray-400 mt-2">
+                  From: <strong>{acceptPreview.fromFarm?.name || 'Unknown seller'}</strong>
+                </div>
+              </div>
+
+              <div className="rounded-lg p-3 border border-gray-200 dark:border-white/10">
+                <div className="text-xs font-bold mb-2">Your E-Signature (required)</div>
+                <div className="flex gap-2 mb-2">
+                  <button type="button" onClick={() => setAcceptSigMode('type')}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${acceptSigMode === 'type' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/50'}`}>
+                    Type Name
+                  </button>
+                  <button type="button" onClick={() => setAcceptSigMode('draw')}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${acceptSigMode === 'draw' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-white/50'}`}>
+                    Draw
+                  </button>
+                </div>
+                {acceptSigMode === 'type' ? (
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Type your full name to sign"
+                      value={acceptSigName}
+                      onChange={e => setAcceptSigName(e.target.value)}
+                      className="input italic"
+                      style={{ fontFamily: 'Georgia, serif', fontSize: 18, color: '#2563eb' }}
+                    />
+                    {acceptSigName.trim() && (
+                      <div style={{
+                        marginTop: 8, padding: '8px 12px', borderRadius: 8,
+                        border: '1px solid rgba(37,99,235,0.3)', background: 'rgba(37,99,235,0.05)',
+                        fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: 22, color: '#2563eb',
+                      }}>
+                        {acceptSigName}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <canvas
+                      ref={acceptSigCanvasRef}
+                      width={340} height={80}
+                      onMouseDown={e => {
+                        const c = acceptSigCanvasRef.current; if (!c) return;
+                        const ctx = c.getContext('2d'); if (!ctx) return;
+                        const rect = c.getBoundingClientRect();
+                        ctx.beginPath(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+                        (c as any)._signing = true;
+                      }}
+                      onMouseMove={e => {
+                        const c = acceptSigCanvasRef.current; if (!c || !(c as any)._signing) return;
+                        const ctx = c.getContext('2d'); if (!ctx) return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+                        ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
+                      }}
+                      onMouseUp={() => {
+                        const c = acceptSigCanvasRef.current; if (!c) return;
+                        (c as any)._signing = false;
+                        setAcceptSigData(c.toDataURL());
+                      }}
+                      onMouseLeave={() => {
+                        const c = acceptSigCanvasRef.current; if (c) (c as any)._signing = false;
+                      }}
+                      className="rounded border w-full cursor-crosshair bg-white"
+                    />
+                    <button type="button" onClick={() => {
+                      const c = acceptSigCanvasRef.current;
+                      if (c) { const ctx = c.getContext('2d'); ctx?.clearRect(0, 0, c.width, c.height); }
+                      setAcceptSigData('');
+                    }} className="text-xs mt-1 text-gray-400 hover:underline">Clear</button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button type="button" className="btn-secondary" onClick={() => { setAcceptPreview(null); setAcceptCode(''); }}>Back</button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={acceptSubmitting}
+                  onClick={submitAcceptTransfer}
+                >
+                  {acceptSubmitting ? 'Accepting...' : 'Sign & Accept'}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </Modal>
 
       <ConfirmDialog

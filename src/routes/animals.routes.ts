@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
+import { generateAgripulseId } from '../services/passport.service';
 import { requireAuth, requireAdmin, getFarmId } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -70,6 +71,9 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       milkProduction: { orderBy: { productionDate: 'desc' }, take: 10 },
       healthRecords: { orderBy: { recordDate: 'desc' }, take: 10 },
       breeding: { orderBy: { serviceDate: 'desc' }, take: 5 },
+      photos: { orderBy: { isPrimary: 'desc' } },
+      weights: { orderBy: { recordDate: 'desc' }, take: 10 },
+      ownershipTransfers: { where: { status: 'completed' }, orderBy: { completedAt: 'asc' }, include: { fromFarm: { select: { id: true, name: true } }, toFarm: { select: { id: true, name: true } } } },
     },
   });
 
@@ -87,8 +91,9 @@ router.post('/', requireAdmin, async (req: Request, res: Response): Promise<void
 
   const farmId = getFarmId(req.user!);
   try {
+    const agripulseId = await generateAgripulseId();
     const animal = await prisma.animal.create({
-      data: { ...parsed.data, farmId, dateOfBirth: new Date(parsed.data.dateOfBirth) },
+      data: { ...parsed.data, farmId, agripulseId, dateOfBirth: new Date(parsed.data.dateOfBirth) },
     });
     await prisma.activityLog.create({
       data: { userId: req.user!.id, action: 'create_animal', entity: 'animals', entityId: animal.id },
@@ -148,3 +153,47 @@ router.delete('/:id', requireAdmin, async (req: Request, res: Response): Promise
 });
 
 export default router;
+
+// POST /api/animals/:id/photos — upload animal photo
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, '/var/www/agripulse-staging/uploads/animals'),
+  filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
+});
+const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+
+router.post('/:id/photos', requireAdmin, upload.single('photo'), async (req: Request, res: Response): Promise<void> => {
+  const farmId = getFarmId(req.user!);
+  const animalId = parseInt(req.params.id as string);
+  const animal = await prisma.animal.findFirst({ where: { id: animalId, farmId } });
+  if (!animal) { res.status(404).json({ error: 'Animal not found' }); return; }
+  if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return; }
+
+  const isPrimary = req.body.isPrimary === 'true';
+  if (isPrimary) {
+    await prisma.animalPhoto.updateMany({ where: { animalId }, data: { isPrimary: false } });
+  }
+
+  const url = `/uploads/animals/${req.file.filename}`;
+  const photo = await prisma.animalPhoto.create({
+    data: { animalId, url, caption: req.body.caption || null, isPrimary },
+  });
+  res.status(201).json({ photo });
+});
+
+router.delete('/:id/photos/:photoId', requireAdmin, async (req: Request, res: Response): Promise<void> => {
+  const farmId = getFarmId(req.user!);
+  const animalId = parseInt(req.params.id as string);
+  const photoId = parseInt(req.params.photoId as string);
+  const animal = await prisma.animal.findFirst({ where: { id: animalId, farmId } });
+  if (!animal) { res.status(404).json({ error: 'Animal not found' }); return; }
+  const photo = await prisma.animalPhoto.findFirst({ where: { id: photoId, animalId } });
+  if (!photo) { res.status(404).json({ error: 'Photo not found' }); return; }
+  const filePath = `/var/www/agripulse-staging${photo.url}`;
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  await prisma.animalPhoto.delete({ where: { id: photoId } });
+  res.json({ message: 'Photo deleted' });
+});

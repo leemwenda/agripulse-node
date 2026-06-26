@@ -9,17 +9,16 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../lib/api';
 
-const navItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard' },
-  { icon: Beef,            label: 'Animals',   to: '/animals' },
-  { icon: Milk,            label: 'Milk',      to: '/milk' },
-  { icon: Heart,           label: 'Health',    to: '/health' },
-  { icon: Baby,            label: 'Breeding',  to: '/breeding' },
-  { icon: Wallet,          label: 'Finances',  to: '/financial' },
-  { icon: Users,           label: 'Workers',   to: '/workers' },
-  { icon: Bot,             label: 'AI Advisor',to: '/ai' },
-  { icon: BarChart2,       label: 'Reports',   to: '/reports' },
-
+const allNavItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin','superadmin','worker'] },
+  { icon: Beef,            label: 'Animals',   to: '/animals',   roles: ['admin','superadmin'] },
+  { icon: Milk,            label: 'Milk',      to: '/milk',      roles: ['admin','superadmin','worker'] },
+  { icon: Heart,           label: 'Health',    to: '/health',    roles: ['admin','superadmin','worker'] },
+  { icon: Baby,            label: 'Breeding',  to: '/breeding',  roles: ['admin','superadmin'] },
+  { icon: Wallet,          label: 'Finances',  to: '/financial', roles: ['admin','superadmin'] },
+  { icon: Users,           label: 'Workers',   to: '/workers',   roles: ['admin','superadmin'] },
+  { icon: Bot,             label: 'AI Advisor',to: '/ai',        roles: ['admin','superadmin'] },
+  { icon: BarChart2,       label: 'Reports',   to: '/reports',   roles: ['admin','superadmin'] },
 ];
 
 const TYPE_COLORS_DARK: Record<string, string> = {
@@ -164,7 +163,7 @@ export function Layout() {
         </div>
 
         <nav style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {[...navItems, ...(user?.role === 'superadmin' ? [{ icon: Shield, label: 'System', to: '/system' }] : [])].map(({ icon: Icon, label, to }) => (
+          {[...allNavItems.filter(item => item.roles.includes(user?.role || '')), ...(user?.role === 'superadmin' ? [{ icon: Shield, label: 'System', to: '/system' }] : [])].map(({ icon: Icon, label, to }) => (
             <NavLink
               key={to} to={to}
               onClick={() => setSidebarOpen(false)}

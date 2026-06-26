@@ -65,3 +65,31 @@
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .animate-in { animation: fadeIn 0.2s ease-out; }
+
+/* Fix date input year visibility in light mode */
+input[type="date"]::-webkit-datetime-edit-year-field,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field {
+  color: inherit;
+}
+
+/* Shrink stat cards on mobile */
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 12px !important;
+    gap: 10px !important;
+  }
+  .stat-card .w-12.h-12 {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .stat-card .text-2xl {
+    font-size: 18px !important;
+  }
+  .stat-card .text-sm {
+    font-size: 11px !important;
+  }
+  .stat-card .text-xs {
+    font-size: 10px !important;
+  }
+}

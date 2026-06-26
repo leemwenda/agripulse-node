@@ -447,7 +447,7 @@ export default function LandingPage() {
           </div>
           <div className="lp-nav-right">
             <Link to="/login" className="lp-btn-login">Sign In</Link>
-            <Link to="/register" className="lp-btn-register">Get Started →</Link>
+            <Link to="/journey" className="lp-btn-register">Get Started →</Link>
             <button
               className={`lp-hamburger${mobileOpen ? ' open' : ''}`}
               onClick={() => setMobileOpen(p => !p)}
@@ -464,7 +464,7 @@ export default function LandingPage() {
           <a href="#testimonials" onClick={() => setMobileOpen(false)}>Stories</a>
           <a href="#contact" onClick={() => setMobileOpen(false)}>Contact</a>
           <Link to="/login" className="lp-btn-login" onClick={() => setMobileOpen(false)}>Sign In</Link>
-          <Link to="/register" className="lp-btn-register" onClick={() => setMobileOpen(false)}>Get Started →</Link>
+          <Link to="/journey" className="lp-btn-register" onClick={() => setMobileOpen(false)}>Get Started →</Link>
         </div>
 
         {/* ── HERO ── */}
@@ -484,7 +484,7 @@ export default function LandingPage() {
                 AgriPulse gives farm owners a complete platform to track animals, milk production, health records, finances, and workers — all in one place.
               </p>
               <div className="lp-hero-cta">
-                <Link to="/register" className="lp-btn-primary">
+                <Link to="/journey" className="lp-btn-primary">
                   <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                   Start Free Today
                 </Link>
@@ -677,7 +677,7 @@ export default function LandingPage() {
           <h2 className="lp-h2">Ready to transform your farm?</h2>
           <p>Join hundreds of farmers already using AgriPulse to run smarter operations.</p>
           <div className="lp-cta-btns">
-            <Link to="/register" className="lp-btn-primary">Create Free Account →</Link>
+            <Link to="/journey" className="lp-btn-primary">Create Free Account →</Link>
             <Link to="/login" className="lp-btn-secondary">Sign In</Link>
           </div>
         </div>
@@ -698,7 +698,7 @@ export default function LandingPage() {
                 <ul>
                   <li><a href="#features">Features</a></li>
                   <li><a href="#how">How it works</a></li>
-                  <li><Link to="/register" style={{ color: 'white' }}>Get Started</Link></li>
+                  <li><Link to="/journey" style={{ color: 'white' }}>Get Started</Link></li>
                   <li><Link to="/login" style={{ color: 'white' }}>Sign In</Link></li>
                 </ul>
               </div>

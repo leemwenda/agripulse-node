@@ -123,6 +123,10 @@ model User {
   emailVerifications    EmailVerification[]
   aiChatSessions        AiChatSession[]
   loginAttempts         LoginAttempt[]
+  transfersFrom         OwnershipTransfer[] @relation("TransfersFrom")
+  transfersTo           OwnershipTransfer[] @relation("TransfersTo")
+  transfersInitiated    OwnershipTransfer[] @relation("TransfersInitiated")
+  animalWeights         AnimalWeight[]
 
   @@map("users")
 }
@@ -162,13 +166,17 @@ model Animal {
   dateOfBirth DateTime     @map("date_of_birth") @db.Date
   color       String?
   notes       String?      @db.Text
+  agripulseId String?      @unique @map("agripulse_id")
   status      AnimalStatus @default(active)
   createdAt   DateTime     @default(now()) @map("created_at")
 
   farm           User             @relation(fields: [farmId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   milkProduction MilkProduction[]
   healthRecords  HealthRecord[]
-  breeding       Breeding[]
+  breeding          Breeding[]
+  weights           AnimalWeight[]
+  photos            AnimalPhoto[]
+  ownershipTransfers OwnershipTransfer[]
 
   @@map("animals")
 }
@@ -347,3 +355,73 @@ model EmailVerification {
 }
 
 
+
+// ── PHASE 1: Digital Animal Passport ─────────────────
+
+enum TransferMethod {
+  in_app
+  qr_code
+  dual_confirmation
+}
+
+enum TransferStatus {
+  pending
+  completed
+  cancelled
+}
+
+model AnimalWeight {
+  id          Int      @id @default(autoincrement())
+  animalId    Int      @map("animal_id")
+  farmId      Int      @map("farm_id")
+  weightKg    Decimal  @map("weight_kg") @db.Decimal(6, 2)
+  recordDate  DateTime @map("record_date") @db.Date
+  notes       String?  @db.Text
+  recordedBy  Int?     @map("recorded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  animal         Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordedByUser User?  @relation(fields: [recordedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@map("animal_weights")
+}
+
+model AnimalPhoto {
+  id        Int      @id @default(autoincrement())
+  animalId  Int      @map("animal_id")
+  url       String
+  caption   String?
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("animal_photos")
+}
+
+model OwnershipTransfer {
+  id              Int            @id @default(autoincrement())
+  animalId        Int            @map("animal_id")
+  fromFarmId      Int            @map("from_farm_id")
+  toFarmId        Int?           @map("to_farm_id")
+  toEmail         String?        @map("to_email")
+  method          TransferMethod @default(in_app)
+  status          TransferStatus @default(pending)
+  transferCode    String?        @unique @map("transfer_code")
+  notes           String?        @db.Text
+  initiatedBy        Int            @map("initiated_by")
+  expiresAt          DateTime?      @map("expires_at")
+  completedAt        DateTime?      @map("completed_at")
+  sellerSignature    String?        @map("seller_signature") @db.Text
+  sellerSignedAt     DateTime?      @map("seller_signed_at")
+  buyerSignature     String?        @map("buyer_signature") @db.Text
+  buyerSignedAt      DateTime?      @map("buyer_signed_at")
+  createdAt          DateTime       @default(now()) @map("created_at")
+
+  animal      Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  fromFarm    User   @relation("TransfersFrom", fields: [fromFarmId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  toFarm      User?  @relation("TransfersTo", fields: [toFarmId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  initiatedByUser User @relation("TransfersInitiated", fields: [initiatedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("ownership_transfers")
+}
