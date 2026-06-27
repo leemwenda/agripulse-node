@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import {
-  LayoutDashboard, Beef, Milk, Heart, Baby, Wallet,
+  LayoutDashboard, Beef, Milk, Heart, Baby, Wallet, Store,
   Users, Bot, LogOut, Menu, X, Bell, ChevronDown,
   BarChart2, User, AlertTriangle, Sun, Moon, Shield,
 } from 'lucide-react';
@@ -12,6 +12,7 @@ import api from '../../lib/api';
 const allNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin','superadmin','worker'] },
   { icon: Beef,            label: 'Animals',   to: '/animals',   roles: ['admin','superadmin'] },
+  { icon: Store, label: 'Marketplace', to: '/marketplace', roles: ['admin','superadmin','worker'] },
   { icon: Milk,            label: 'Milk',      to: '/milk',      roles: ['admin','superadmin','worker'] },
   { icon: Heart,           label: 'Health',    to: '/health',    roles: ['admin','superadmin','worker'] },
   { icon: Baby,            label: 'Breeding',  to: '/breeding',  roles: ['admin','superadmin'] },

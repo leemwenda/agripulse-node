@@ -1,242 +1,292 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const IMAGES = ['/journey1.jpg', '/journey2.jpg', '/journey3.jpg'];
 
 const ROLES = [
   {
     key: 'farmer',
     label: 'FARM OWNER',
     tagline: 'Grow & Manage',
-    description: 'Register your farm, manage your herd, track health and milk records, and sell directly from your dashboard.',
-    features: ['Animal Passport & QR Code', 'Health & Milk Records', 'Marketplace Selling', 'Ownership Transfers', 'Farm Reports'],
+    description: 'Your farm, fully digital. Register animals, track health, milk & breeding records, and sell directly from your dashboard.',
+    features: ['Digital Animal Passports', 'Health & Milk Tracking', 'Breeding Management', 'Sell on Marketplace', 'Farm Analytics'],
     cta: 'Start as Farm Owner',
     path: '/register?role=farmer',
-    glow: 'rgba(21,128,61,0.55)',
-    glowHover: 'rgba(21,128,61,0.8)',
     accent: '#4ade80',
-    accentDim: 'rgba(74,222,128,0.12)',
-    border: 'rgba(74,222,128,0.2)',
-    borderHover: 'rgba(74,222,128,0.5)',
-    btnBg: '#15803d',
-    btnHover: '#16a34a',
+    glow: 'rgba(74,222,128,0.35)',
+    border: 'rgba(74,222,128,0.25)',
+    borderHover: 'rgba(74,222,128,0.6)',
+    btnBg: 'linear-gradient(135deg, #15803d, #16a34a)',
+    checkColor: '#4ade80',
   },
   {
     key: 'buyer',
     label: 'BUYER',
     tagline: 'Browse & Purchase',
-    description: 'Find verified livestock with full digital passport history. Negotiate directly with farmers and complete transfers securely.',
-    features: ['Browse Marketplace', 'View Animal Passports', 'Direct Farmer Chat', 'Secure Transfer Agreements', 'Purchase History'],
+    description: 'Find verified livestock with full passport history. Chat with farmers, negotiate prices, and complete secure ownership transfers.',
+    features: ['Browse Live Listings', 'View Full Animal Passports', 'Direct Farmer Messaging', 'Secure Ownership Transfer', 'Purchase History'],
     cta: 'Start as Buyer',
     path: '/register?role=buyer',
-    glow: 'rgba(37,99,235,0.55)',
-    glowHover: 'rgba(37,99,235,0.8)',
-    accent: '#60a5fa',
-    accentDim: 'rgba(96,165,250,0.12)',
-    border: 'rgba(96,165,250,0.2)',
-    borderHover: 'rgba(96,165,250,0.5)',
-    btnBg: '#1d4ed8',
-    btnHover: '#2563eb',
+    accent: '#22d3ee',
+    glow: 'rgba(34,211,238,0.4)',
+    border: 'rgba(34,211,238,0.25)',
+    borderHover: 'rgba(34,211,238,0.65)',
+    btnBg: 'linear-gradient(135deg, #0e7490, #0891b2)',
+    checkColor: '#22d3ee',
     featured: true,
   },
   {
     key: 'vet',
     label: 'VETERINARIAN',
     tagline: 'Treat & Verify',
-    description: 'Register your practice, access animal histories, record treatments and vaccinations, and verify ownership transfers.',
-    features: ['Animal Treatment Records', 'Vaccination Tracking', 'Transfer Verification', 'Appointment Requests', 'Client Reviews'],
+    description: 'Access full animal health histories, record treatments and vaccinations, verify ownership transfers, and manage your client farms.',
+    features: ['Animal Health Records', 'Vaccination Certificates', 'Transfer Verification', 'Client Farm Access', 'Appointment Management'],
     cta: 'Start as Veterinarian',
     path: '/register?role=vet',
-    glow: 'rgba(13,148,136,0.55)',
-    glowHover: 'rgba(13,148,136,0.8)',
-    accent: '#2dd4bf',
-    accentDim: 'rgba(45,212,191,0.12)',
-    border: 'rgba(45,212,191,0.2)',
-    borderHover: 'rgba(45,212,191,0.5)',
-    btnBg: '#0f766e',
-    btnHover: '#0d9488',
+    accent: '#a78bfa',
+    glow: 'rgba(167,139,250,0.35)',
+    border: 'rgba(167,139,250,0.25)',
+    borderHover: 'rgba(167,139,250,0.6)',
+    btnBg: 'linear-gradient(135deg, #6d28d9, #7c3aed)',
+    checkColor: '#a78bfa',
   },
 ];
 
 export default function ChooseJourney() {
   const navigate = useNavigate();
-  const [current, setCurrent] = useState(0);
-  const [fade, setFade] = useState(true);
   const [hovered, setHovered] = useState<string | null>(null);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false);
-      setTimeout(() => {
-        setCurrent(prev => (prev + 1) % IMAGES.length);
-        setFade(true);
-      }, 600);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div style={{
-      position: 'relative', minHeight: '100vh',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '32px 16px', overflow: 'hidden',
-      background: '#050a0f',
+      position: 'relative',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px 16px',
+      overflow: 'hidden',
+      background: '#020810',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
     }}>
 
+      {/* Background image with dark overlay */}
       <div style={{
-        position: 'fixed', inset: 0, zIndex: 0,
-        backgroundImage: `url(${IMAGES[current]})`,
-        backgroundSize: 'cover', backgroundPosition: 'center',
-        opacity: fade ? 0.18 : 0,
-        transition: 'opacity 0.6s ease',
+        position: 'fixed',
+        inset: 0,
+        zIndex: 0,
+        backgroundImage: `url('/farm-hero.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center 30%',
+        opacity: 0.22,
       }} />
 
+      {/* Dark gradient overlay */}
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1,
+        background: 'linear-gradient(to bottom, rgba(2,8,16,0.7) 0%, rgba(2,8,16,0.5) 40%, rgba(2,8,16,0.85) 100%)',
+      }} />
+
+      {/* Ambient glow orbs */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
         <div style={{
-          position: 'absolute', top: '20%', left: '5%',
-          width: 400, height: 400, borderRadius: '50%',
-          background: 'rgba(21,128,61,0.18)',
-          filter: 'blur(100px)',
-        }} />
-        <div style={{
-          position: 'absolute', top: '30%', left: '40%',
+          position: 'absolute', top: '15%', left: '8%',
           width: 500, height: 500, borderRadius: '50%',
-          background: 'rgba(37,99,235,0.15)',
-          filter: 'blur(120px)',
+          background: 'rgba(21,128,61,0.12)', filter: 'blur(120px)',
         }} />
         <div style={{
-          position: 'absolute', top: '20%', right: '5%',
-          width: 400, height: 400, borderRadius: '50%',
-          background: 'rgba(13,148,136,0.18)',
-          filter: 'blur(100px)',
+          position: 'absolute', top: '25%', left: '35%',
+          width: 600, height: 600, borderRadius: '50%',
+          background: 'rgba(34,211,238,0.10)', filter: 'blur(140px)',
+        }} />
+        <div style={{
+          position: 'absolute', top: '15%', right: '8%',
+          width: 500, height: 500, borderRadius: '50%',
+          background: 'rgba(109,40,217,0.12)', filter: 'blur(120px)',
         }} />
       </div>
 
-      <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 1080, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 48 }}>
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 2, width: '100%', maxWidth: 1100, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 52 }}>
 
-        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/agripulse-logo.png" alt="AgriPulse" style={{ width: 32, height: 32, borderRadius: 7 }} />
-            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase' }}>AgriPulse</span>
+        {/* Header */}
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+            <img src="/agripulse-logo.png" alt="AgriPulse" style={{ width: 30, height: 30, borderRadius: 7 }} />
+            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase' }}>AgriPulse</span>
           </div>
 
-          <div>
+          {/* Big background text like the reference */}
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              position: 'absolute',
+              top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              fontSize: 'clamp(60px, 12vw, 130px)',
+              fontWeight: 900,
+              color: 'rgba(255,255,255,0.04)',
+              whiteSpace: 'nowrap',
+              letterSpacing: -4,
+              userSelect: 'none',
+              zIndex: 0,
+            }}>
+              YOUR JOURNEY
+            </div>
             <h1 style={{
+              position: 'relative', zIndex: 1,
               color: '#fff', margin: 0,
-              fontSize: 'clamp(32px, 5vw, 54px)',
-              fontWeight: 900, letterSpacing: -1, lineHeight: 1.1,
+              fontSize: 'clamp(28px, 4vw, 46px)',
+              fontWeight: 900, letterSpacing: -1, lineHeight: 1.15,
             }}>
               Choose Your Journey
             </h1>
-            <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 16, marginTop: 12, marginBottom: 0 }}>
-              One platform. Three paths. All connected through verified animal passports.
-            </p>
           </div>
+
+          <p style={{
+            color: 'rgba(255,255,255,0.4)',
+            fontSize: 15, marginTop: 4, marginBottom: 0,
+            maxWidth: 480, lineHeight: 1.6,
+          }}>
+            One platform. Three paths. All connected through verified digital animal passports.
+          </p>
         </div>
 
+        {/* Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 20, width: '100%', alignItems: 'start',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: 20,
+          width: '100%',
+          alignItems: 'center',
         }}>
           {ROLES.map(role => {
             const isHovered = hovered === role.key;
+            const isFeatured = role.featured;
             return (
               <div
                 key={role.key}
                 onMouseEnter={() => setHovered(role.key)}
                 onMouseLeave={() => setHovered(null)}
+                onClick={() => navigate(role.path)}
                 style={{
                   position: 'relative',
-                  background: isHovered
-                    ? `linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.04))`
-                    : `linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))`,
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  border: `1px solid ${isHovered ? role.borderHover : role.border}`,
-                  borderRadius: 20,
-                  padding: '32px 28px',
-                  display: 'flex', flexDirection: 'column', gap: 24,
+                  borderRadius: 24,
+                  padding: isFeatured ? '36px 28px' : '30px 26px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 22,
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  transform: role.featured
-                    ? isHovered ? 'translateY(-6px) scale(1.02)' : 'translateY(-4px) scale(1.01)'
-                    : isHovered ? 'translateY(-4px)' : 'translateY(0)',
-                  boxShadow: isHovered
-                    ? `0 0 60px ${role.glow}, 0 20px 40px rgba(0,0,0,0.4)`
-                    : role.featured
-                      ? `0 0 30px ${role.glow}, 0 8px 24px rgba(0,0,0,0.3)`
-                      : '0 4px 20px rgba(0,0,0,0.3)',
-                }}
-                onClick={() => navigate(role.path)}
-              >
+                  transition: 'all 0.35s cubic-bezier(0.23, 1, 0.32, 1)',
+                  transform: isFeatured
+                    ? isHovered ? 'translateY(-8px) scale(1.02)' : 'translateY(-6px) scale(1.01)'
+                    : isHovered ? 'translateY(-6px)' : 'translateY(0)',
 
+                  // Glass effect
+                  background: isHovered
+                    ? `linear-gradient(145deg, rgba(255,255,255,0.10), rgba(255,255,255,0.04))`
+                    : `linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02))`,
+                  backdropFilter: 'blur(40px)',
+                  WebkitBackdropFilter: 'blur(40px)',
+                  border: `1px solid ${isHovered ? role.borderHover : role.border}`,
+                  boxShadow: isHovered
+                    ? `0 0 60px ${role.glow}, 0 0 120px ${role.glow.replace('0.35', '0.15')}, inset 0 1px 0 rgba(255,255,255,0.15), 0 24px 48px rgba(0,0,0,0.5)`
+                    : isFeatured
+                      ? `0 0 40px ${role.glow}, inset 0 1px 0 rgba(255,255,255,0.10), 0 12px 32px rgba(0,0,0,0.4)`
+                      : `inset 0 1px 0 rgba(255,255,255,0.08), 0 8px 24px rgba(0,0,0,0.3)`,
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Inner shimmer top line */}
                 <div style={{
-                  position: 'absolute', inset: 0, borderRadius: 20,
-                  background: isHovered ? role.glowHover : role.glow,
-                  opacity: 0.08, zIndex: 0, pointerEvents: 'none',
-                  transition: 'all 0.3s ease',
+                  position: 'absolute',
+                  top: 0, left: '10%', right: '10%',
+                  height: 1,
+                  background: `linear-gradient(to right, transparent, ${role.accent}60, transparent)`,
+                  zIndex: 1,
                 }} />
 
-                <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
+                {/* Glow blob inside card */}
+                <div style={{
+                  position: 'absolute',
+                  top: -40, left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: 200, height: 200,
+                  borderRadius: '50%',
+                  background: role.glow,
+                  filter: 'blur(60px)',
+                  opacity: isHovered ? 0.6 : 0.3,
+                  transition: 'opacity 0.35s ease',
+                  zIndex: 0,
+                  pointerEvents: 'none',
+                }} />
 
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                  {/* Label badge */}
                   <div>
                     <div style={{
-                      display: 'inline-block',
-                      background: role.accentDim,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: `rgba(255,255,255,0.06)`,
                       border: `1px solid ${role.border}`,
-                      color: role.accent,
-                      fontSize: 10, fontWeight: 800,
-                      letterSpacing: 2, padding: '4px 10px',
-                      borderRadius: 6, marginBottom: 14,
+                      borderRadius: 8,
+                      padding: '4px 12px',
+                      marginBottom: 14,
                     }}>
-                      {role.label}
+                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: role.accent }} />
+                      <span style={{ color: role.accent, fontSize: 10, fontWeight: 800, letterSpacing: 2 }}>{role.label}</span>
                     </div>
+
                     <div style={{ color: '#fff', fontSize: 26, fontWeight: 900, letterSpacing: -0.5, lineHeight: 1.1 }}>
                       {role.tagline}
                     </div>
                   </div>
 
-                  <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, lineHeight: 1.7, margin: 0 }}>
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13.5, lineHeight: 1.7, margin: 0 }}>
                     {role.description}
                   </p>
 
+                  {/* Divider */}
                   <div style={{ height: 1, background: `linear-gradient(to right, ${role.border}, transparent)` }} />
 
+                  {/* Features */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {role.features.map(f => (
-                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{
-                          width: 18, height: 18, borderRadius: '50%',
-                          background: role.accentDim,
+                          width: 20, height: 20, borderRadius: '50%',
+                          background: `rgba(255,255,255,0.05)`,
                           border: `1px solid ${role.border}`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           flexShrink: 0,
                         }}>
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: role.accent }} />
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                            <path d="M1 4L3.5 6.5L9 1" stroke={role.checkColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
                         </div>
                         <span style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>{f}</span>
                       </div>
                     ))}
                   </div>
 
+                  {/* CTA Button */}
                   <button
+                    onClick={e => { e.stopPropagation(); navigate(role.path); }}
                     style={{
-                      marginTop: 4,
+                      marginTop: 6,
                       padding: '14px 20px',
-                      borderRadius: 12,
-                      border: 'none',
-                      background: isHovered ? role.btnHover : role.btnBg,
+                      borderRadius: 14,
+                      border: `1px solid ${role.borderHover}`,
+                      background: isHovered ? role.btnBg : `rgba(255,255,255,0.06)`,
                       color: '#fff',
                       fontSize: 14, fontWeight: 700,
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
+                      transition: 'all 0.25s ease',
                       letterSpacing: 0.3,
                       width: '100%',
-                      boxShadow: isHovered ? `0 4px 20px ${role.glow}` : 'none',
+                      boxShadow: isHovered ? `0 4px 24px ${role.glow}` : 'none',
                     }}
-                    onClick={e => { e.stopPropagation(); navigate(role.path); }}
                   >
                     {role.cta}
                   </button>
@@ -246,21 +296,12 @@ export default function ChooseJourney() {
           })}
         </div>
 
+        {/* Footer links */}
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 14 }}>Already have an account?</span>
-          <span
-            onClick={() => navigate('/login')}
-            style={{ color: '#4ade80', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-          >
-            Sign in
-          </span>
-          <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 14 }}>·</span>
-          <span
-            onClick={() => navigate('/')}
-            style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, cursor: 'pointer' }}
-          >
-            Back to Home
-          </span>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Already have an account?</span>
+          <span onClick={() => navigate('/login')} style={{ color: '#4ade80', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Sign in</span>
+          <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 14 }}>·</span>
+          <span onClick={() => navigate('/')} style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, cursor: 'pointer' }}>Back to Home</span>
         </div>
 
       </div>

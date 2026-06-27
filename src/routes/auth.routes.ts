@@ -75,6 +75,9 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
   }
 
   const { name, email, password } = parsed.data;
+  const roleParam = req.body.role || 'farmer';
+  const roleMap: Record<string, string> = { farmer: 'admin', buyer: 'admin', vet: 'admin' };
+  const assignedRole = roleMap[roleParam] || 'admin';
 
   // Check registration mode
   const modeFlag = await prisma.featureFlag.findFirst({
@@ -102,7 +105,7 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
       name,
       email,
       password: hashed,
-      role: 'admin',
+      role: assignedRole as any,
       isActive: false,
       registrationStatus: 'pending',
     },

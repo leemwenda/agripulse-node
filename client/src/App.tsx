@@ -1,5 +1,6 @@
 import VerifyEmail from './pages/VerifyEmail';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { MarketplacePage } from './pages/Marketplace';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Layout } from './components/layout/Layout';
@@ -18,6 +19,8 @@ import { SystemPanel } from './pages/SystemPanel';
 import LandingPage from './pages/LandingPage';
 import AnimalPassport from './pages/AnimalPassport';
 import ChooseJourney from './pages/ChooseJourney';
+import ListingDetail from './pages/ListingDetail';
+import CreateListing from './pages/CreateListing';
 import { PageLoader } from './components/ui';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -54,6 +57,7 @@ function SystemRoute() {
 function AppRoutes() {
   return (
     <Routes>
+        <Route path="/marketplace" element={<PrivateRoute><MarketplacePage /></PrivateRoute>} />
       {/* Public pages — no auth required */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -62,6 +66,8 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify" element={<VerifyEmail />} />
       <Route path="/journey" element={<ChooseJourney />} />
+                        <Route path="/marketplace/listing/:id" element={<PrivateRoute><ListingDetail /></PrivateRoute>} />
+      <Route path="/marketplace/create" element={<AdminRoute><CreateListing /></AdminRoute>} />
       <Route path="/animal/:agripulseId" element={<AnimalPassport />} />
       <Route path="/system" element={<SystemRoute />} />
 

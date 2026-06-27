@@ -105,7 +105,7 @@ function GlassCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-const fieldStyle = { width: '100%', height: 44, padding: '0 14px 0 42px', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)', borderRadius: 9, fontFamily: 'Inter, sans-serif', fontSize: '16px', color: '#fff', outline: 'none', boxSizing: 'border-box' as const };
+const fieldStyle = { width: '100%', height: 44, padding: '0 14px 0 42px', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.09)', borderRadius: 9, fontFamily: 'Inter, sans-serif', fontSize: '16px', color: '#fff', outline: 'none', boxSizing: 'border-box' as const, colorScheme: 'dark' as const };
 const labelStyle = { display: 'block', fontSize: '0.72rem', fontWeight: 600, color: 'rgba(130,160,140,.75)', marginBottom: 6, letterSpacing: '0.3px', textTransform: 'uppercase' as const };
 const iconWrap = { position: 'absolute' as const, left: 12, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,.25)', display: 'flex', alignItems: 'center', pointerEvents: 'none' as const };
 
@@ -234,7 +234,20 @@ export function LoginPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#070c12', display: 'flex', flexDirection: 'row', overflowX: 'hidden' }}>
-      <style>{`* { box-sizing: border-box; } body { overflow-x: hidden; }`}</style>
+      <style>{`
+  * { box-sizing: border-box; }
+  body { overflow-x: hidden; }
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0d1526 inset !important;
+    -webkit-text-fill-color: #fff !important;
+    caret-color: #fff !important;
+    border: 1px solid rgba(255,255,255,.09) !important;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+`}</style>
       <SlideshowBg />
       <div style={{ position: 'relative', zIndex: 2, display: 'flex', minHeight: '100vh', alignItems: 'stretch', width: '100%' }} className="flex flex-col lg:flex-row">
         <LeftPanel />
@@ -288,6 +301,8 @@ export function LoginPage() {
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get('role') || 'farmer';
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -295,19 +310,41 @@ export function RegisterPage() {
   const [showForgot, setShowForgot] = useState(false);
   const [success, setSuccess] = useState('');
 
+  const roleLabels: Record<string, string> = {
+    farmer: 'Farm Owner',
+    buyer: 'Buyer',
+    vet: 'Veterinarian',
+  };
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault(); setError(''); setLoading(true);
     try {
-      const { data } = await api.post('/auth/register', form);
-      if (data.user) { navigate('/dashboard'); }
-      else { setSuccess(data.message || 'Account submitted for review.'); }
+      const { data } = await api.post('/auth/register', { ...form, role });
+      if (data.user) {
+        if (role === 'buyer') navigate('/marketplace');
+        else if (role === 'vet') navigate('/vet-dashboard');
+        else navigate('/dashboard');
+      } else { setSuccess(data.message || 'Account submitted for review.'); }
     } catch (err: unknown) { const e = err as { response?: { data?: { error?: string } } }; setError(e?.response?.data?.error || 'Registration failed.'); }
     finally { setLoading(false); }
   }
 
   return (
     <div style={{ minHeight: '100vh', background: '#070c12', display: 'flex', flexDirection: 'row', overflowX: 'hidden' }}>
-      <style>{`* { box-sizing: border-box; } body { overflow-x: hidden; }`}</style>
+      <style>{`
+  * { box-sizing: border-box; }
+  body { overflow-x: hidden; }
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #0d1526 inset !important;
+    -webkit-text-fill-color: #fff !important;
+    caret-color: #fff !important;
+    border: 1px solid rgba(255,255,255,.09) !important;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+`}</style>
       <SlideshowBg />
       <div style={{ position: 'relative', zIndex: 2, display: 'flex', minHeight: '100vh', alignItems: 'stretch', width: '100%' }} className="flex flex-col lg:flex-row">
         <LeftPanel />
@@ -315,7 +352,7 @@ export function RegisterPage() {
           <Tabs active="register" />
           <div style={{ marginBottom: 24 }}>
             <h2 style={{ fontFamily: 'Inter,sans-serif', fontSize: '1.6rem', fontWeight: 700, color: '#fff', marginBottom: 5 }}>Create account</h2>
-            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,.38)' }}>Join your farm team — fill in your details below</p>
+            <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,.38)' }}>Registering as <span style={{ color: '#10b981', fontWeight: 600 }}>{roleLabels[role] || 'Farm Owner'}</span> — fill in your details below</p>
           </div>
           {success ? (
             <div style={{ textAlign: 'center' }}>
