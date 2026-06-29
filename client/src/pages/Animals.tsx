@@ -145,6 +145,7 @@ export function AnimalsPage() {
   function openEdit(a: Animal) {
     setForm({ ...a, dateOfBirth: a.dateOfBirth.split('T')[0] });
     setEditId(a.id);
+    setPhotoFile(null);
     setModalOpen(true);
   }
 
@@ -153,7 +154,23 @@ export function AnimalsPage() {
     setSaving(true);
     try {
       if (editId) {
-        await api.put(`/animals/${editId}`, form);
+        const payload = {
+          name: form.name,
+          tagNumber: form.tagNumber,
+          breed: form.breed,
+          gender: form.gender,
+          dateOfBirth: form.dateOfBirth,
+          color: form.color || null,
+          notes: form.notes || null,
+          status: form.status,
+        };
+        await api.put(`/animals/${editId}`, payload);
+        if (photoFile) {
+          const fd = new FormData();
+          fd.append("photo", photoFile);
+          fd.append("isPrimary", "true");
+          await api.post(`/animals/${editId}/photos`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+        }
         toast.success('Animal updated.');
       } else {
         const res = await api.post(`/animals`, form);

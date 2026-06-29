@@ -126,11 +126,11 @@ model User {
   transfersFrom         OwnershipTransfer[] @relation("TransfersFrom")
   transfersTo           OwnershipTransfer[] @relation("TransfersTo")
   transfersInitiated    OwnershipTransfer[] @relation("TransfersInitiated")
-  listingsFarm          Listing[]           @relation("ListingsFarm")
-  listingsSeller        Listing[]           @relation("ListingsSeller")
-  inquiries             ListingInquiry[]    @relation("InquiriesBuyer")
-  sentMessages          InquiryMessage[]    @relation("MessagesSender")
-  animalWeights         AnimalWeight[]
+  marketListings        MarketListing[]   @relation("MarketSeller")
+  marketOffers          MarketOffer[]     @relation("OffersBuyer")
+  marketThreads         MarketThread[]    @relation("ThreadsBuyer")
+  marketMessages        MarketMessage[]   @relation("MessagesSenderV2")
+  marketFavorites       MarketFavorite[]  @relation("UserFavorites")
 
   @@map("users")
 }
@@ -181,7 +181,7 @@ model Animal {
   weights           AnimalWeight[]
   photos            AnimalPhoto[]
   ownershipTransfers OwnershipTransfer[]
-  listings           Listing[]
+  listings           MarketListing[] @relation("MarketAnimal")
 
   @@map("animals")
 }
@@ -375,125 +375,236 @@ enum TransferStatus {
   cancelled
 }
 
-// ── PHASE 2: Marketplace ─────────────────
+enum OfferStatus {
+  pending
+  accepted
+  rejected
+  withdrawn
+  countered
+}
+// ═══════════════════════════════════════════════════════════════
+// MARKETPLACE V2
+// ═══════════════════════════════════════════════════════════════
 
-enum ListingStatus {
+enum MarketListingStatus {
+  draft
   active
   reserved
   sold
+  expired
   cancelled
 }
 
+
+enum AgreementStatus {
+  draft
+  buyer_signed
+  seller_signed
+  complete
+  cancelled
+}
+
+enum MessageType {
+  text
+  offer
+  system
+}
+
+model MarketListing {
+  id              Int                   @id @default(autoincrement())
+  animalId        Int                   @unique @map("animal_id")
+  sellerId        Int                   @map("seller_id")
+  title           String
+  description     String?               @db.Text
+  askingPrice     Decimal               @map("asking_price") @db.Decimal(12, 2)
+  negotiable      Boolean               @default(true)
+  county          String
+  town            String?
+  status          MarketListingStatus   @default(active)
+  featured        Boolean               @default(false)
+  viewCount       Int                   @default(0) @map("view_count")
+  expiresAt       DateTime?             @map("expires_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  animal    Animal              @relation("MarketAnimal", fields: [animalId], references: [id], onDelete: Cascade)
+  seller    User                @relation("MarketSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  photos    MarketPhoto[]
+  offers    MarketOffer[]
+  threads   MarketThread[]
+  favorites MarketFavorite[]
+  agreement MarketAgreement?
+  views     MarketView[]
+
+  @@index([sellerId])
+  @@index([status])
+  @@index([county])
+  @@index([createdAt])
+  @@map("market_listings")
+}
+
+model MarketPhoto {
+  id        Int          @id @default(autoincrement())
+  listingId Int          @map("listing_id")
+  url       String
+  isPrimary Boolean      @default(false) @map("is_primary")
+  order     Int          @default(0)
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  listing MarketListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("market_photos")
+}
+
+model MarketOffer {
+  id          Int         @id @default(autoincrement())
+  listingId   Int         @map("listing_id")
+  buyerId     Int         @map("buyer_id")
+  amount      Decimal     @db.Decimal(12, 2)
+  note        String?     @db.Text
+  status      OfferStatus @default(pending)
+  parentId    Int?        @map("parent_id")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  listing   MarketListing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer     User           @relation("OffersBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  parent    MarketOffer?   @relation("OfferCounters", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  counters  MarketOffer[]  @relation("OfferCounters")
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@map("market_offers")
+}
+
+model MarketThread {
+  id        Int       @id @default(autoincrement())
+  listingId Int       @map("listing_id")
+  buyerId   Int       @map("buyer_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  listing  MarketListing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer    User             @relation("ThreadsBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  messages MarketMessage[]
+
+  @@unique([listingId, buyerId])
+  @@index([buyerId])
+  @@map("market_threads")
+}
+
+model MarketMessage {
+  id        Int         @id @default(autoincrement())
+  threadId  Int         @map("thread_id")
+  senderId  Int         @map("sender_id")
+  body      String      @db.Text
+  type      MessageType @default(text)
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  thread MarketThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User         @relation("MessagesSenderV2", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@map("market_messages")
+}
+
+model MarketFavorite {
+  id        Int      @id @default(autoincrement())
+  listingId Int      @map("listing_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  listing MarketListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user    User          @relation("UserFavorites", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, userId])
+  @@index([userId])
+  @@map("market_favorites")
+}
+
+model MarketView {
+  id        Int      @id @default(autoincrement())
+  listingId Int      @map("listing_id")
+  ip        String?
+  userId    Int?     @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  listing MarketListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("market_views")
+}
+
+model MarketAgreement {
+  id              Int             @id @default(autoincrement())
+  listingId       Int             @unique @map("listing_id")
+  offerId         Int             @unique @map("offer_id")
+  agreedPrice     Decimal         @map("agreed_price") @db.Decimal(12, 2)
+  status          AgreementStatus @default(draft)
+  buyerSignature  String?         @db.Text @map("buyer_signature")
+  buyerSignedAt   DateTime?       @map("buyer_signed_at")
+  sellerSignature String?         @db.Text @map("seller_signature")
+  sellerSignedAt  DateTime?       @map("seller_signed_at")
+  pdfUrl          String?         @map("pdf_url")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  listing MarketListing @relation(fields: [listingId], references: [id])
+
+  @@map("market_agreements")
+}
+
+
+// ── PHASE 1: Digital Passport models ─────────────────────────────────────────
+
 model AnimalWeight {
-  id          Int      @id @default(autoincrement())
-  animalId    Int      @map("animal_id")
-  farmId      Int      @map("farm_id")
-  weightKg    Decimal  @map("weight_kg") @db.Decimal(6, 2)
-  recordDate  DateTime @map("record_date") @db.Date
-  notes       String?  @db.Text
-  recordedBy  Int?     @map("recorded_by")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         Int      @id @default(autoincrement())
+  animalId   Int      @map("animal_id")
+  weightKg   Decimal  @map("weight_kg") @db.Decimal(8, 2)
+  recordedAt DateTime @default(now()) @map("recorded_at")
+  notes      String?  @db.Text
 
-  animal         Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  recordedByUser User?  @relation(fields: [recordedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
 
+  @@index([animalId])
   @@map("animal_weights")
 }
 
 model AnimalPhoto {
-  id        Int      @id @default(autoincrement())
-  animalId  Int      @map("animal_id")
-  url       String
-  caption   String?
-  isPrimary Boolean  @default(false) @map("is_primary")
-  createdAt DateTime @default(now()) @map("created_at")
+  id         Int      @id @default(autoincrement())
+  animalId   Int      @map("animal_id")
+  url        String
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
 
-  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  animal Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
 
+  @@index([animalId])
   @@map("animal_photos")
 }
 
 model OwnershipTransfer {
-  id              Int            @id @default(autoincrement())
-  animalId        Int            @map("animal_id")
-  fromFarmId      Int            @map("from_farm_id")
-  toFarmId        Int?           @map("to_farm_id")
-  toEmail         String?        @map("to_email")
-  method          TransferMethod @default(in_app)
-  status          TransferStatus @default(pending)
-  transferCode    String?        @unique @map("transfer_code")
-  notes           String?        @db.Text
-  initiatedBy        Int            @map("initiated_by")
-  expiresAt          DateTime?      @map("expires_at")
-  completedAt        DateTime?      @map("completed_at")
-  sellerSignature    String?        @map("seller_signature") @db.Text
-  sellerSignedAt     DateTime?      @map("seller_signed_at")
-  buyerSignature     String?        @map("buyer_signature") @db.Text
-  buyerSignedAt      DateTime?      @map("buyer_signed_at")
-  createdAt          DateTime       @default(now()) @map("created_at")
+  id           Int            @id @default(autoincrement())
+  animalId     Int            @map("animal_id")
+  fromUserId   Int            @map("from_user_id")
+  toUserId     Int            @map("to_user_id")
+  initiatedBy  Int            @map("initiated_by")
+  method       TransferMethod @default(in_app)
+  status       TransferStatus @default(pending)
+  price        Decimal?       @db.Decimal(12, 2)
+  notes        String?        @db.Text
+  transferDate DateTime?      @map("transfer_date")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
 
-  animal      Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  fromFarm    User   @relation("TransfersFrom", fields: [fromFarmId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  toFarm      User?  @relation("TransfersTo", fields: [toFarmId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  initiatedByUser User @relation("TransfersInitiated", fields: [initiatedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@map("ownership_transfers")
-}
-
-model Listing {
-  id              Int           @id @default(autoincrement())
-  animalId        Int           @map("animal_id")
-  farmId          Int           @map("farm_id")
-  sellerId        Int           @map("seller_id")
-  askingPrice     Decimal       @map("asking_price") @db.Decimal(10, 2)
-  description     String?       @map("description") @db.Text
-  location        String?
-  status          ListingStatus @default(active)
-  views           Int           @default(0)
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-
-  animal     Animal             @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  farm       User               @relation("ListingsFarm", fields: [farmId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  seller     User               @relation("ListingsSeller", fields: [sellerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  inquiries  ListingInquiry[]
+  animal    Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  fromUser  User   @relation("TransfersFrom", fields: [fromUserId], references: [id])
+  toUser    User   @relation("TransfersTo", fields: [toUserId], references: [id])
+  initiator User   @relation("TransfersInitiated", fields: [initiatedBy], references: [id])
 
   @@index([animalId])
-  @@index([farmId])
-  @@index([sellerId])
-  @@index([status])
-  @@map("listings")
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@map("ownership_transfers")
 }
-
-model ListingInquiry {
-  id        Int      @id @default(autoincrement())
-  listingId Int      @map("listing_id")
-  buyerId   Int      @map("buyer_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  listing  Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  buyer    User              @relation("InquiriesBuyer", fields: [buyerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  messages InquiryMessage[]
-
-  @@unique([listingId, buyerId])
-  @@index([listingId])
-  @@index([buyerId])
-  @@map("listing_inquiries")
-}
-
-model InquiryMessage {
-  id        Int      @id @default(autoincrement())
-  inquiryId Int      @map("inquiry_id")
-  senderId  Int      @map("sender_id")
-  message   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
-
-  inquiry ListingInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  sender  User           @relation("MessagesSender", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([inquiryId])
-  @@index([senderId])
-  @@map("inquiry_messages")
-}
-

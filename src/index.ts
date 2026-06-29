@@ -9,7 +9,10 @@ dotenv.config();
 
 import authRoutes from './routes/auth.routes';
 import passportRoutes from './routes/passport.routes';
-import marketplaceRoutes from './routes/marketplace.routes';
+import marketRoutes from './routes/market.routes';
+import marketOffersRoutes from './routes/market.offers.routes';
+import marketMessagesRoutes from './routes/market.messages.routes';
+import marketMiscRoutes from './routes/market.misc.routes';
 import animalsRoutes from './routes/animals.routes';
 import { milkRouter, healthRouter, breedingRouter, financialRouter } from './routes/data.routes';
 import { startAnimalCategoryCron, updateAllAnimalCategories } from './services/animalCategory.service';
@@ -104,7 +107,12 @@ app.use('/api/profile',       profileRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/issues',        issuesRouter);
 app.use('/api/passport',      passportRoutes);
-app.use('/api/marketplace',   marketplaceRoutes);
+app.use('/uploads', require('express').static('/var/www/agripulse-staging/uploads'));
+app.use('/api/market',           marketRoutes);
+app.use('/api/market-offers',    marketOffersRoutes);
+app.use('/api/market-messages',  marketMessagesRoutes);
+app.use('/api/market-misc',      marketMiscRoutes);
+app.use('/api/marketplace',      marketRoutes); // redirect old route
 
 
 // ── Sentry test route (remove after testing) ─────────────────

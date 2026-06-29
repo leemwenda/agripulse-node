@@ -24,7 +24,7 @@ const ROLES = [
     description: 'Find verified livestock with full passport history. Chat with farmers, negotiate prices, and complete secure ownership transfers.',
     features: ['Browse Live Listings', 'View Full Animal Passports', 'Direct Farmer Messaging', 'Secure Ownership Transfer', 'Purchase History'],
     cta: 'Start as Buyer',
-    path: '/register?role=buyer',
+    path: '/marketplace/signup',
     accent: '#22d3ee',
     glow: 'rgba(34,211,238,0.4)',
     border: 'rgba(34,211,238,0.25)',

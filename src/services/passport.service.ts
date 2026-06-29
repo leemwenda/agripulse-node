@@ -21,14 +21,14 @@ export async function getAnimalPassport(agripulseId: string) {
       healthRecords: { orderBy: { recordDate: 'desc' } },
       milkProduction: { orderBy: { productionDate: 'desc' } },
       breeding: { orderBy: { serviceDate: 'desc' } },
-      weights: { orderBy: { recordDate: 'desc' } },
+      weights: { orderBy: { recordedAt: 'desc' } },
       photos: { orderBy: { isPrimary: 'desc' } },
       ownershipTransfers: {
         where: { status: 'completed' },
-        orderBy: { completedAt: 'asc' },
+        orderBy: { createdAt: 'asc' },
         include: {
-          fromFarm: { select: { id: true, name: true } },
-          toFarm: { select: { id: true, name: true } },
+          fromUser: { select: { id: true, name: true } },
+          toUser: { select: { id: true, name: true } },
         },
       },
     },

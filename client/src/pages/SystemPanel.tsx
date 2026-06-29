@@ -977,9 +977,9 @@ function FarmsTab() {
           <div className="sp-farm-card" key={f.id} onClick={() => setSelected(f)}>
             <div className="sp-farm-name">{f.name}</div>
             <div className="sp-farm-meta">
-              {f.workerCount != null && <span className="sp-farm-stat">👤 {f.workerCount} workers</span>}
+              {f.workerCount != null && <span className="sp-farm-stat">{f.workerCount} workers</span>}
               {f.animalCount != null && <span className="sp-farm-stat">🐾 {f.animalCount} animals</span>}
-              {f.location && <span className="sp-farm-stat">📍 {f.location}</span>}
+              {f.location && <span className="sp-farm-stat">{f.location}</span>}
             </div>
             <Badge label={f.status === 'pending' ? 'Pending' : 'Active'} color={f.status === 'pending' ? 'amber' : 'green'} />
           </div>
@@ -1945,7 +1945,7 @@ function WorkerPanel() {
           width: 56, height: 56, borderRadius: 16, background: '#EEEDFE',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 16px', fontSize: 24,
-        }}>🌾</div>
+        }}>—</div>
         <h2 style={{ color: '#111', fontWeight: 600, marginBottom: 8, fontSize: 18 }}>
           Welcome, {user?.name?.split(' ')[0]}
         </h2>

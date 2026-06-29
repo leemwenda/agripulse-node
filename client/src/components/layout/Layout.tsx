@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import {
-  LayoutDashboard, Beef, Milk, Heart, Baby, Wallet, Store,
+  LayoutDashboard, Beef, Milk, Heart, Baby, Wallet, Store, Tag,
   Users, Bot, LogOut, Menu, X, Bell, ChevronDown,
-  BarChart2, User, AlertTriangle, Sun, Moon, Shield,
+  BarChart2, User, AlertTriangle, Sun, Moon, Shield, ArrowLeftRight,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -13,6 +13,7 @@ const allNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin','superadmin','worker'] },
   { icon: Beef,            label: 'Animals',   to: '/animals',   roles: ['admin','superadmin'] },
   { icon: Store, label: 'Marketplace', to: '/marketplace', roles: ['admin','superadmin','worker'] },
+  { icon: Tag, label: 'List for Sale', to: '/marketplace/create', roles: ['admin','superadmin'] },
   { icon: Milk,            label: 'Milk',      to: '/milk',      roles: ['admin','superadmin','worker'] },
   { icon: Heart,           label: 'Health',    to: '/health',    roles: ['admin','superadmin','worker'] },
   { icon: Baby,            label: 'Breeding',  to: '/breeding',  roles: ['admin','superadmin'] },
@@ -67,6 +68,7 @@ export function Layout() {
   }, []);
 
   function handleLogout() { logout(); navigate('/login'); }
+  function handleExitFarm() { navigate('/marketplace'); }
 
   const colors = {
     dark: {
@@ -228,6 +230,15 @@ export function Layout() {
               </div>
             </div>
             <button
+              onClick={handleExitFarm}
+              title="Exit to Marketplace"
+              style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: c.text3, transition: 'all 0.15s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = c.hoverBg; (e.currentTarget as HTMLElement).style.color = '#15803d'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = c.text3; }}
+            >
+              <ArrowLeftRight size={16} />
+            </button>
+            <button
               onClick={handleLogout}
               title="Log out"
               style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: c.text3, transition: 'all 0.15s' }}
@@ -337,6 +348,13 @@ export function Layout() {
                     </button>
                   ))}
                   <div style={{ margin: '4px 0', borderTop: `1px solid ${c.border}` }} />
+                  <button onClick={handleExitFarm}
+                    style={{ width: '100%', textAlign: 'left', padding: '8px 16px', fontSize: 14, display: 'flex', alignItems: 'center', gap: '8px', color: c.text2, background: 'transparent', border: 'none', cursor: 'pointer' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = c.hoverBg)}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <ArrowLeftRight size={16} />Exit to Marketplace
+                  </button>
                   <button onClick={handleLogout}
                     style={{ width: '100%', textAlign: 'left', padding: '8px 16px', fontSize: 14, display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', background: 'transparent', border: 'none', cursor: 'pointer' }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,.1)')}

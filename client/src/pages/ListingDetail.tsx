@@ -35,23 +35,23 @@ export default function ListingDetail() {
     : { bg:'#f9fafb', card:'#fff', border:'#e5e7eb', text:'#111827', text2:'#374151', text3:'#9ca3af' };
 
   useEffect(() => {
-    api.get(`/marketplace/listings/${id}`)
-      .then(r => setListing(r.data))
+    api.get(`/market/${id}`)
+      .then(r => setListing(r.data.listing || r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [id]);
 
   async function handleSave() {
     try {
-      if (saved) { await api.delete(`/saved/${id}`); setSaved(false); }
-      else { await api.post('/saved', { listingId: parseInt(id as string) }); setSaved(true); }
+      if (saved) { await api.delete(`/market-misc/favorites/${id}`); setSaved(false); }
+      else { await api.post('/market-misc/favorites', { listingId: parseInt(id as string) }); setSaved(true); }
     } catch {}
   }
 
   async function submitOffer(e: any) {
     e.preventDefault(); setError(''); setSubmitting(true);
     try {
-      await api.post('/offers', { listingId: parseInt(id as string), offerPrice: parseFloat(offerAmount), message: offerMsg });
+      await api.post('/market-offers', { listingId: parseInt(id as string), amount: parseFloat(offerAmount), note: offerMsg });
       setSuccess('Offer sent! The seller will be notified.'); setOfferMode(false); setOfferAmount(''); setOfferMsg('');
     } catch (err: any) { setError(err?.response?.data?.error || 'Failed to send offer.'); }
     finally { setSubmitting(false); }
@@ -60,7 +60,7 @@ export default function ListingDetail() {
   async function submitInquiry(e: any) {
     e.preventDefault(); setError(''); setSubmitting(true);
     try {
-      await api.post(`/marketplace/listings/${id}/inquiries`, { message: inquiryMsg });
+      await api.post(`/market-messages/thread`, { listingId: parseInt(id as string), message: inquiryMsg });
       setSuccess('Message sent to seller!'); setInquiryMode(false); setInquiryMsg('');
     } catch (err: any) { setError(err?.response?.data?.error || 'Failed to send message.'); }
     finally { setSubmitting(false); }
@@ -75,7 +75,7 @@ export default function ListingDetail() {
   );
 
   const animal = listing.animal;
-  const photos = animal?.photos || [];
+  const photos = listing?.photos?.length ? listing.photos : (animal?.photos || []);
   const isMine = listing.sellerId === user?.id;
   const statusColor: Record<string,string> = { active:'#10b981', reserved:'#f59e0b', sold:'#6b7280', cancelled:'#ef4444' };
 
@@ -133,7 +133,7 @@ export default function ListingDetail() {
             <div>
               <div style={{ fontSize:26, fontWeight:900, color:isDark?'#22d3ee':'#0e7490' }}>{formatKes(listing.askingPrice)}</div>
               <div style={{ fontSize:13, color:D.text3, display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
-                <MapPin size={12}/> {listing.location || 'Location not specified'}
+                <MapPin size={12}/> {listing.county || listing.location || 'Location not specified'}
                 <span>·</span><Eye size={12}/> {listing.views || 0} views
               </div>
             </div>

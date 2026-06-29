@@ -13,8 +13,8 @@ const animalSchema = z.object({
   breed: z.string().min(1, 'Breed is required'),
   gender: z.enum(['male', 'female']),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  color: z.string().optional(),
-  notes: z.string().optional(),
+  color: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   status: z.enum(['active', 'sold', 'deceased']).optional().default('active'),
 });
 
@@ -48,6 +48,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       where, skip, take: parseInt(limitValue as string), orderBy: { createdAt: 'desc' },
       include: {
         breeding: { orderBy: { serviceDate: 'desc' }, take: 1 },
+        photos: { where: { isPrimary: true }, take: 1 },
       },
     }),
   ]);
@@ -72,8 +73,8 @@ router.get('/:id', async (req: Request, res: Response): Promise<void> => {
       healthRecords: { orderBy: { recordDate: 'desc' }, take: 10 },
       breeding: { orderBy: { serviceDate: 'desc' }, take: 5 },
       photos: { orderBy: { isPrimary: 'desc' } },
-      weights: { orderBy: { recordDate: 'desc' }, take: 10 },
-      ownershipTransfers: { where: { status: 'completed' }, orderBy: { completedAt: 'asc' }, include: { fromFarm: { select: { id: true, name: true } }, toFarm: { select: { id: true, name: true } } } },
+      weights: { orderBy: { recordedAt: 'desc' }, take: 10 },
+      ownershipTransfers: { where: { status: 'completed' }, orderBy: { createdAt: 'asc' }, include: { fromUser: { select: { id: true, name: true } }, toUser: { select: { id: true, name: true } } } },
     },
   });
 
@@ -179,7 +180,7 @@ router.post('/:id/photos', requireAdmin, upload.single('photo'), async (req: Req
 
   const url = `/uploads/animals/${req.file.filename}`;
   const photo = await prisma.animalPhoto.create({
-    data: { animalId, url, caption: req.body.caption || null, isPrimary },
+    data: { animalId, url, isPrimary },
   });
   res.status(201).json({ photo });
 });

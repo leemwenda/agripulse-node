@@ -21,6 +21,8 @@ import AnimalPassport from './pages/AnimalPassport';
 import ChooseJourney from './pages/ChooseJourney';
 import ListingDetail from './pages/ListingDetail';
 import CreateListing from './pages/CreateListing';
+import MarketplaceLogin from './pages/MarketplaceLogin';
+import MarketplaceSignup from './pages/MarketplaceSignup';
 import { PageLoader } from './components/ui';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -57,7 +59,7 @@ function SystemRoute() {
 function AppRoutes() {
   return (
     <Routes>
-        <Route path="/marketplace" element={<PrivateRoute><MarketplacePage /></PrivateRoute>} />
+        <Route path="/marketplace" element={<MarketplacePage />} />
       {/* Public pages — no auth required */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
@@ -66,8 +68,10 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify" element={<VerifyEmail />} />
       <Route path="/journey" element={<ChooseJourney />} />
-                        <Route path="/marketplace/listing/:id" element={<PrivateRoute><ListingDetail /></PrivateRoute>} />
-      <Route path="/marketplace/create" element={<AdminRoute><CreateListing /></AdminRoute>} />
+                        <Route path="/marketplace/listing/:id" element={<ListingDetail />} />
+      <Route path="/marketplace/create" element={<PrivateRoute><CreateListing /></PrivateRoute>} />
+      <Route path="/marketplace/login" element={<MarketplaceLogin />} />
+      <Route path="/marketplace/signup" element={<MarketplaceSignup />} />
       <Route path="/animal/:agripulseId" element={<AnimalPassport />} />
       <Route path="/system" element={<SystemRoute />} />
 
