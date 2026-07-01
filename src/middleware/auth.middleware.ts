@@ -75,6 +75,12 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
 export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
   requireRole('superadmin')(req, res, next);
 }
+export function requireFarmer(req: Request, res: Response, next: NextFunction): void {
+  requireRole('admin', 'superadmin', 'worker')(req, res, next);
+}
+export function requireBuyer(req: Request, res: Response, next: NextFunction): void {
+  requireRole('buyer', 'admin', 'superadmin')(req, res, next);
+}
 
 // Returns the farm ID for the current user
 // Admin = their own user ID; Worker = their farm_id

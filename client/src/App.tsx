@@ -2,9 +2,10 @@ import VerifyEmail from './pages/VerifyEmail';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MarketplacePage } from './pages/Marketplace';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Layout } from './components/layout/Layout';
-import { LoginPage, RegisterPage } from './pages/Auth';
+import Auth from './pages/Auth';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/ForgotReset';
 import { DashboardPage } from './pages/Dashboard';
 import { AnimalsPage } from './pages/Animals';
@@ -21,8 +22,16 @@ import AnimalPassport from './pages/AnimalPassport';
 import ChooseJourney from './pages/ChooseJourney';
 import ListingDetail from './pages/ListingDetail';
 import CreateListing from './pages/CreateListing';
-import MarketplaceLogin from './pages/MarketplaceLogin';
-import MarketplaceSignup from './pages/MarketplaceSignup';
+import MarketplaceAuth from './pages/MarketplaceAuth';
+import VetAuth from './pages/VetAuth';
+import Cart from './pages/Cart';
+import Favorites from './pages/Favorites';
+import Notifications from './pages/Notifications';
+import SellerAnalytics from './pages/SellerAnalytics';
+import AgreementSign from './pages/AgreementSign';
+import MessagesInbox from './pages/MessagesInbox';
+import MyOffers from './pages/MyOffers';
+import MyListings from './pages/MyListings';
 import { PageLoader } from './components/ui';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -60,18 +69,32 @@ function AppRoutes() {
   return (
     <Routes>
         <Route path="/marketplace" element={<MarketplacePage />} />
+      <Route path="/vet-dashboard" element={<div style={{padding:40}}>Vet dashboard — coming soon</div>} />
+      <Route path="/marketplace/login" element={<MarketplaceAuth />} />
+      <Route path="/marketplace/register" element={<MarketplaceAuth />} />
+      <Route path="/marketplace/signup" element={<MarketplaceAuth />} />
+      <Route path="/vet/login" element={<VetAuth />} />
+      <Route path="/vet/register" element={<VetAuth />} />
+      <Route path="/vet/signup" element={<VetAuth />} />
       {/* Public pages — no auth required */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-      <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+      <Route path="/login" element={<PublicRoute><Auth /></PublicRoute>} />
+      <Route path="/register" element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify" element={<VerifyEmail />} />
       <Route path="/journey" element={<ChooseJourney />} />
                         <Route path="/marketplace/listing/:id" element={<ListingDetail />} />
       <Route path="/marketplace/create" element={<PrivateRoute><CreateListing /></PrivateRoute>} />
-      <Route path="/marketplace/login" element={<MarketplaceLogin />} />
-      <Route path="/marketplace/signup" element={<MarketplaceSignup />} />
+      <Route path="/marketplace/my-listings" element={<MyListings />} />
+      <Route path="/marketplace/my-offers" element={<MyOffers />} />
+      <Route path="/marketplace/messages" element={<MessagesInbox />} />
+      <Route path="/marketplace/agreement/:listingId" element={<AgreementSign />} />
+      <Route path="/marketplace/cart" element={<Cart />} />
+      <Route path="/marketplace/favorites" element={<Favorites />} />
+      <Route path="/marketplace/notifications" element={<Notifications />} />
+      <Route path="/marketplace/analytics" element={<SellerAnalytics />} />
+      
       <Route path="/animal/:agripulseId" element={<AnimalPassport />} />
       <Route path="/system" element={<SystemRoute />} />
 
@@ -102,7 +125,9 @@ export default function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <AppRoutes />
+          <CartProvider>
+            <AppRoutes />
+          </CartProvider>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

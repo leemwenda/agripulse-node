@@ -13,6 +13,12 @@ import marketRoutes from './routes/market.routes';
 import marketOffersRoutes from './routes/market.offers.routes';
 import marketMessagesRoutes from './routes/market.messages.routes';
 import marketMiscRoutes from './routes/market.misc.routes';
+import cartRoutes from './routes/cart.routes';
+import marketNotificationsRoutes from './routes/market.notifications.routes';
+import marketAnalyticsRoutes from './routes/market.analytics.routes';
+import marketReviewsRoutes from './routes/market.reviews.routes';
+import marketWatchlistRoutes from './routes/market.watchlist.routes';
+import marketSavedSearchRoutes from './routes/market.savedsearch.routes';
 import animalsRoutes from './routes/animals.routes';
 import { milkRouter, healthRouter, breedingRouter, financialRouter } from './routes/data.routes';
 import { startAnimalCategoryCron, updateAllAnimalCategories } from './services/animalCategory.service';
@@ -110,8 +116,14 @@ app.use('/api/passport',      passportRoutes);
 app.use('/uploads', require('express').static('/var/www/agripulse-staging/uploads'));
 app.use('/api/market',           marketRoutes);
 app.use('/api/market-offers',    marketOffersRoutes);
+app.use('/api/cart',              cartRoutes);
 app.use('/api/market-messages',  marketMessagesRoutes);
 app.use('/api/market-misc',      marketMiscRoutes);
+app.use('/api/market-notifications', marketNotificationsRoutes);
+app.use('/api/market-analytics', marketAnalyticsRoutes);
+app.use('/api/market-reviews', marketReviewsRoutes);
+app.use('/api/market-watchlist', marketWatchlistRoutes);
+app.use('/api/market-saved-search', marketSavedSearchRoutes);
 app.use('/api/marketplace',      marketRoutes); // redirect old route
 
 

@@ -54,9 +54,11 @@ router.post('/transfer/initiate', requireAuth, async (req: Request, res: Respons
     where: { animalId, status: 'pending' },
   });
   if (existing) {
-    res.status(409).json({ error: 'A pending transfer already exists for this animal.' });
+    res.json({ transfer: existing, alreadyPending: true });
     return;
   }
+
+  const transferCode = Math.random().toString(36).slice(2, 10).toUpperCase();
 
   const transfer = await prisma.ownershipTransfer.create({
     data: {
@@ -68,6 +70,7 @@ router.post('/transfer/initiate', requireAuth, async (req: Request, res: Respons
       status: 'pending',
       price: price || null,
       notes: notes || null,
+      transferCode,
     },
   });
 

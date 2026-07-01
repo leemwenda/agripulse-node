@@ -1,11 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
-import { requireAuth, getFarmId } from '../middleware/auth.middleware';
+import { requireAuth, requireFarmer, getFarmId } from '../middleware/auth.middleware';
 
 // ── MILK PRODUCTION ─────────────────────────────────────────
 export const milkRouter = Router();
-milkRouter.use(requireAuth);
+milkRouter.use(requireAuth, requireFarmer);
 
 const milkSchema = z.object({
   animalId: z.number().int().positive(),
@@ -81,7 +81,7 @@ milkRouter.delete('/:id', async (req: Request, res: Response): Promise<void> => 
 
 // ── HEALTH RECORDS ───────────────────────────────────────────
 export const healthRouter = Router();
-healthRouter.use(requireAuth);
+healthRouter.use(requireAuth, requireFarmer);
 
 const healthSchema = z.object({
   animalId: z.number().int().positive(),
@@ -143,7 +143,7 @@ healthRouter.delete('/:id', async (req: Request, res: Response): Promise<void> =
 
 // ── BREEDING ─────────────────────────────────────────────────
 export const breedingRouter = Router();
-breedingRouter.use(requireAuth);
+breedingRouter.use(requireAuth, requireFarmer);
 
 const breedingSchema = z.object({
   animalId: z.number().int().positive(),
@@ -219,7 +219,7 @@ breedingRouter.delete('/:id', async (req: Request, res: Response): Promise<void>
 
 // ── FINANCIAL TRANSACTIONS ───────────────────────────────────
 export const financialRouter = Router();
-financialRouter.use(requireAuth);
+financialRouter.use(requireAuth, requireFarmer);
 
 const txSchema = z.object({
   type: z.enum(['income', 'expense']),

@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth } from '../middleware/auth.middleware';
+import { requireAuth, requireFarmer } from '../middleware/auth.middleware';
 import { getFarmId } from '../middleware/auth.middleware';
 import prisma from '../lib/prisma';
+import { mailMarketListingPublished, mailMarketTransferComplete, mailMarketTransferCompleteToSeller } from '../services/mail.service';
 
 const router = Router();
 
@@ -119,7 +120,7 @@ router.get('/seller/:sellerId', async (req: Request, res: Response): Promise<voi
 });
 
 // ─── FARMER: Create listing from existing animal ──────────────────────────────
-router.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/', requireAuth, requireFarmer, async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const { animalId, title, description, askingPrice, negotiable, county, town } = req.body;
@@ -155,6 +156,14 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
       include: { animal: true, photos: true },
     });
 
+    // Email seller
+    try {
+      const seller = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+      if (seller) {
+        const animal = await prisma.animal.findUnique({ where: { id: parseInt(animalId) }, select: { name: true } });
+        await mailMarketListingPublished(seller.email, seller.name, animal?.name || 'Animal', parseFloat(askingPrice), listing.id).catch(() => {});
+      }
+    } catch {}
     res.status(201).json({ listing });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
@@ -207,25 +216,6 @@ router.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<v
 });
 
 // ─── FARMER: My listings ───────────────────────────────────────────────────────
-router.get('/my/listings', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const sellerId = req.user!.id;
-    const { status } = req.query as any;
-    const where: any = { sellerId };
-    if (status) where.status = status;
-
-    const listings = await prisma.marketListing.findMany({
-      where,
-      include: {
-        animal: { select: { name: true, breed: true, category: true, agripulseId: true } },
-        photos: { where: { isPrimary: true }, take: 1 },
-        _count: { select: { offers: true, views: true, favorites: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    res.json({ listings });
-  } catch (err: any) { res.status(400).json({ error: err.message }); }
-});
 
 // ─── FARMER: Received offers summary ─────────────────────────────────────────
 router.get('/my/received-offers', requireAuth, async (req: Request, res: Response): Promise<void> => {
@@ -252,6 +242,52 @@ router.delete('/:id', requireAuth, async (req: Request, res: Response): Promise<
     if (!listing) { res.status(404).json({ error: 'Not found' }); return; }
     await prisma.marketListing.update({ where: { id }, data: { status: 'cancelled' } });
     res.json({ success: true });
+  } catch (err: any) { res.status(400).json({ error: err.message }); }
+});
+
+
+// GET /api/market/my-listings — seller's own listings with pending offers
+router.get('/my-listings', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const sellerId = req.user!.id;
+    const listings = await prisma.marketListing.findMany({
+      where: { sellerId },
+      include: {
+        animal: {
+          include: {
+            photos: { where: { isPrimary: true }, take: 1 },
+          },
+        },
+        offers: {
+          where: { status: 'pending', parentId: null },
+          include: { buyer: { select: { id: true, name: true } } },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ listings });
+  } catch (err: any) { res.status(400).json({ error: err.message }); }
+});
+
+// GET /api/market/seller-offers — all offers across seller's listings
+router.get('/seller-offers', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const sellerId = req.user!.id;
+    const offers = await prisma.marketOffer.findMany({
+      where: { listing: { sellerId }, parentId: null },
+      include: {
+        listing: {
+          include: {
+            animal: { select: { name: true, breed: true } },
+          },
+        },
+        buyer: { select: { id: true, name: true } },
+        counters: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({ offers });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
 

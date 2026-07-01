@@ -5,7 +5,7 @@ import { User } from '../types';
 interface AuthCtx {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string, remember?: boolean) => Promise<void>;
+  login: (email: string, password: string, remember?: boolean) => Promise<any>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, remember = false) => {
     const { data } = await api.post('/auth/login', { email, password, remember });
     setUser(data.user);
+    return data.user;
   };
 
   const logout = async () => {

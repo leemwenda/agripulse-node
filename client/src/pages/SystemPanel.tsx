@@ -1744,9 +1744,153 @@ function EmailBlastTab() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// MARKETPLACE TAB
+// ══════════════════════════════════════════════════════════════════════════════
+interface MarketStats {
+  totalListings: number;
+  activeListings: number;
+  soldListings: number;
+  totalOffers: number;
+  pendingReports: number;
+}
+interface MarketListingRow {
+  id: number;
+  title: string;
+  askingPrice: string;
+  status: string;
+  createdAt: string;
+  animal?: { name: string; breed: string };
+  seller?: { id: number; name: string; email: string };
+  _count?: { offers: number; favorites: number };
+}
+
+function MarketplaceTab() {
+  const [stats, setStats] = useState<MarketStats | null>(null);
+  const [listings, setListings] = useState<MarketListingRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
+
+  useEffect(() => {
+    api.get('/admin/marketplace/stats')
+      .then(({ data }) => setStats(data.stats))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const params = statusFilter ? `?status=${statusFilter}` : '';
+    api.get(`/admin/marketplace/listings${params}`)
+      .then(({ data }) => setListings(data.listings || []))
+      .finally(() => setLoading(false));
+  }, [statusFilter]);
+
+  async function handleStatusChange(id: number, status: string) {
+    try {
+      await api.put(`/admin/marketplace/listings/${id}/status`, { status });
+      setListings(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+      setToast({ msg: 'Listing status updated', type: 'success' });
+    } catch {
+      setToast({ msg: 'Failed to update listing', type: 'error' });
+    }
+  }
+
+  const kpis = stats ? [
+    { label: 'Total listings', value: stats.totalListings, sub: 'All time', bar: 'var(--c-green)' },
+    { label: 'Active listings', value: stats.activeListings, sub: 'Currently live', bar: 'var(--c-purple)' },
+    { label: 'Sold', value: stats.soldListings, sub: 'Completed sales', bar: '#BA7517' },
+    { label: 'Pending reports', value: stats.pendingReports, sub: stats.pendingReports ? 'Needs review' : 'All clear', bar: stats.pendingReports ? 'var(--c-red)' : 'var(--c-green)' },
+  ] : [];
+
+  return (
+    <>
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+      {stats && (
+        <div className="sp-metrics">
+          {kpis.map(k => (
+            <div className="sp-metric" key={k.label}>
+              <div className="sp-metric-label">{k.label}</div>
+              <div className="sp-metric-val">{k.value}</div>
+              <div className="sp-metric-sub">{k.sub}</div>
+              <div className="sp-metric-bar" style={{ background: k.bar }} />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Card>
+        <CardHead
+          title="All listings"
+          sub="Every marketplace listing across all farms"
+          action={
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="sp-select">
+              <option value="">All statuses</option>
+              <option value="active">Active</option>
+              <option value="reserved">Reserved</option>
+              <option value="sold">Sold</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          }
+        />
+        {loading ? <Spinner /> : (
+          <div className="sp-table-wrap">
+            <table className="sp-table">
+              <thead>
+                <tr><th>Animal</th><th>Seller</th><th>Price</th><th>Status</th><th>Offers</th><th>Listed</th><th>Action</th></tr>
+              </thead>
+              <tbody>
+                {listings.length === 0 && (
+                  <tr><td colSpan={7}><EmptyState label="No listings found" /></td></tr>
+                )}
+                {listings.map(l => (
+                  <tr key={l.id}>
+                    <td>
+                      <span className="td-bold">{l.animal?.name || l.title}</span>
+                      {l.animal?.breed && <span className="td-mono td-muted"> · {l.animal.breed}</span>}
+                    </td>
+                    <td>
+                      {l.seller && (
+                        <div className="sp-user-cell">
+                          <Avatar name={l.seller.name} role="admin" />
+                          <div className="sp-user-cell-info">
+                            <span className="td-bold">{l.seller.name}</span>
+                            <span className="td-mono td-muted">{l.seller.email}</span>
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="td-bold">KSh {Number(l.askingPrice).toLocaleString()}</td>
+                    <td>
+                      {l.status === 'active' && <Badge label="Active" color="green" />}
+                      {l.status === 'reserved' && <Badge label="Reserved" color="amber" />}
+                      {l.status === 'sold' && <Badge label="Sold" color="gray" />}
+                      {l.status === 'suspended' && <Badge label="Suspended" color="red" />}
+                    </td>
+                    <td className="td-muted">{l._count?.offers ?? 0}</td>
+                    <td className="td-muted">{fmtDateShort(l.createdAt)}</td>
+                    <td>
+                      {l.status !== 'suspended' ? (
+                        <Btn variant="danger" size="sm" onClick={() => handleStatusChange(l.id, 'suspended')}>Suspend</Btn>
+                      ) : (
+                        <Btn variant="" size="sm" onClick={() => handleStatusChange(l.id, 'active')}>Reactivate</Btn>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <TableFoot count={listings.length} label="listings" />
+          </div>
+        )}
+      </Card>
+    </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // NAV CONFIG
 // ══════════════════════════════════════════════════════════════════════════════
-type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications';
+type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace';
 
 const NAV: { section: string; items: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
   {
@@ -1765,6 +1909,12 @@ const NAV: { section: string; items: { id: TabId; label: string; icon: React.Rea
       { id: 'announcements', label: 'Announcements', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg> },
       { id: 'email_blast', label: 'Email Blast', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
       { id: 'features', label: 'Feature Flags', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" /></svg> },
+    ],
+  },
+  {
+    section: 'Marketplace',
+    items: [
+      { id: 'marketplace', label: 'Marketplace', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><path d="M9 22V12h6v10" /></svg> },
     ],
   },
   {
@@ -1787,6 +1937,7 @@ const TAB_META: Record<TabId, { title: string; sub: string }> = {
   features: { title: 'Feature Flags', sub: 'Toggle platform features and system settings' },
   audit: { title: 'Audit Log', sub: 'Full history of all admin actions and events' },
   notifications: { title: 'Notifications', sub: 'Recent alerts and system events' },
+  marketplace: { title: 'Marketplace', sub: 'Listings, offers, and marketplace activity across the platform' },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1918,6 +2069,7 @@ function SuperAdminPanel() {
           {tab === 'email_blast' && <EmailBlastTab />}
           {tab === 'features' && <FeaturesTab />}
           {tab === 'audit' && <AuditTab />}
+          {tab === 'marketplace' && <MarketplaceTab />}
           {tab === 'notifications' && <NotificationsTab onMarkRead={() => setNotifCount(0)} />}
         </div>
       </main>

@@ -148,7 +148,7 @@ export function Layout() {
           padding: '16px 20px', borderBottom: `1px solid ${c.divider}`, flexShrink: 0,
         }}>
           <img
-            src="/logo.png" alt="AgriPulse"
+            src="/agripulse-logo.png" alt="AgriPulse"
             style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />

@@ -76,7 +76,7 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
 
   const { name, email, password } = parsed.data;
   const roleParam = req.body.role || 'farmer';
-  const roleMap: Record<string, string> = { farmer: 'admin', buyer: 'admin', vet: 'admin' };
+  const roleMap: Record<string, string> = { farmer: 'admin', buyer: 'buyer', vet: 'vet' };
   const assignedRole = roleMap[roleParam] || 'admin';
 
   // Check registration mode

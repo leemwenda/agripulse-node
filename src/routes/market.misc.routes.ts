@@ -5,109 +5,124 @@ import prisma from '../lib/prisma';
 const router = Router();
 router.use(requireAuth);
 
-// ── FAVORITES ──────────────────────────────────────────────────────────────────
-router.post('/favorites', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { listingId } = req.body;
-    const userId = req.user!.id;
-    const fav = await prisma.marketFavorite.upsert({
-      where: { listingId_userId: { listingId: parseInt(listingId), userId } },
-      create: { listingId: parseInt(listingId), userId },
-      update: {},
-    });
-    res.status(201).json({ favorite: fav });
-  } catch (err: any) { res.status(400).json({ error: err.message }); }
-});
-
-router.delete('/favorites/:listingId', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = req.user!.id;
-    await prisma.marketFavorite.deleteMany({ where: { listingId: parseInt(req.params.listingId as string), userId } });
-    res.json({ success: true });
-  } catch (err: any) { res.status(400).json({ error: err.message }); }
-});
-
+// Favorites
 router.get('/favorites', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const favorites = await prisma.marketFavorite.findMany({
       where: { userId },
-      include: { listing: { include: { animal: { select: { name: true, breed: true, category: true, dateOfBirth: true } }, photos: { where: { isPrimary: true }, take: 1 }, seller: { select: { id: true, name: true } } } } },
-      orderBy: { createdAt: 'desc' },
+      include: { listing: { include: { animal: true } } },
     });
     res.json({ favorites });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
 
-// ── AGREEMENTS ─────────────────────────────────────────────────────────────────
-router.get('/agreements/:listingId', async (req: Request, res: Response): Promise<void> => {
+router.post('/favorites', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const listingId = parseInt(req.params.listingId as string);
-    const agreement = await prisma.marketAgreement.findFirst({
-      where: { listingId },
-      include: { listing: { include: { animal: true, seller: { select: { id: true, name: true } }, photos: { where: { isPrimary: true }, take: 1 } } } },
-    });
-    if (!agreement) { res.status(404).json({ error: 'No agreement found' }); return; }
-    // Verify user is seller or buyer
-    const offer = await prisma.marketOffer.findUnique({ where: { id: agreement.offerId } });
-    if (!offer || (offer.buyerId !== userId && agreement.listing.sellerId !== userId)) {
-      res.status(403).json({ error: 'Unauthorized' }); return;
-    }
-    res.json({ agreement, offer });
+    const { listingId } = req.body;
+    await prisma.marketFavorite.create({ data: { userId, listingId } });
+    res.json({ success: true });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
 
-// Sign agreement
-router.post('/agreements/:id/sign', async (req: Request, res: Response): Promise<void> => {
+router.delete('/favorites/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
-    const agreementId = parseInt(req.params.id as string);
-    const { signature, role } = req.body; // role: 'buyer' | 'seller'
-    if (!signature) { res.status(400).json({ error: 'signature required' }); return; }
+    const id = parseInt(String(req.params.id) as string);
+    await prisma.marketFavorite.deleteMany({ where: { id, userId } });
+    res.json({ success: true });
+  } catch (err: any) { res.status(400).json({ error: err.message }); }
+});
+
+// Agreements
+router.get('/agreements/:listingId', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const agreement = await prisma.marketAgreement.findUnique({
+      where: { listingId: parseInt(String(req.params.listingId) as string) },
+    });
+    res.json({ agreement });
+  } catch (err: any) { res.status(400).json({ error: err.message }); }
+});
+
+router.post('/agreements/:id/sign', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = parseInt(String(req.params.id) as string);
+    const userId = req.user!.id;
+    const { signature } = req.body;
 
     const agreement = await prisma.marketAgreement.findUnique({
-      where: { id: agreementId },
-      include: { listing: { include: { seller: true } } },
+      where: { id },
+      include: {
+        listing: { include: { animal: true, seller: true } },
+      },
     });
     if (!agreement) { res.status(404).json({ error: 'Agreement not found' }); return; }
 
-    const offer = await prisma.marketOffer.findUnique({ where: { id: agreement.offerId } });
-    if (!offer) { res.status(404).json({ error: 'Offer not found' }); return; }
+    const offer = await prisma.marketOffer.findUnique({
+      where: { id: agreement.offerId },
+      include: { buyer: true },
+    });
+    if (!offer) { res.status(404).json({ error: 'Underlying offer not found' }); return; }
 
-    const isSeller = agreement.listing.sellerId === userId;
-    const isBuyer = offer.buyerId === userId;
-    if (!isSeller && !isBuyer) { res.status(403).json({ error: 'Unauthorized' }); return; }
+    const isBuyer = userId === offer.buyerId;
+    const isSeller = userId === agreement.listing.sellerId;
+    if (!isBuyer && !isSeller) {
+      res.status(403).json({ error: 'You are not a party to this agreement' });
+      return;
+    }
 
-    let data: any = {};
-    if (isBuyer) { data.buyerSignature = signature; data.buyerSignedAt = new Date(); data.status = 'buyer_signed'; }
-    if (isSeller) { data.sellerSignature = signature; data.sellerSignedAt = new Date(); data.status = 'seller_signed'; }
+    if (isBuyer && agreement.buyerSignedAt) { res.status(400).json({ error: 'You have already signed' }); return; }
+    if (isSeller && agreement.sellerSignedAt) { res.status(400).json({ error: 'You have already signed' }); return; }
 
-    // If both signed → complete
-    const updated = await prisma.marketAgreement.update({ where: { id: agreementId }, data });
-    const both = updated.buyerSignature && updated.sellerSignature;
-    let finalAgreement = updated;
+    const data: any = isBuyer
+      ? { buyerSignature: signature, buyerSignedAt: new Date() }
+      : { sellerSignature: signature, sellerSignedAt: new Date() };
 
-    if (both && updated.status !== 'complete') {
-      finalAgreement = await prisma.marketAgreement.update({ where: { id: agreementId }, data: { status: 'complete' } });
+    const buyerWillBeSigned = isBuyer || !!agreement.buyerSignedAt;
+    const sellerWillBeSigned = isSeller || !!agreement.sellerSignedAt;
+    const bothSigned = buyerWillBeSigned && sellerWillBeSigned;
 
-      // Trigger ownership transfer
-      await prisma.marketListing.update({ where: { id: agreement.listingId }, data: { status: 'sold' } });
+    data.status = bothSigned ? 'complete' : (isBuyer ? 'buyer_signed' : 'seller_signed');
+
+    const updated = await prisma.marketAgreement.update({ where: { id }, data });
+
+    if (bothSigned) {
+      const transferCode = Math.random().toString(36).slice(2, 10).toUpperCase();
       await prisma.ownershipTransfer.create({
         data: {
           animalId: agreement.listing.animalId,
           fromUserId: agreement.listing.sellerId,
           toUserId: offer.buyerId,
+          initiatedBy: agreement.listing.sellerId,
           method: 'in_app',
           status: 'completed',
-          initiatedBy: agreement.listing.sellerId,
+          price: agreement.agreedPrice,
+          transferCode,
+          transferDate: new Date(),
         },
       });
-      // Update animal ownership
-      await prisma.animal.update({ where: { id: agreement.listing.animalId }, data: { farmId: offer.buyerId } });
+      await prisma.animal.update({
+        where: { id: agreement.listing.animalId },
+        data: { farmId: offer.buyerId },
+      });
+
+      try {
+        const { mailMarketTransferComplete, mailMarketTransferCompleteToSeller } = require('../services/mail.service');
+        await mailMarketTransferComplete(
+          offer.buyer.email, offer.buyer.name,
+          agreement.listing.seller.name, agreement.listing.animal.name,
+          agreement.listing.animal.agripulseId || '', Number(agreement.agreedPrice)
+        ).catch(() => {});
+        await mailMarketTransferCompleteToSeller(
+          agreement.listing.seller.email, agreement.listing.seller.name,
+          offer.buyer.name, agreement.listing.animal.name,
+          Number(agreement.agreedPrice)
+        ).catch(() => {});
+      } catch {}
     }
 
-    res.json({ agreement: finalAgreement, complete: both });
+    res.json({ agreement: updated, transferred: bothSigned });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
 

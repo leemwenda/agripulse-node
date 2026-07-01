@@ -2,7 +2,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'superadmin' | 'admin' | 'worker';
+  role: 'superadmin' | 'admin' | 'worker' | 'buyer' | 'vet';
   farmId: number | null;
   isActive: boolean;
 }

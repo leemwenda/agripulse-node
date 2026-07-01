@@ -2,10 +2,10 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { generateAgripulseId } from '../services/passport.service';
-import { requireAuth, requireAdmin, getFarmId } from '../middleware/auth.middleware';
+import { requireAuth, requireAdmin, requireFarmer, getFarmId } from '../middleware/auth.middleware';
 
 const router = Router();
-router.use(requireAuth);
+router.use(requireAuth, requireFarmer);
 
 const animalSchema = z.object({
   name: z.string().min(1, 'Name is required'),

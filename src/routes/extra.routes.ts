@@ -773,6 +773,44 @@ adminRouter.put('/issues/:id', async (req: Request, res: Response): Promise<void
   res.json({ issue });
 });
 // ══════════════════════════════════════════════════════════════
+// ADMIN MARKETPLACE
+// ══════════════════════════════════════════════════════════════
+adminRouter.get('/marketplace/stats', async (_req: Request, res: Response) => {
+  const [totalListings, activeListings, soldListings, totalOffers, pendingReports] = await Promise.all([
+    prisma.marketListing.count(),
+    prisma.marketListing.count({ where: { status: 'active' } }),
+    prisma.marketListing.count({ where: { status: 'sold' } }),
+    prisma.marketOffer.count(),
+    prisma.marketReport.count({ where: { status: 'pending' } }).catch(() => 0),
+  ]);
+  res.json({ stats: { totalListings, activeListings, soldListings, totalOffers, pendingReports } });
+});
+
+adminRouter.get('/marketplace/listings', async (req: Request, res: Response) => {
+  const { status } = req.query as Record<string, string>;
+  const listings = await prisma.marketListing.findMany({
+    where: status ? { status: status as any } : {},
+    include: {
+      animal: { select: { name: true, breed: true } },
+      seller: { select: { id: true, name: true, email: true } },
+      _count: { select: { offers: true, favorites: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+  res.json({ listings });
+});
+
+adminRouter.put('/marketplace/listings/:id/status', async (req: Request, res: Response): Promise<void> => {
+  const { status } = req.body;
+  const listing = await prisma.marketListing.update({
+    where: { id: parseInt(String(req.params.id)) },
+    data: { status },
+  });
+  res.json({ listing });
+});
+
+// ══════════════════════════════════════════════════════════════
 // REPORTS ROUTER
 // ══════════════════════════════════════════════════════════════
 export const reportsRouter = Router();

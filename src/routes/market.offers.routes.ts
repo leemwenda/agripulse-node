@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import prisma from '../lib/prisma';
+import { mailMarketNewOffer, mailMarketOfferAccepted, mailMarketOfferRejected, mailMarketCounterOffer } from '../services/mail.service';
 
 const router = Router();
 router.use(requireAuth);
@@ -38,6 +39,15 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       })
     );
 
+    // Email seller
+    try {
+      const seller = await prisma.user.findUnique({ where: { id: listing.sellerId }, select: { email: true, name: true } });
+      const buyer = await prisma.user.findUnique({ where: { id: buyerId }, select: { name: true } });
+      if (seller && buyer) {
+        const animal = await prisma.animal.findUnique({ where: { id: listing.animalId }, select: { name: true } });
+        await mailMarketNewOffer(seller.email, seller.name, buyer.name, animal?.name || 'Animal', parseFloat(amount), parseInt(listingId)).catch(() => {});
+      }
+    } catch {}
     res.status(201).json({ offer });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
@@ -78,9 +88,26 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
         });
       }
 
+      // Email buyer
+      try {
+        const buyer = await prisma.user.findUnique({ where: { id: offer.buyerId }, select: { email: true, name: true } });
+        const seller = await prisma.user.findUnique({ where: { id: sellerId }, select: { name: true } });
+        const animal = await prisma.animal.findUnique({ where: { id: offer.listing.animalId }, select: { name: true } });
+        if (buyer && seller && animal) {
+          await mailMarketOfferAccepted(buyer.email, buyer.name, seller.name, animal.name, Number(offer.amount), offer.listingId).catch(() => {});
+        }
+      } catch {}
       res.json({ offer: { ...offer, status: 'accepted' }, agreement });
     } else if (action === 'reject') {
       await prisma.marketOffer.update({ where: { id: offerId }, data: { status: 'rejected' } });
+      // Email buyer
+      try {
+        const buyer = await prisma.user.findUnique({ where: { id: offer.buyerId }, select: { email: true, name: true } });
+        const animal = await prisma.animal.findUnique({ where: { id: offer.listing.animalId }, select: { name: true } });
+        if (buyer && animal) {
+          await mailMarketOfferRejected(buyer.email, buyer.name, animal.name, Number(offer.amount)).catch(() => {});
+        }
+      } catch {}
       res.json({ offer: { ...offer, status: 'rejected' } });
     } else if (action === 'counter') {
       if (!counterAmount) { res.status(400).json({ error: 'counterAmount required' }); return; }

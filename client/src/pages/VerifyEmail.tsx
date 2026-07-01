@@ -66,7 +66,7 @@ export default function VerifyEmail() {  useEffect(() => { document.title = 'Ver
         textAlign: 'center',
       }}>
         {/* Logo */}
-        <img src="/logo.png" alt="AgriPulse" width="56" height="56" style={{ borderRadius: '12px', marginBottom: '16px' }} />
+        <img src="/agripulse-logo.png" alt="AgriPulse" width="56" height="56" style={{ borderRadius: '12px', marginBottom: '16px' }} />
         <h1 style={{ margin: '0 0 4px', fontSize: '22px', fontWeight: 800, color: '#0f1f0f' }}>AgriPulse</h1>
         <p style={{ margin: '0 0 32px', fontSize: '13px', color: '#9ca3af' }}>Smart Farm Management</p>
 

@@ -436,7 +436,7 @@ export default function LandingPage() {
         {/* ── NAV ── */}
         <nav className={`lp-nav${scrolled ? ' scrolled' : ''}`}>
           <a href="#home" className="lp-nav-logo">
-            <img src="/logo.png" alt="AgriPulse Logo" />
+            <img src="/agripulse-logo.png" alt="AgriPulse Logo" />
             <span className="lp-nav-logo-text">AgriPulse</span>
           </a>
           <div className="lp-nav-links">
@@ -688,7 +688,7 @@ export default function LandingPage() {
             <div className="lp-footer-top">
               <div className="lp-footer-brand">
                 <a href="#home" className="lp-footer-logo">
-                  <img src="/logo.png" alt="AgriPulse" style={{ width: '34px', height: '34px', objectFit: 'contain', borderRadius: '6px', background: 'white', padding: '2px' }} />
+                  <img src="/agripulse-logo.png" alt="AgriPulse" style={{ width: '34px', height: '34px', objectFit: 'contain', borderRadius: '6px', background: 'white', padding: '2px' }} />
                   AgriPulse
                 </a>
                 <p>Smart farm management for modern livestock farmers. Track, manage, and grow your farm with confidence.</p>

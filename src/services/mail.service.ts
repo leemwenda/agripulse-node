@@ -447,3 +447,223 @@ export async function mailDailySecuritySummary(data: {
     ${btn('View Admin Panel',`${URL}/system`)}
   `));
 }
+
+// ═══════════════════════════════════════════════════════════════
+// MARKETPLACE EMAILS
+// ═══════════════════════════════════════════════════════════════
+
+function mktHtml(title: string, preheader: string, body: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title></head>
+<body style="margin:0;padding:0;background:#f4f7f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:600px;margin:0 auto;padding:32px 16px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div style="display:inline-block;background:linear-gradient(135deg,#15803d,#16a34a);border-radius:12px;padding:10px 20px;">
+      <span style="color:#fff;font-size:18px;font-weight:800;letter-spacing:-0.5px;">🐄 AgriPulse</span>
+    </div>
+    <div style="color:#6b7280;font-size:12px;margin-top:6px;">Livestock Marketplace</div>
+  </div>
+  <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06);">
+    <div style="background:linear-gradient(135deg,#15803d,#16a34a);padding:28px 32px;">
+      <h1 style="color:#fff;margin:0;font-size:22px;font-weight:800;">${title}</h1>
+      <p style="color:rgba(255,255,255,.8);margin:8px 0 0;font-size:14px;">${preheader}</p>
+    </div>
+    <div style="padding:28px 32px;">${body}</div>
+  </div>
+  <div style="text-align:center;margin-top:20px;color:#9ca3af;font-size:12px;">
+    AgriPulse — Kenya's Digital Livestock Marketplace<br>
+    <a href="https://agripulse.me" style="color:#15803d;">agripulse.me</a>
+  </div>
+</div>
+</body></html>`;
+}
+
+function mktBtn(text: string, url: string, color = '#15803d'): string {
+  return `<div style="text-align:center;margin:24px 0;">
+    <a href="${url}" style="display:inline-block;background:${color};color:#fff;padding:13px 28px;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;">${text}</a>
+  </div>`;
+}
+
+function mktRow(label: string, value: string): string {
+  return `<tr>
+    <td style="padding:10px 0;color:#6b7280;font-size:14px;border-bottom:1px solid #f3f4f6;">${label}</td>
+    <td style="padding:10px 0;color:#111827;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #f3f4f6;">${value}</td>
+  </tr>`;
+}
+
+// 1. New offer received — notifies SELLER
+export async function mailMarketNewOffer(
+  sellerEmail: string, sellerName: string,
+  buyerName: string, animalName: string,
+  offerAmount: number, listingId: number
+): Promise<void> {
+  const body = `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi <strong>${sellerName}</strong>,</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">You have received a new offer on your listing.</p>
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+      ${mktRow('Animal', animalName)}
+      ${mktRow('Buyer', buyerName)}
+      ${mktRow('Offer Amount', `KSh ${offerAmount.toLocaleString()}`)}
+    </table>
+    ${mktBtn('View Offer & Respond', `https://staging.agripulse.me/marketplace/my-listings`)}
+    <p style="color:#9ca3af;font-size:13px;">Log in to accept, reject, or counter this offer.</p>`;
+  await send(
+    sellerEmail,
+    `New Offer — \${animalName} — KSh \${offerAmount.toLocaleString()}`,
+    mktHtml('New Offer Received', `\${buyerName} made an offer on \${animalName}`, body)
+  );
+}
+
+// 2. Offer accepted — notifies BUYER
+export async function mailMarketOfferAccepted(
+  buyerEmail: string, buyerName: string,
+  sellerName: string, animalName: string,
+  offerAmount: number, listingId: number
+): Promise<void> {
+  const body = `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi <strong>${buyerName}</strong>,</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Great news! Your offer has been accepted.</p>
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+      ${mktRow('Animal', animalName)}
+      ${mktRow('Seller', sellerName)}
+      ${mktRow('Agreed Amount', `KSh \${offerAmount.toLocaleString()}`)}
+      ${mktRow('Next Step', 'Sign the sale agreement')}
+    </table>
+    ${mktBtn('Sign Agreement Now', `https://staging.agripulse.me/marketplace/agreement/\${listingId}`, '#0e7490')}
+    <p style="color:#9ca3af;font-size:13px;">Both parties must sign the agreement to complete the transfer.</p>`;
+  await send(
+    buyerEmail,
+    `Offer Accepted — \${animalName}`,
+    mktHtml('Your Offer Was Accepted! 🎉', `\${sellerName} accepted your offer for \${animalName}`, body)
+  );
+}
+
+// 3. Offer rejected — notifies BUYER
+export async function mailMarketOfferRejected(
+  buyerEmail: string, buyerName: string,
+  animalName: string, offerAmount: number
+): Promise<void> {
+  const body = `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi <strong>${buyerName}</strong>,</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Unfortunately, the seller has declined your offer for <strong>${animalName}</strong> (KSh ${offerAmount.toLocaleString()}).</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">The listing may still be active — you can browse other animals or contact the seller to discuss.</p>
+    ${mktBtn('Browse Marketplace', 'https://staging.agripulse.me/marketplace')}`;
+  await send(
+    buyerEmail,
+    `Offer Declined — \${animalName}`,
+    mktHtml('Offer Not Accepted', `Your offer for \${animalName} was declined`, body)
+  );
+}
+
+// 4. Counter offer — notifies BUYER
+export async function mailMarketCounterOffer(
+  buyerEmail: string, buyerName: string,
+  sellerName: string, animalName: string,
+  counterAmount: number, listingId: number
+): Promise<void> {
+  const body = `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi <strong>${buyerName}</strong>,</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;"><strong>${sellerName}</strong> has sent you a counter offer for <strong>${animalName}</strong>.</p>
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+      ${mktRow('Animal', animalName)}
+      ${mktRow('Counter Offer', `KSh \${counterAmount.toLocaleString()}`)}
+    </table>
+    ${mktBtn('View & Respond', `https://staging.agripulse.me/marketplace/my-offers`, '#f59e0b')}`;
+  await send(
+    buyerEmail,
+    `Counter Offer — \${animalName} — KSh \${counterAmount.toLocaleString()}`,
+    mktHtml('Counter Offer Received', `\${sellerName} countered at KSh \${counterAmount.toLocaleString()}`, body)
+  );
+}
+
+// 5. New message — notifies recipient
+export async function mailMarketNewMessage(
+  recipientEmail: string, recipientName: string,
+  senderName: string, animalName: string,
+  messagePreview: string, threadId: number
+): Promise<void> {
+  const preview = messagePreview.length > 120 ? messagePreview.slice(0, 120) + '...' : messagePreview;
+  const body = `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi <strong>${recipientName}</strong>,</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">You have a new message from <strong>${senderName}</strong> about <strong>${animalName}</strong>.</p>
+    <div style="background:#f8fafc;border-left:4px solid #15803d;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;">
+      <p style="margin:0;color:#374151;font-size:14px;font-style:italic;">"${preview}"</p>
+    </div>
+    ${mktBtn('Reply Now', `https://staging.agripulse.me/marketplace/messages`)}`;
+  await send(
+    recipientEmail,
+    `New message about \${animalName} from \${senderName}`,
+    mktHtml('New Message', `\${senderName} sent you a message`, body)
+  );
+}
+
+// 6. Listing published — notifies SELLER
+export async function mailMarketListingPublished(
+  sellerEmail: string, sellerName: string,
+  animalName: string, askingPrice: number,
+  listingId: number
+): Promise<void> {
+  const body = `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi <strong>${sellerName}</strong>,</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Your listing is now live on the AgriPulse Marketplace!</p>
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+      ${mktRow('Animal', animalName)}
+      ${mktRow('Asking Price', `KSh \${askingPrice.toLocaleString()}`)}
+      ${mktRow('Listing Status', 'Active')}
+      ${mktRow('Expires', '90 days from today')}
+    </table>
+    ${mktBtn('View Your Listing', `https://staging.agripulse.me/marketplace/listing/\${listingId}`)}
+    <p style="color:#9ca3af;font-size:13px;">You can manage your listing, view offers, and reply to buyers from My Listings.</p>`;
+  await send(
+    sellerEmail,
+    `Your listing is live — \${animalName}`,
+    mktHtml('Listing Published! 🐄', `\${animalName} is now visible to buyers`, body)
+  );
+}
+
+// 7. Ownership transfer complete — notifies BOTH parties
+export async function mailMarketTransferComplete(
+  buyerEmail: string, buyerName: string,
+  sellerName: string, animalName: string,
+  animalPassportId: string, salePrice: number
+): Promise<void> {
+  const body = `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi <strong>${buyerName}</strong>,</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">The ownership transfer for <strong>${animalName}</strong> is now complete. The animal is officially yours!</p>
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+      ${mktRow('Animal', animalName)}
+      ${mktRow('Previous Owner', sellerName)}
+      ${mktRow('New Owner', buyerName)}
+      ${mktRow('Passport ID', animalPassportId)}
+      ${mktRow('Sale Price', `KSh \${salePrice.toLocaleString()}`)}
+    </table>
+    ${mktBtn('View Animal Passport', `https://staging.agripulse.me/animal/\${animalPassportId}`, '#7c3aed')}
+    <p style="color:#9ca3af;font-size:13px;">The animal's complete history — health, milk, breeding records — has been transferred to your account.</p>`;
+  await send(
+    buyerEmail,
+    `Transfer Complete — \${animalName} is now yours`,
+    mktHtml('Ownership Transfer Complete ✅', `\${animalName} has been transferred to you`, body)
+  );
+}
+
+export async function mailMarketTransferCompleteToSeller(
+  sellerEmail: string, sellerName: string,
+  buyerName: string, animalName: string,
+  salePrice: number
+): Promise<void> {
+  const body = `
+    <p style="color:#374151;font-size:15px;line-height:1.6;">Hi <strong>${sellerName}</strong>,</p>
+    <p style="color:#374151;font-size:15px;line-height:1.6;">The sale of <strong>${animalName}</strong> to <strong>${buyerName}</strong> is now complete.</p>
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+      ${mktRow('Animal', animalName)}
+      ${mktRow('Buyer', buyerName)}
+      ${mktRow('Sale Price', `KSh \${salePrice.toLocaleString()}`)}
+      ${mktRow('Status', 'Transfer Complete')}
+    </table>
+    ${mktBtn('View My Listings', 'https://staging.agripulse.me/marketplace/my-listings')}`;
+  await send(
+    sellerEmail,
+    `Sale Complete — \${animalName} sold to \${buyerName}`,
+    mktHtml('Sale Completed ✅', `\${animalName} has been transferred to \${buyerName}`, body)
+  );
+}
