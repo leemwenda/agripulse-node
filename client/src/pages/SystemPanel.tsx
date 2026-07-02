@@ -941,7 +941,7 @@ function FarmsTab() {
     return (
       <div>
         <div style={{ marginBottom: 16 }}>
-          <Btn onClick={() => setSelected(null)}>← Back to farms</Btn>
+          <Btn onClick={() => setSelected(null)}> Back to farms</Btn>
         </div>
         <Card>
           <CardHead title={selected.name} sub={selected.location || 'No location set'} action={<Badge label="Active" color="green" />} />
@@ -978,7 +978,7 @@ function FarmsTab() {
             <div className="sp-farm-name">{f.name}</div>
             <div className="sp-farm-meta">
               {f.workerCount != null && <span className="sp-farm-stat">{f.workerCount} workers</span>}
-              {f.animalCount != null && <span className="sp-farm-stat">🐾 {f.animalCount} animals</span>}
+              {f.animalCount != null && <span className="sp-farm-stat"> {f.animalCount} animals</span>}
               {f.location && <span className="sp-farm-stat">{f.location}</span>}
             </div>
             <Badge label={f.status === 'pending' ? 'Pending' : 'Active'} color={f.status === 'pending' ? 'amber' : 'green'} />
@@ -1182,7 +1182,7 @@ function IssuesTab() {
                 <Badge label={reviewing.category} color="blue" />
               </div>
             </div>
-            <Btn onClick={() => setReviewing(null)}>✕ Close</Btn>
+            <Btn onClick={() => setReviewing(null)}> Close</Btn>
           </div>
           <p style={{ fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.6, borderLeft: '3px solid var(--c-border)', paddingLeft: 12, marginBottom: 16 }}>
             {reviewing.description}
@@ -1704,7 +1704,7 @@ function EmailBlastTab() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Btn type="submit" variant="primary" disabled={submitting || !subject.trim() || !body.trim()}>
-              {submitting ? 'Sending…' : '📧 Send to all users'}
+              {submitting ? 'Sending…' : ' Send to all users'}
             </Btn>
             {report && !report.done && (
               <span style={{ fontSize: 12, color: 'var(--c-text-3)' }}>Sending {report.sent}/{report.total}…</span>
@@ -1716,7 +1716,7 @@ function EmailBlastTab() {
           <div style={{ padding: '14px 18px', borderTop: '1px solid var(--c-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: report.failures.length > 0 ? 10 : 0 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-text)' }}>
-                {report.done ? '✅ Delivery complete' : '⏳ Sending…'}
+                {report.done ? ' Delivery complete' : '⏳ Sending…'}
               </span>
               <Badge label={`${report.sent} sent`} color="green" />
               {report.failed > 0 && <Badge label={`${report.failed} failed`} color="red" />}
@@ -1978,7 +1978,7 @@ function SuperAdminPanel() {
       {/* Sidebar */}
       <aside className="sp-sidebar">
         <div className="sp-logo">
-          <div className="sp-logo-mark">⚡</div>
+          <div className="sp-logo-mark"></div>
           <div>
             <div className="sp-logo-name">AgriPulse</div>
             <div className="sp-logo-tag">System</div>
@@ -2054,7 +2054,7 @@ function SuperAdminPanel() {
               )}
             </button>
             <a href="/dashboard" style={{ textDecoration: 'none' }}>
-              <button className="sp-top-btn">← App</button>
+              <button className="sp-top-btn"> App</button>
             </a>
           </div>
         </div>
@@ -2107,7 +2107,7 @@ function WorkerPanel() {
         <a href="/dashboard" style={{
           background: '#534AB7', color: '#fff', padding: '10px 22px',
           borderRadius: 8, textDecoration: 'none', fontWeight: 500, fontSize: 13,
-        }}>Go to dashboard →</a>
+        }}>Go to dashboard </a>
       </div>
     </div>
   );

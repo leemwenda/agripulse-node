@@ -99,19 +99,19 @@ async function send(to: string, subject: string, html: string, attachment?: { na
       increment(provider.name);
       const count = getCount(provider.name);
       const limit = provider.dailyLimit > 0 ? `/${provider.dailyLimit}` : '/∞';
-      console.log(`[Mail] ✓ "${provider.name}" (${count}${limit}): "${subject}" → ${to}`);
+      console.log(`[Mail]  "${provider.name}" (${count}${limit}): "${subject}"  ${to}`);
       return;
     } catch (err: unknown) {
       const msg = String(err).toLowerCase();
       const isQuota = ['quota', 'limit', 'exceeded', 'rate', 'too many', '452', '550', '421'].some(e => msg.includes(e));
-      console.error(`[Mail] ✗ "${provider.name}" failed:`, err);
+      console.error(`[Mail]  "${provider.name}" failed:`, err);
       if (isQuota && provider.dailyLimit > 0) {
         forceExhaust(provider.name, provider.dailyLimit);
         console.log(`[Mail] Quota hit on "${provider.name}", rotating...`);
       }
     }
   }
-  console.error('[Mail] ✗ All providers failed:', subject, '→', to);
+  console.error('[Mail]  All providers failed:', subject, '', to);
 }
 
 // ─── Pool Status ──────────────────────────────────────────────────────────────
@@ -171,7 +171,7 @@ function base(title: string, bodyContent: string): string {
   </tr>
   <tr>
     <td style="background:#f1f5f9;padding:28px 40px;text-align:center;border-top:1px solid #e5e7eb;">
-      <p style="margin:0;color:#2E7D32;font-size:15px;font-weight:700;">${SITE} 🌱</p>
+      <p style="margin:0;color:#2E7D32;font-size:15px;font-weight:700;">${SITE} </p>
       <p style="margin:6px 0;color:#666666;font-size:13px;">Empowering Agriculture Through Technology</p>
       <p style="margin:6px 0;color:#666666;font-size:13px;">
         <a href="mailto:notifications@agripulse.me" style="color:#2E7D32;text-decoration:none;">notifications@agripulse.me</a>
@@ -241,7 +241,7 @@ export async function mailPendingApproval(email: string, name: string): Promise<
 }
 
 export async function mailApproved(email: string, name: string): Promise<void> {
-  await send(email, `Account Approved — ${SITE}`, base('Your Account Has Been Approved! 🎉', `
+  await send(email, `Account Approved — ${SITE}`, base('Your Account Has Been Approved! ', `
     ${p(`Hello <strong>${name}</strong>,`)}
     ${p(`Great news — your ${SITE} account has been approved. You now have full access to the platform.`)}
     ${alertBox('Your account is now active. You can sign in and begin using all features.', 'success')}
@@ -323,9 +323,9 @@ export async function mailMaintenanceNotice(email: string, name: string, schedul
 
 export async function mailBreedingAlert(animalName: string, tagNumber: string, daysInfo: string, alertType: 'overdue'|'due3'|'due7'): Promise<void> {
   const configs = {
-    overdue: {subject:`Urgent: Overdue Birth — ${animalName}`,title:'Overdue Birth Alert 🚨',message:`${animalName} has passed the expected birth date and requires immediate attention.`,type:'danger' as const,action:'Inspect Animal Immediately'},
-    due3:    {subject:`Birth Alert: ${animalName} Due Within 3 Days`,title:'Birth Due in 3 Days ⚠️',message:`${animalName} is expected to give birth within the next 3 days. Please ensure the calving area is prepared.`,type:'warning' as const,action:'View Breeding Records'},
-    due7:    {subject:`Birth Reminder: ${animalName} Due Within 7 Days`,title:'Upcoming Birth Reminder 📅',message:`${animalName} is expected to give birth within the next 7 days.`,type:'info' as const,action:'View Breeding Records'},
+    overdue: {subject:`Urgent: Overdue Birth — ${animalName}`,title:'Overdue Birth Alert ',message:`${animalName} has passed the expected birth date and requires immediate attention.`,type:'danger' as const,action:'Inspect Animal Immediately'},
+    due3:    {subject:`Birth Alert: ${animalName} Due Within 3 Days`,title:'Birth Due in 3 Days ️',message:`${animalName} is expected to give birth within the next 3 days. Please ensure the calving area is prepared.`,type:'warning' as const,action:'View Breeding Records'},
+    due7:    {subject:`Birth Reminder: ${animalName} Due Within 7 Days`,title:'Upcoming Birth Reminder ',message:`${animalName} is expected to give birth within the next 7 days.`,type:'info' as const,action:'View Breeding Records'},
   };
   const c = configs[alertType];
   await sendTelegram(`<b>AgriPulse Alert: ${c.title}</b>\n\nAnimal: ${animalName} (Tag: ${tagNumber})\nStatus: ${daysInfo}`);
@@ -339,7 +339,7 @@ export async function mailBreedingAlert(animalName: string, tagNumber: string, d
 
 export async function mailLowMilkAlert(animalName: string, avgLiters: string): Promise<void> {
   await sendTelegram(`<b>Low Milk Alert</b>\n\n${animalName} averaging ${avgLiters}L/day (below 5L threshold).`);
-  await send(ADMIN, `Low Milk Production Alert: ${animalName} — ${SITE}`, base('Low Milk Production Alert 🥛', `
+  await send(ADMIN, `Low Milk Production Alert: ${animalName} — ${SITE}`, base('Low Milk Production Alert ', `
     ${p('This is an automated alert from your AgriPulse farm management system.')}
     ${alertBox(`${animalName} has been consistently producing below the minimum threshold over the past 7 days.`,'warning')}
     ${infoCard('Production Details', [['Animal Name',animalName],['7-Day Average',`${avgLiters} litres per day`],['Minimum Threshold','5 litres per day'],['Recommended Action','Review feed, health records, and stress factors']])}
@@ -355,7 +355,7 @@ export async function mailWeeklyReport(email: string, name: string, data: {
   const profit = data.weekIncome - data.weekExpense;
   const profitText = profit>=0?`KSh ${profit.toLocaleString()} profit`:`KSh ${Math.abs(profit).toLocaleString()} loss`;
   await sendTelegram(`<b>Weekly Farm Report</b>\n${data.weekStart} to ${data.weekEnd}\n\nAnimals: ${data.totalAnimals}\nMilk: ${data.weekMilk.toFixed(1)}L\nNet: KSh ${(data.weekIncome-data.weekExpense).toLocaleString()}${data.overdueCount>0?'\n\nURGENT: '+data.overdueCount+' overdue birth(s)!':''}`);
-  await send(email, `Weekly Farm Report — ${data.weekStart} to ${data.weekEnd}`, base('Weekly Farm Report 📊', `
+  await send(email, `Weekly Farm Report — ${data.weekStart} to ${data.weekEnd}`, base('Weekly Farm Report ', `
     ${p(`Hello <strong>${name}</strong>,`)}
     ${p(`Here is your ${SITE} farm performance summary for <strong>${data.weekStart} to ${data.weekEnd}</strong>.`)}
     ${statsRow([{label:'Total Animals',value:String(data.totalAnimals)},{label:'Week Milk',value:`${data.weekMilk.toFixed(1)}L`},{label:'Net This Week',value:profit>=0?`+KSh ${profit.toLocaleString()}`:`-KSh ${Math.abs(profit).toLocaleString()}`}])}
@@ -380,7 +380,7 @@ export async function mailMonthlyOverview(email: string, name: string, data: {
   const profitText = profit>=0?`KSh ${profit.toLocaleString()} profit`:`KSh ${Math.abs(profit).toLocaleString()} loss`;
   const pdfBuffer = await generateMonthlyPDF({ ...data, farmName: name });
   const pdfAttachment = { name: `AgriPulse-Monthly-Report-${data.month.replace(/\s+/g, '-')}.pdf`, content: pdfBuffer.toString('base64') };
-  await send(email, `Monthly Farm Overview — ${data.month}`, base(`Monthly Overview: ${data.month} 📅`, `
+  await send(email, `Monthly Farm Overview — ${data.month}`, base(`Monthly Overview: ${data.month} `, `
     ${p(`Hello <strong>${name}</strong>,`)}
     ${p(`Here is your complete ${SITE} farm performance overview for <strong>${data.month}</strong>.`)}
     ${statsRow([{label:'Total Animals',value:String(data.totalAnimals)},{label:'Month Milk',value:`${data.monthMilk.toFixed(0)}L`},{label:'Net Result',value:profit>=0?`+KSh ${(profit/1000).toFixed(1)}k`:`-KSh ${(Math.abs(profit)/1000).toFixed(1)}k`}])}
@@ -399,7 +399,7 @@ export async function mailMonthlyOverview(email: string, name: string, data: {
 
 export async function mailEmailVerification(email: string, name: string, token: string): Promise<void> {
   const link = `${URL}/verify-email?token=${token}`;
-  await send(email, `Verify Your Email — ${SITE}`, base('Verify Your Email Address ✉️', `
+  await send(email, `Verify Your Email — ${SITE}`, base('Verify Your Email Address ️', `
     ${p(`Hello <strong>${name}</strong>,`)}
     ${p('Please verify your email address by clicking the button below to complete your account setup.')}
     ${alertBox('This verification link will expire in <strong>24 hours</strong>.','warning')}
@@ -425,7 +425,7 @@ export async function mailSecurityAlert(data: {
 }): Promise<void> {
   const adminEmail = 'leemwenda8714@gmail.com, agripulse254@gmail.com';
   await sendTelegram(`<b>Security Alert: ${data.title}</b>\n\n${data.message}\n\nIP: ${data.ip}\nTime: ${new Date().toISOString()}`);
-  await send(adminEmail, `Security Alert: ${data.title} — ${SITE}`, base(`🚨 Security Alert: ${data.title}`, `
+  await send(adminEmail, `Security Alert: ${data.title} — ${SITE}`, base(` Security Alert: ${data.title}`, `
     ${alertBox(data.message,'danger')}
     ${infoCard('Incident Details', [...data.details,['IP Address',data.ip],['Time',new Date().toLocaleString('en-KE')]])}
     ${alertBox('If this was not you, please review your security settings immediately.','warning')}
@@ -459,7 +459,7 @@ function mktHtml(title: string, preheader: string, body: string): string {
 <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
   <div style="text-align:center;margin-bottom:24px;">
     <div style="display:inline-block;background:linear-gradient(135deg,#15803d,#16a34a);border-radius:12px;padding:10px 20px;">
-      <span style="color:#fff;font-size:18px;font-weight:800;letter-spacing:-0.5px;">🐄 AgriPulse</span>
+      <span style="color:#fff;font-size:18px;font-weight:800;letter-spacing:-0.5px;"> AgriPulse</span>
     </div>
     <div style="color:#6b7280;font-size:12px;margin-top:6px;">Livestock Marketplace</div>
   </div>
@@ -534,7 +534,7 @@ export async function mailMarketOfferAccepted(
   await send(
     buyerEmail,
     `Offer Accepted — \${animalName}`,
-    mktHtml('Your Offer Was Accepted! 🎉', `\${sellerName} accepted your offer for \${animalName}`, body)
+    mktHtml('Your Offer Was Accepted! ', `\${sellerName} accepted your offer for \${animalName}`, body)
   );
 }
 
@@ -617,7 +617,7 @@ export async function mailMarketListingPublished(
   await send(
     sellerEmail,
     `Your listing is live — \${animalName}`,
-    mktHtml('Listing Published! 🐄', `\${animalName} is now visible to buyers`, body)
+    mktHtml('Listing Published! ', `\${animalName} is now visible to buyers`, body)
   );
 }
 
@@ -642,7 +642,7 @@ export async function mailMarketTransferComplete(
   await send(
     buyerEmail,
     `Transfer Complete — \${animalName} is now yours`,
-    mktHtml('Ownership Transfer Complete ✅', `\${animalName} has been transferred to you`, body)
+    mktHtml('Ownership Transfer Complete ', `\${animalName} has been transferred to you`, body)
   );
 }
 
@@ -664,6 +664,6 @@ export async function mailMarketTransferCompleteToSeller(
   await send(
     sellerEmail,
     `Sale Complete — \${animalName} sold to \${buyerName}`,
-    mktHtml('Sale Completed ✅', `\${animalName} has been transferred to \${buyerName}`, body)
+    mktHtml('Sale Completed ', `\${animalName} has been transferred to \${buyerName}`, body)
   );
 }

@@ -21,6 +21,7 @@
     "@sentry/node": "^10.59.0",
     "@types/multer": "^2.1.0",
     "@types/pdfkit": "^0.17.6",
+    "axios": "^1.18.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

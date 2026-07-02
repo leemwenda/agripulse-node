@@ -3,17 +3,15 @@ import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, Beef, Milk, Heart, Baby, Wallet, Store, Tag,
   Users, Bot, LogOut, Menu, X, Bell, ChevronDown,
-  BarChart2, User, AlertTriangle, Sun, Moon, Shield, ArrowLeftRight,
-} from 'lucide-react';
+  BarChart2, User, AlertTriangle, Sun, Moon, Shield, ArrowLeftRight, Stethoscope, Settings,} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../lib/api';
 
 const allNavItems = [
   { icon: LayoutDashboard, label: 'Dashboard', to: '/dashboard', roles: ['admin','superadmin','worker'] },
+  { icon: LayoutDashboard, label: 'Dashboard', to: '/vet-dashboard', roles: ['vet'] },
   { icon: Beef,            label: 'Animals',   to: '/animals',   roles: ['admin','superadmin'] },
-  { icon: Store, label: 'Marketplace', to: '/marketplace', roles: ['admin','superadmin','worker'] },
-  { icon: Tag, label: 'List for Sale', to: '/marketplace/create', roles: ['admin','superadmin'] },
   { icon: Milk,            label: 'Milk',      to: '/milk',      roles: ['admin','superadmin','worker'] },
   { icon: Heart,           label: 'Health',    to: '/health',    roles: ['admin','superadmin','worker'] },
   { icon: Baby,            label: 'Breeding',  to: '/breeding',  roles: ['admin','superadmin'] },
@@ -21,6 +19,7 @@ const allNavItems = [
   { icon: Users,           label: 'Workers',   to: '/workers',   roles: ['admin','superadmin'] },
   { icon: Bot,             label: 'AI Advisor',to: '/ai',        roles: ['admin','superadmin'] },
   { icon: BarChart2,       label: 'Reports',   to: '/reports',   roles: ['admin','superadmin'] },
+  { icon: Stethoscope,     label: 'Find a Vet', to: '/find-vet',  roles: ['admin','superadmin','worker'] },
 ];
 
 const TYPE_COLORS_DARK: Record<string, string> = {
@@ -68,7 +67,7 @@ export function Layout() {
   }, []);
 
   function handleLogout() { logout(); navigate('/login'); }
-  function handleExitFarm() { navigate('/marketplace'); }
+  function handleExitFarm() { navigate('/journey'); }
 
   const colors = {
     dark: {
@@ -231,7 +230,7 @@ export function Layout() {
             </div>
             <button
               onClick={handleExitFarm}
-              title="Exit to Marketplace"
+              title="Exit Farm"
               style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'transparent', cursor: 'pointer', color: c.text3, transition: 'all 0.15s' }}
               onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = c.hoverBg; (e.currentTarget as HTMLElement).style.color = '#15803d'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = c.text3; }}
@@ -353,7 +352,7 @@ export function Layout() {
                     onMouseEnter={e => (e.currentTarget.style.background = c.hoverBg)}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
-                    <ArrowLeftRight size={16} />Exit to Marketplace
+                    <ArrowLeftRight size={16} />Exit Farm
                   </button>
                   <button onClick={handleLogout}
                     style={{ width: '100%', textAlign: 'left', padding: '8px 16px', fontSize: 14, display: 'flex', alignItems: 'center', gap: '8px', color: '#f87171', background: 'transparent', border: 'none', cursor: 'pointer' }}

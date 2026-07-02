@@ -78,6 +78,14 @@ router.post('/checkout', async (req: Request, res: Response): Promise<void> => {
         continue;
       }
 
+      const existing = await prisma.marketOffer.findFirst({
+        where: { listingId: listing.id, buyerId, status: { in: ['pending', 'countered'] }, note: 'Buy Now — purchase at asking price' },
+      });
+      if (existing) {
+        skipped.push({ listingId: listing.id, reason: 'You already have an order pending on this listing' });
+        continue;
+      }
+
       const offer = await prisma.marketOffer.create({
         data: {
           listingId: listing.id,
@@ -101,6 +109,18 @@ router.post('/checkout', async (req: Request, res: Response): Promise<void> => {
           type: 'system',
         },
       });
+
+      try {
+        await prisma.marketNotification.create({
+          data: {
+            userId: listing.sellerId,
+            type: 'new_offer',
+            title: 'New Buy Now order',
+            body: `${req.user!.name} placed a Buy Now order for KSh ${Number(listing.askingPrice).toLocaleString()}. Confirm to proceed.`,
+            link: `/marketplace/listing/${listing.id}`,
+          },
+        });
+      } catch {}
 
       created.push({ listingId: listing.id, offerId: offer.id });
     }

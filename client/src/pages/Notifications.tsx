@@ -5,8 +5,8 @@ import api from '../lib/api';
 import { useTheme } from '../context/ThemeContext';
 
 const TYPE_ICON: Record<string, string> = {
-  offer: '💰', message: '💬', agreement: '📜', transfer: '🔄',
-  listing: '🐄', favorite: '❤️', system: '🔔',
+  offer: '', message: '', agreement: '', transfer: '',
+  listing: '', favorite: '️', system: '',
 };
 
 export default function Notifications() {
@@ -74,7 +74,7 @@ export default function Notifications() {
               <div key={n.id} onClick={() => { if (!n.read) markRead(n.id); if (n.link) navigate(n.link); }}
                 style={{ display: 'flex', gap: 12, padding: '14px 16px', background: n.read ? card : (isDark ? 'rgba(255,255,255,.07)' : '#f0fdf4'), border: `1px solid ${n.read ? border : 'rgba(16,185,129,.25)'}`, borderRadius: 12, cursor: n.link ? 'pointer' : 'default', transition: 'background .15s' }}>
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: isDark ? 'rgba(255,255,255,.06)' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                  {TYPE_ICON[n.type] || '🔔'}
+                  {TYPE_ICON[n.type] || ''}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: n.read ? 400 : 700, color: text, fontSize: 14, marginBottom: 2 }}>{n.title}</div>

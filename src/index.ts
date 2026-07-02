@@ -19,6 +19,10 @@ import marketAnalyticsRoutes from './routes/market.analytics.routes';
 import marketReviewsRoutes from './routes/market.reviews.routes';
 import marketWatchlistRoutes from './routes/market.watchlist.routes';
 import marketSavedSearchRoutes from './routes/market.savedsearch.routes';
+import vetProfileRoutes from './routes/vet.profile.routes';
+import vetSlotsRoutes from './routes/vet.slots.routes';
+import vetAppointmentsRoutes from './routes/vet.appointments.routes';
+import vetEmergencyRoutes from './routes/vet.emergency.routes';
 import animalsRoutes from './routes/animals.routes';
 import { milkRouter, healthRouter, breedingRouter, financialRouter } from './routes/data.routes';
 import { startAnimalCategoryCron, updateAllAnimalCategories } from './services/animalCategory.service';
@@ -124,6 +128,10 @@ app.use('/api/market-analytics', marketAnalyticsRoutes);
 app.use('/api/market-reviews', marketReviewsRoutes);
 app.use('/api/market-watchlist', marketWatchlistRoutes);
 app.use('/api/market-saved-search', marketSavedSearchRoutes);
+app.use('/api/vet', vetProfileRoutes);
+app.use('/api/vet/slots', vetSlotsRoutes);
+app.use('/api/vet/appointments', vetAppointmentsRoutes);
+app.use('/api/vet/emergency', vetEmergencyRoutes);
 app.use('/api/marketplace',      marketRoutes); // redirect old route
 
 
@@ -155,7 +163,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 app.listen(PORT, async () => {
-  console.log(`\n🌿 AgriPulse API v2.0`);
+  console.log(`\n AgriPulse API v2.0`);
   console.log(`   Server : http://localhost:${PORT}`);
   console.log(`   Client : ${process.env.CLIENT_URL}`);
   console.log(`   Mode   : ${process.env.NODE_ENV}\n`);

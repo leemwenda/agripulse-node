@@ -117,7 +117,7 @@ export default function CreateListing() {
                         <div style={{ width:'100%', height:110, background:isDark?'#1c2128':'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
                           {photo
                             ? <img src={photo} alt={a.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                            : <span style={{ fontSize:36 }}>🐄</span>}
+                            : <span style={{ fontSize:36 }}></span>}
                         </div>
                         <div style={{ padding:'10px 12px', position:'relative' }}>
                           <div style={{ fontSize:14, fontWeight:700, color:D.text }}>{a.name}</div>

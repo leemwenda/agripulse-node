@@ -40,7 +40,7 @@ const ROLES = [
     description: 'Access full animal health histories, record treatments and vaccinations, verify ownership transfers, and manage your client farms.',
     features: ['Animal Health Records', 'Vaccination Certificates', 'Transfer Verification', 'Client Farm Access', 'Appointment Management'],
     cta: 'Start as Veterinarian',
-    path: '/register?role=vet',
+    path: '/vet/register',
     accent: '#a78bfa',
     glow: 'rgba(167,139,250,0.35)',
     border: 'rgba(167,139,250,0.25)',

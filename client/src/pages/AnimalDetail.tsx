@@ -84,6 +84,8 @@ function PassportTab({ animal, dark }: { animal: any; dark: boolean }) {
   const [transferEmail, setTransferEmail] = useState('');
   const [transferring, setTransferring] = useState(false);
   const [transferCode, setTransferCode] = useState('');
+  const [transferId, setTransferId] = useState<number | null>(null);
+  const [refreshingCode, setRefreshingCode] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
 
   // Verification logic: animal must be on farm 4+ months AND have records
@@ -304,11 +306,25 @@ function PassportTab({ animal, dark }: { animal: any; dark: boolean }) {
         sellerSignature: sig,
       });
       setTransferCode(res.data.transfer.transferCode);
+      setTransferId(res.data.transfer.id);
     } catch (err: any) {
       const msg = err?.response?.data?.error || 'Transfer failed. Please try again.';
       alert(msg);
     } finally {
       setTransferring(false);
+    }
+  };
+
+  const refreshTransferCode = async () => {
+    if (!transferId) return;
+    setRefreshingCode(true);
+    try {
+      const res = await api.post(`/passport/transfer/${transferId}/refresh-code`);
+      setTransferCode(res.data.transfer.transferCode);
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Failed to refresh code.');
+    } finally {
+      setRefreshingCode(false);
     }
   };
 
@@ -417,6 +433,12 @@ function PassportTab({ animal, dark }: { animal: any; dark: boolean }) {
               <div className="text-xs text-green-500 mb-2 font-medium">Transfer initiated! Share this code with the new owner:</div>
               <div className="font-mono text-2xl font-black text-green-500 tracking-widest">{transferCode}</div>
               <div className="text-xs text-green-500/60 mt-2">They enter this code in their AgriPulse app to accept the animal.</div>
+              <button
+                onClick={refreshTransferCode}
+                disabled={refreshingCode}
+                className="mt-3 text-xs font-semibold text-green-600 hover:text-green-500 underline disabled:opacity-40 transition-colors">
+                {refreshingCode ? 'Refreshing...' : 'Refresh code'}
+              </button>
               <div className="mt-3 pt-3 border-t border-green-500/20">
                 <div className="text-xs text-green-500/70">Your e-signature has been recorded on this transfer.</div>
               </div>

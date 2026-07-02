@@ -64,7 +64,7 @@ router.post('/transfer/initiate', requireAuth, async (req: Request, res: Respons
     data: {
       animalId,
       fromUserId: userId,
-      toUserId: toUserId || userId,
+      toUserId: toUserId || null, // null = open transfer, claimable by anyone with the code
       initiatedBy: userId,
       method: method || 'in_app',
       status: 'pending',
@@ -77,11 +77,41 @@ router.post('/transfer/initiate', requireAuth, async (req: Request, res: Respons
   res.json({ transfer });
 });
 
-// GET /api/passport/transfer/:id — get transfer details
-router.get('/transfer/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+// POST /api/passport/transfer/:id/refresh-code — regenerate the share code for a pending transfer
+router.post('/transfer/:id/refresh-code', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const id = parseInt(req.params.id as string);
-  const transfer = await prisma.ownershipTransfer.findUnique({
+  const userId = req.user!.id;
+
+  const transfer = await prisma.ownershipTransfer.findUnique({ where: { id } });
+
+  if (!transfer) {
+    res.status(404).json({ error: 'Transfer not found.' });
+    return;
+  }
+  if (transfer.initiatedBy !== userId) {
+    res.status(403).json({ error: 'Only the person who initiated this transfer can refresh the code.' });
+    return;
+  }
+  if (transfer.status !== 'pending') {
+    res.status(400).json({ error: 'Only pending transfers can have their code refreshed.' });
+    return;
+  }
+
+  const newCode = Math.random().toString(36).slice(2, 10).toUpperCase();
+
+  const updated = await prisma.ownershipTransfer.update({
     where: { id },
+    data: { transferCode: newCode },
+  });
+
+  res.json({ transfer: updated });
+});
+
+// GET /api/passport/transfer/:code — get transfer details by transfer code
+router.get('/transfer/:code', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const code = (req.params.code as string).trim().toUpperCase();
+  const transfer = await prisma.ownershipTransfer.findUnique({
+    where: { transferCode: code },
     include: {
       animal: { select: { id: true, name: true, agripulseId: true, breed: true, tagNumber: true } },
       fromUser: { select: { id: true, name: true, email: true } },
@@ -97,23 +127,33 @@ router.get('/transfer/:id', requireAuth, async (req: Request, res: Response): Pr
   res.json({ transfer });
 });
 
-// POST /api/passport/transfer/:id/accept — buyer accepts transfer
-router.post('/transfer/:id/accept', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  const id = parseInt(req.params.id as string);
+// POST /api/passport/transfer/accept — buyer accepts transfer by code
+router.post('/transfer/accept', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const code = (req.body.transferCode as string || '').trim().toUpperCase();
+  const buyerSignature = req.body.buyerSignature as string | undefined;
   const userId = req.user!.id;
 
+  if (!code) {
+    res.status(400).json({ error: 'Transfer code is required.' });
+    return;
+  }
+
   const transfer = await prisma.ownershipTransfer.findUnique({
-    where: { id },
+    where: { transferCode: code },
     include: { animal: { select: { id: true, name: true, agripulseId: true } } },
   });
 
   if (!transfer || transfer.status !== 'pending') {
-    res.status(404).json({ error: 'Invalid or already processed transfer' });
+    res.status(404).json({ error: 'Invalid or already processed transfer code.' });
     return;
   }
 
-  if (transfer.toUserId !== userId) {
+  if (transfer.toUserId !== null && transfer.toUserId !== userId) {
     res.status(403).json({ error: 'This transfer is not addressed to you.' });
+    return;
+  }
+  if (transfer.fromUserId === userId) {
+    res.status(400).json({ error: 'You cannot accept your own transfer.' });
     return;
   }
 
@@ -123,8 +163,13 @@ router.post('/transfer/:id/accept', requireAuth, async (req: Request, res: Respo
   });
 
   await prisma.ownershipTransfer.update({
-    where: { id },
-    data: { status: 'completed', transferDate: new Date() },
+    where: { id: transfer.id },
+    data: {
+      toUserId: userId, // claim the transfer for whoever actually accepted it
+      status: 'completed',
+      transferDate: new Date(),
+      notes: buyerSignature ? `${transfer.notes || ''}\n[Buyer signature recorded]`.trim() : transfer.notes,
+    },
   });
 
   res.json({ message: 'Ownership transferred successfully', animal: transfer.animal });

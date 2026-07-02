@@ -80,7 +80,7 @@ export default function VerifyEmail() {  useEffect(() => { document.title = 'Ver
 
         {status === 'success' && (
           <>
-            <div style={{ background: '#dcfce7', borderRadius: '50%', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}>✓</div>
+            <div style={{ background: '#dcfce7', borderRadius: '50%', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}></div>
             <h2 style={{ color: '#15803d', fontSize: '22px', margin: '0 0 12px' }}>Email Verified!</h2>
             <p style={{ color: '#374151', marginBottom: '28px' }}>Your AgriPulse account is now active. You can login and start managing your farm.</p>
             <button
@@ -104,7 +104,7 @@ export default function VerifyEmail() {  useEffect(() => { document.title = 'Ver
 
         {status === 'error' && (
           <>
-            <div style={{ background: '#fee2e2', borderRadius: '50%', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}>✕</div>
+            <div style={{ background: '#fee2e2', borderRadius: '50%', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '28px' }}></div>
             <h2 style={{ color: '#dc2626', fontSize: '20px', margin: '0 0 12px' }}>Verification Failed</h2>
             <p style={{ color: '#374151', marginBottom: '24px' }}>{message}</p>
 

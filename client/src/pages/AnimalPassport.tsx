@@ -103,10 +103,10 @@ export default function AnimalPassport() {
           <div style={s.header}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div style={{ fontSize: 12, color: '#86efac', marginBottom: 4 }}>🌿 AgriPulse · Digital Animal Passport</div>
+                <div style={{ fontSize: 12, color: '#86efac', marginBottom: 4 }}> AgriPulse · Digital Animal Passport</div>
                 <div style={{ fontSize: 32, fontWeight: 800 }}>{passport.name.toUpperCase()}</div>
                 <div style={{ fontSize: 14, color: '#bbf7d0', marginTop: 4 }}>
-                  {passport.breed} · {passport.gender === 'female' ? '♀' : '♂'} · {passport.category?.replace('_', ' ')}
+                  {passport.breed} · {passport.gender === 'female' ? '' : ''} · {passport.category?.replace('_', ' ')}
                 </div>
                 <div style={s.idBox}>
                   <div style={{ fontSize: 10, color: '#86efac' }}>AgriPulse ID</div>
@@ -114,7 +114,7 @@ export default function AnimalPassport() {
                 </div>
               </div>
               <div style={{ background: '#fff', borderRadius: 8, padding: 8, textAlign: 'center' as const }}>
-                <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700, marginBottom: 4 }}>✓ VERIFIED</div>
+                <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700, marginBottom: 4 }}> VERIFIED</div>
                 <div style={{ fontSize: 9, color: '#64748b' }}>by AgriPulse</div>
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function AnimalPassport() {
                 <div style={{ fontSize: 11, color: '#15803d' }}>Current Owner</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: '#14532d' }}>{passport.farm.name}</div>
               </div>
-              <span style={s.badge('#15803d')}>✓ Verified Owner</span>
+              <span style={s.badge('#15803d')}> Verified Owner</span>
             </div>
           </div>
         </div>
@@ -148,13 +148,13 @@ export default function AnimalPassport() {
         {/* Identity */}
         <div style={s.card}>
           <div style={{ padding: 20 }}>
-            <div style={s.sectionTitle}>👤 1. Identity</div>
+            <div style={s.sectionTitle}> 1. Identity</div>
             <div style={s.grid3}>
               {[
                 { label: 'Tag Number', value: passport.tagNumber },
                 { label: 'Breed', value: passport.breed },
                 { label: 'Category', value: passport.category?.replace('_', ' ') || '—' },
-                { label: 'Gender', value: passport.gender === 'female' ? 'Female ♀' : 'Male ♂' },
+                { label: 'Gender', value: passport.gender === 'female' ? 'Female ' : 'Male ' },
                 { label: 'Date of Birth', value: new Date(passport.dateOfBirth).toLocaleDateString() },
                 { label: 'Age', value: formatAge(passport.dateOfBirth) },
                 { label: 'Color', value: passport.color || '—' },
@@ -173,19 +173,19 @@ export default function AnimalPassport() {
         {/* Health */}
         <div style={s.card}>
           <div style={{ padding: 20 }}>
-            <div style={s.sectionTitle}>🛡️ 3. Health Passport</div>
+            <div style={s.sectionTitle}>️ 3. Health Passport</div>
             <div style={s.grid3}>
               <div>
                 <div style={s.label}>Vaccinations ({vaccinations.length})</div>
                 {vaccinations.length === 0 ? <div style={{ color: '#94a3b8', fontSize: 13 }}>None recorded</div> :
-                  vaccinations.slice(0, 4).map((v, i) => <div key={i} style={{ fontSize: 13, color: '#15803d' }}>✓ {v.vaccination}</div>)}
+                  vaccinations.slice(0, 4).map((v, i) => <div key={i} style={{ fontSize: 13, color: '#15803d' }}> {v.vaccination}</div>)}
               </div>
               <div>
                 <div style={s.label}>Treatments ({treatments.length})</div>
                 {treatments.length === 0 ? <div style={{ color: '#94a3b8', fontSize: 13 }}>None recorded</div> :
                   treatments.slice(0, 3).map((t, i) => (
                     <div key={i} style={{ fontSize: 13, color: '#1e293b' }}>
-                      ✓ {t.condition}
+                       {t.condition}
                       <div style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(t.recordDate).toLocaleDateString()}</div>
                     </div>
                   ))}
@@ -203,7 +203,7 @@ export default function AnimalPassport() {
         {/* Breeding */}
         <div style={s.card}>
           <div style={{ padding: 20 }}>
-            <div style={s.sectionTitle}>🐄 4. Breeding History</div>
+            <div style={s.sectionTitle}> 4. Breeding History</div>
             {passport.breeding.length === 0 ? (
               <div style={{ color: '#94a3b8', fontSize: 13 }}>No breeding records</div>
             ) : (
@@ -226,7 +226,7 @@ export default function AnimalPassport() {
         {/* Milk Production */}
         <div style={s.card}>
           <div style={{ padding: 20 }}>
-            <div style={s.sectionTitle}>🥛 5. Production History</div>
+            <div style={s.sectionTitle}> 5. Production History</div>
             {passport.milkProduction.length === 0 ? (
               <div style={{ color: '#94a3b8', fontSize: 13 }}>No milk production records</div>
             ) : (
@@ -254,7 +254,7 @@ export default function AnimalPassport() {
         {/* Weight */}
         <div style={s.card}>
           <div style={{ padding: 20 }}>
-            <div style={s.sectionTitle}>⚖️ 6. Weight History</div>
+            <div style={s.sectionTitle}>️ 6. Weight History</div>
             {passport.weights.length === 0 ? (
               <div style={{ color: '#94a3b8', fontSize: 13 }}>No weight records</div>
             ) : (
@@ -280,7 +280,7 @@ export default function AnimalPassport() {
         {/* Ownership History */}
         <div style={s.card}>
           <div style={{ padding: 20 }}>
-            <div style={s.sectionTitle}>👥 2. Ownership History</div>
+            <div style={s.sectionTitle}> 2. Ownership History</div>
             {passport.ownershipTransfers.length === 0 ? (
               <div>
                 <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12 }}>No transfers — original owner</div>
@@ -308,7 +308,7 @@ export default function AnimalPassport() {
               </table>
             )}
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginTop: 12, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 20 }}>✅</span>
+              <span style={{ fontSize: 20 }}></span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>Verified Ownership Chain</div>
                 <div style={{ fontSize: 12, color: '#4b5563' }}>This animal's ownership history is verified and cannot be altered.</div>
@@ -320,7 +320,7 @@ export default function AnimalPassport() {
         {/* Timeline */}
         <div style={s.card}>
           <div style={{ padding: 20 }}>
-            <div style={s.sectionTitle}>🕒 Timeline</div>
+            <div style={s.sectionTitle}> Timeline</div>
             <div style={{ position: 'relative' as const }}>
               {timeline.map((item, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
@@ -341,7 +341,7 @@ export default function AnimalPassport() {
         {/* Footer */}
         <div style={{ background: '#14532d', color: '#fff', borderRadius: 12, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700 }}>✅ VERIFIED BY AGRIPULSE</div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}> VERIFIED BY AGRIPULSE</div>
             <div style={{ fontSize: 11, color: '#86efac', marginTop: 4 }}>All records are authenticated and cannot be altered.</div>
           </div>
           <div style={{ textAlign: 'right' as const }}>
@@ -352,7 +352,7 @@ export default function AnimalPassport() {
         </div>
 
         <div style={{ textAlign: 'center' as const, marginTop: 16, fontSize: 12, color: '#94a3b8' }}>
-          🌿 Trusted Records · Verified Ownership · Better Decisions · Stronger Farming
+           Trusted Records · Verified Ownership · Better Decisions · Stronger Farming
         </div>
 
       </div>

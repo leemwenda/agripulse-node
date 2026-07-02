@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth, requireFarmer } from '../middleware/auth.middleware';
+import { requireAuth, requireFarmer, optionalAuth } from '../middleware/auth.middleware';
 import { getFarmId } from '../middleware/auth.middleware';
 import prisma from '../lib/prisma';
 import { mailMarketListingPublished, mailMarketTransferComplete, mailMarketTransferCompleteToSeller } from '../services/mail.service';
@@ -7,7 +7,7 @@ import { mailMarketListingPublished, mailMarketTransferComplete, mailMarketTrans
 const router = Router();
 
 // ─── PUBLIC: Browse listings ─────────────────────────────────────────────────
-router.get('/', async (req: Request, res: Response): Promise<void> => {
+router.get('/', optionalAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const {
       search, county, category, gender, minPrice, maxPrice,
@@ -17,6 +17,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const where: any = { status: 'active' };
+    if (req.user) where.sellerId = { not: req.user.id };
     if (county) where.county = { contains: county };
     if (minPrice || maxPrice) {
       where.askingPrice = {};
@@ -70,6 +71,7 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
 router.get('/:id', async (req: Request, res: Response): Promise<void> => {
   try {
     const id = parseInt(req.params.id as string);
+    if (isNaN(id)) { res.status(404).json({ error: 'Listing not found' }); return; }
     const listing = await prisma.marketListing.findUnique({
       where: { id },
       include: {

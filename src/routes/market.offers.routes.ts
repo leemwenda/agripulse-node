@@ -48,6 +48,21 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
         await mailMarketNewOffer(seller.email, seller.name, buyer.name, animal?.name || 'Animal', parseFloat(amount), parseInt(listingId)).catch(() => {});
       }
     } catch {}
+
+    // In-app notification for seller
+    try {
+      const animal = await prisma.animal.findUnique({ where: { id: listing.animalId }, select: { name: true } });
+      await prisma.marketNotification.create({
+        data: {
+          userId: listing.sellerId,
+          type: 'new_offer',
+          title: 'New offer received',
+          body: `${req.user!.name} offered KSh ${parseFloat(amount).toLocaleString()} for ${animal?.name || 'your animal'}.`,
+          link: `/marketplace/listing/${listingId}`,
+        },
+      });
+    } catch {}
+
     res.status(201).json({ offer });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
@@ -84,7 +99,7 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
       const thread = await prisma.marketThread.findUnique({ where: { listingId_buyerId: { listingId: offer.listingId, buyerId: offer.buyerId } } });
       if (thread) {
         await prisma.marketMessage.create({
-          data: { threadId: thread.id, senderId: sellerId, body: `✅ Offer of KSh ${Number(offer.amount).toLocaleString()} accepted! Please proceed to sign the sale agreement.`, type: 'system' },
+          data: { threadId: thread.id, senderId: sellerId, body: ` Offer of KSh ${Number(offer.amount).toLocaleString()} accepted! Please proceed to sign the sale agreement.`, type: 'system' },
         });
       }
 
@@ -97,6 +112,20 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
           await mailMarketOfferAccepted(buyer.email, buyer.name, seller.name, animal.name, Number(offer.amount), offer.listingId).catch(() => {});
         }
       } catch {}
+
+      try {
+        const animal = await prisma.animal.findUnique({ where: { id: offer.listing.animalId }, select: { name: true } });
+        await prisma.marketNotification.create({
+          data: {
+            userId: offer.buyerId,
+            type: 'offer_accepted',
+            title: 'Your offer was accepted!',
+            body: `${req.user!.name} accepted your offer of KSh ${Number(offer.amount).toLocaleString()} for ${animal?.name || 'the animal'}. Sign the agreement to continue.`,
+            link: `/marketplace/agreement/${offer.listingId}`,
+          },
+        });
+      } catch {}
+
       res.json({ offer: { ...offer, status: 'accepted' }, agreement });
     } else if (action === 'reject') {
       await prisma.marketOffer.update({ where: { id: offerId }, data: { status: 'rejected' } });
@@ -108,6 +137,20 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
           await mailMarketOfferRejected(buyer.email, buyer.name, animal.name, Number(offer.amount)).catch(() => {});
         }
       } catch {}
+
+      try {
+        const animal = await prisma.animal.findUnique({ where: { id: offer.listing.animalId }, select: { name: true } });
+        await prisma.marketNotification.create({
+          data: {
+            userId: offer.buyerId,
+            type: 'offer_rejected',
+            title: 'Offer declined',
+            body: `Your offer of KSh ${Number(offer.amount).toLocaleString()} for ${animal?.name || 'the animal'} was declined.`,
+            link: `/marketplace/my-offers`,
+          },
+        });
+      } catch {}
+
       res.json({ offer: { ...offer, status: 'rejected' } });
     } else if (action === 'counter') {
       if (!counterAmount) { res.status(400).json({ error: 'counterAmount required' }); return; }
@@ -124,6 +167,19 @@ router.patch('/:id', async (req: Request, res: Response): Promise<void> => {
           data: { threadId: thread.id, senderId: sellerId, body: `Counter offer: KSh ${parseFloat(counterAmount).toLocaleString()}${note ? '. ' + note : ''}`, type: 'offer' },
         });
       }
+
+      try {
+        await prisma.marketNotification.create({
+          data: {
+            userId: offer.buyerId,
+            type: 'counter_offer',
+            title: 'Seller sent a counter offer',
+            body: `Countered at KSh ${parseFloat(counterAmount).toLocaleString()}${note ? '. ' + note : ''}`,
+            link: `/marketplace/my-offers`,
+          },
+        });
+      } catch {}
+
       res.json({ counter });
     } else {
       res.status(400).json({ error: 'Invalid action' });

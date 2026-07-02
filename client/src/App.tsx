@@ -8,6 +8,10 @@ import { Layout } from './components/layout/Layout';
 import Auth from './pages/Auth';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/ForgotReset';
 import { DashboardPage } from './pages/Dashboard';
+import VetDashboard from './pages/VetDashboard';
+import VetProfile from './pages/VetProfile';
+import FindVet from './pages/FindVet';
+import VetProfilePublic from './pages/VetProfilePublic';
 import { AnimalsPage } from './pages/Animals';
 import { AnimalDetailPage } from './pages/AnimalDetail';
 import { AIAdvisorPage } from './pages/AIAdvisor';
@@ -54,7 +58,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <PageLoader />;
-  return user ? <Navigate to={user.role === 'superadmin' ? '/system' : '/dashboard'} replace /> : <>{children}</>;
+  return user ? <Navigate to={user.role === 'superadmin' ? '/system' : user.role === 'vet' ? '/vet-dashboard' : '/dashboard'} replace /> : <>{children}</>;
 }
 
 function SystemRoute() {
@@ -65,17 +69,37 @@ function SystemRoute() {
   return <SystemPanel />;
 }
 
+
+function VetRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/vet/login" replace />;
+  if (user.role !== 'vet' && user.role !== 'superadmin') return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function FarmerRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === 'buyer') return <Navigate to="/marketplace" replace />;
+  if (user.role === 'vet') return <Navigate to="/vet-dashboard" replace />;
+  return <>{children}</>;
+}
 function AppRoutes() {
   return (
     <Routes>
         <Route path="/marketplace" element={<MarketplacePage />} />
-      <Route path="/vet-dashboard" element={<div style={{padding:40}}>Vet dashboard — coming soon</div>} />
       <Route path="/marketplace/login" element={<MarketplaceAuth />} />
       <Route path="/marketplace/register" element={<MarketplaceAuth />} />
       <Route path="/marketplace/signup" element={<MarketplaceAuth />} />
       <Route path="/vet/login" element={<VetAuth />} />
       <Route path="/vet/register" element={<VetAuth />} />
       <Route path="/vet/signup" element={<VetAuth />} />
+      <Route path="/vet-dashboard" element={<VetRoute><VetDashboard /></VetRoute>} />
+      <Route path="/vet-settings" element={<VetRoute><VetProfile /></VetRoute>} />
+      <Route path="/find-vet" element={<PrivateRoute><FindVet /></PrivateRoute>} />
+      <Route path="/vet/:id" element={<PrivateRoute><VetProfilePublic /></PrivateRoute>} />
       {/* Public pages — no auth required */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<PublicRoute><Auth /></PublicRoute>} />
@@ -100,7 +124,7 @@ function AppRoutes() {
 
       {/* Protected pages — auth required */}
       <Route element={<Layout />}>
-        <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+        <Route path="/dashboard" element={<FarmerRoute><DashboardPage /></FarmerRoute>} />
         <Route path="/animals" element={<AdminRoute><AnimalsPage /></AdminRoute>} />
         <Route path="/animals/:id" element={<AdminRoute><AnimalDetailPage /></AdminRoute>} />
         <Route path="/milk" element={<PrivateRoute><MilkPage /></PrivateRoute>} />

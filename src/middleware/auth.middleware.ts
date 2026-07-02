@@ -28,6 +28,20 @@ function extractToken(req: Request): string | null {
   return null;
 }
 
+export async function optionalAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const token = extractToken(req);
+  if (!token) { next(); return; }
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
+    const user = await prisma.user.findFirst({
+      where: { id: payload.userId, isActive: true },
+      select: { id: true, name: true, email: true, role: true, farmId: true, isActive: true },
+    });
+    if (user) req.user = user as AuthUser;
+  } catch {}
+  next();
+}
+
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   const token = extractToken(req);
   if (!token) {

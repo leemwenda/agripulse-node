@@ -75,9 +75,15 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
   }
 
   const { name, email, password } = parsed.data;
+  const farmName = req.body.farmName;
   const roleParam = req.body.role || 'farmer';
   const roleMap: Record<string, string> = { farmer: 'admin', buyer: 'buyer', vet: 'vet' };
   const assignedRole = roleMap[roleParam] || 'admin';
+
+  if (assignedRole === 'admin' && !farmName?.trim()) {
+    res.status(400).json({ error: 'Farm name is required for farm accounts.' });
+    return;
+  }
 
   // Check registration mode
   const modeFlag = await prisma.featureFlag.findFirst({
@@ -106,6 +112,7 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
       email,
       password: hashed,
       role: assignedRole as any,
+      farmName: assignedRole === 'admin' ? farmName.trim() : null,
       isActive: false,
       registrationStatus: 'pending',
     },

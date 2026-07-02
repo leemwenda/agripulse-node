@@ -86,7 +86,7 @@ export default function Favorites() {
                       <button onClick={() => addToCart(listing?.id)}
                         disabled={isInCart(listing?.id)}
                         style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', background: isInCart(listing?.id) ? '#10b981' : '#0e7490', color: '#fff', fontSize: 12, fontWeight: 700, cursor: isInCart(listing?.id) ? 'default' : 'pointer' }}>
-                        {isInCart(listing?.id) ? '✓ In Cart' : '+ Cart'}
+                        {isInCart(listing?.id) ? ' In Cart' : '+ Cart'}
                       </button>
                     </div>
                   </div>

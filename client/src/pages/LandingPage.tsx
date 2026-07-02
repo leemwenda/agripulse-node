@@ -27,7 +27,7 @@ export default function LandingPage() {
     const success = form.querySelector('#contact-success') as HTMLElement;
     const btn     = form.querySelector('.btn-submit') as HTMLButtonElement;
     if (success) success.style.display = 'block';
-    if (btn)     btn.textContent = '✓ Sent!';
+    if (btn)     btn.textContent = ' Sent!';
   }
 
   return (
@@ -447,7 +447,7 @@ export default function LandingPage() {
           </div>
           <div className="lp-nav-right">
             <Link to="/login" className="lp-btn-login">Sign In</Link>
-            <Link to="/journey" className="lp-btn-register">Get Started →</Link>
+            <Link to="/journey" className="lp-btn-register">Get Started </Link>
             <button
               className={`lp-hamburger${mobileOpen ? ' open' : ''}`}
               onClick={() => setMobileOpen(p => !p)}
@@ -464,7 +464,7 @@ export default function LandingPage() {
           <a href="#testimonials" onClick={() => setMobileOpen(false)}>Stories</a>
           <a href="#contact" onClick={() => setMobileOpen(false)}>Contact</a>
           <Link to="/login" className="lp-btn-login" onClick={() => setMobileOpen(false)}>Sign In</Link>
-          <Link to="/journey" className="lp-btn-register" onClick={() => setMobileOpen(false)}>Get Started →</Link>
+          <Link to="/journey" className="lp-btn-register" onClick={() => setMobileOpen(false)}>Get Started </Link>
         </div>
 
         {/* ── HERO ── */}
@@ -488,7 +488,7 @@ export default function LandingPage() {
                   <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                   Start Free Today
                 </Link>
-                <Link to="/login" className="lp-btn-secondary">Sign In →</Link>
+                <Link to="/login" className="lp-btn-secondary">Sign In </Link>
               </div>
             </div>
             <div className="lp-hero-stats-bar">
@@ -614,7 +614,7 @@ export default function LandingPage() {
                 { initials: 'PK', name: 'Peter Kamau',   role: 'Livestock Farmer · Kisumu',  delay: .2,  text: 'The vaccination reminders are a game changer. I lost animals last year because I missed treatments. This year, zero losses. AgriPulse keeps me on track.' },
               ].map(({ initials, name, role, delay, text }) => (
                 <div key={name} className="lp-testi-card fade-up" style={{ transitionDelay: `${delay}s` }}>
-                  <div className="lp-testi-stars">★★★★★</div>
+                  <div className="lp-testi-stars"></div>
                   <p className="lp-testi-text">"{text}"</p>
                   <div className="lp-testi-author">
                     <div className="lp-testi-avatar">{initials}</div>
@@ -662,9 +662,9 @@ export default function LandingPage() {
                     </select>
                   </div>
                   <div className="lp-form-group"><label>Message</label><textarea placeholder="Tell us how we can help..." required /></div>
-                  <button type="submit" className="btn-submit">Send Message →</button>
+                  <button type="submit" className="btn-submit">Send Message </button>
                   <div id="contact-success" style={{ display: 'none', color: 'var(--green-mid)', fontSize: '.88rem', textAlign: 'center', padding: '.75rem', marginTop: '.5rem', background: 'var(--green-light)', borderRadius: 8 }}>
-                    ✓ Message sent! We'll be in touch soon.
+                     Message sent! We'll be in touch soon.
                   </div>
                 </form>
               </div>
@@ -677,7 +677,7 @@ export default function LandingPage() {
           <h2 className="lp-h2">Ready to transform your farm?</h2>
           <p>Join hundreds of farmers already using AgriPulse to run smarter operations.</p>
           <div className="lp-cta-btns">
-            <Link to="/journey" className="lp-btn-primary">Create Free Account →</Link>
+            <Link to="/journey" className="lp-btn-primary">Create Free Account </Link>
             <Link to="/login" className="lp-btn-secondary">Sign In</Link>
           </div>
         </div>

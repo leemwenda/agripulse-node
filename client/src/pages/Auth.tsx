@@ -20,7 +20,7 @@ export default function Auth() {
   const role = searchParams.get('role') || 'farmer';
   const isLogin = !location.pathname.startsWith('/register');
   const [loginForm, setLoginForm] = useState({ email: '', password: '', remember: false });
-  const [regForm, setRegForm] = useState({ name: '', email: '', password: '', phone: '', county: '' });
+  const [regForm, setRegForm] = useState({ name: '', email: '', password: '', phone: '', county: '', farmName: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +44,7 @@ export default function Auth() {
       const u: any = await login(loginForm.email, loginForm.password, loginForm.remember);
       if (u?.role === 'buyer') navigate('/marketplace');
       else if (u?.role === 'superadmin') navigate('/system');
+      else if (u?.role === 'vet') navigate('/vet-dashboard');
       else navigate('/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Invalid email or password.');
@@ -54,9 +55,7 @@ export default function Auth() {
     e.preventDefault(); setError(''); setLoading(true);
     try {
       await api.post('/auth/register', { ...regForm, role });
-      if (role === 'buyer') navigate('/marketplace');
-      else if (role === 'vet') navigate('/vet-dashboard');
-      else navigate('/dashboard');
+      navigate('/login', { state: { registered: true } });
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Registration failed.');
     } finally { setLoading(false); }
@@ -135,6 +134,9 @@ export default function Auth() {
           {error && <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, color: '#fca5a5', fontSize: 13, marginBottom: 14 }}>{error}</div>}
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div><label style={lbl}>Full Name</label><input style={inp} placeholder="Your full name" value={regForm.name} onChange={e => setRegForm(p => ({ ...p, name: e.target.value }))} required /></div>
+            {role === 'farmer' && (
+              <div><label style={lbl}>Farm Name</label><input style={inp} placeholder="e.g. Green Valley Dairy" value={regForm.farmName} onChange={e => setRegForm(p => ({ ...p, farmName: e.target.value }))} required /></div>
+            )}
             <div><label style={lbl}>Email</label><input style={inp} type="email" placeholder="Your email address" value={regForm.email} onChange={e => setRegForm(p => ({ ...p, email: e.target.value }))} required /></div>
             <div>
               <label style={lbl}>Password</label>

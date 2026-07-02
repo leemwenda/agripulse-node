@@ -40,9 +40,8 @@ export default function MarketplaceAuth() {
   async function handleLogin(e: FormEvent) {
     e.preventDefault(); setError(''); setLoading(true);
     try {
-      const u: any = await login(loginForm.email, loginForm.password);
-      if (u?.role === 'admin' || u?.role === 'worker' || u?.role === 'superadmin') navigate('/dashboard');
-      else navigate('/marketplace');
+      await login(loginForm.email, loginForm.password);
+      navigate('/marketplace');
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Invalid email or password.');
     } finally { setLoading(false); }

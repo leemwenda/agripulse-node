@@ -242,7 +242,7 @@ export function MarketplacePage() {
           <div style={{ fontWeight: 700, fontSize: 15, color: text }}>{l.animal.name}</div>
           <div style={{ fontSize: 13, color: text2, marginBottom: 6 }}>{l.animal.breed} · {l.animal.gender}</div>
           {l.county && (
-            <div style={{ fontSize: 12, color: text3, marginBottom: 6 }}>📍 {l.county}{l.town ? `, ${l.town}` : ''}</div>
+            <div style={{ fontSize: 12, color: text3, marginBottom: 6 }}> {l.county}{l.town ? `, ${l.town}` : ''}</div>
           )}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <div style={{ fontWeight: 800, fontSize: 17, color: GREEN }}>{formatPrice(l.askingPrice)}</div>

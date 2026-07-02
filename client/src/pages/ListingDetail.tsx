@@ -101,7 +101,7 @@ export default function ListingDetail() {
   if (loading) return <PageLoader />;
   if (!listing) return (
     <div style={{ textAlign:'center', padding:'80px 20px', background:D.bg, minHeight:'100vh' }}>
-      <div style={{ fontSize:40, marginBottom:16 }}>🔍</div>
+      <div style={{ fontSize:40, marginBottom:16 }}></div>
       <div style={{ fontSize:18, fontWeight:600, color:D.text, marginBottom:8 }}>Listing not found</div>
       <button onClick={()=>navigate('/marketplace')} style={{ padding:'10px 24px', background:'#0e7490', color:'#fff', border:'none', borderRadius:10, cursor:'pointer', fontWeight:700 }}>Back to Marketplace</button>
     </div>
@@ -137,8 +137,8 @@ export default function ListingDetail() {
       </div>
 
       <div style={{ maxWidth:760, margin:'0 auto', padding:'20px 16px 48px' }}>
-        {success && <div style={{ padding:'13px 16px', background:isDark?'rgba(16,185,129,.1)':'#f0fdf4', border:'1px solid rgba(16,185,129,.3)', borderRadius:11, color:'#10b981', marginBottom:14, display:'flex', alignItems:'center', gap:8 }}><CheckCircle2 size={15}/> {success} <button onClick={()=>setSuccess('')} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#10b981' }}>✕</button></div>}
-        {error && <div style={{ padding:'13px 16px', background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.3)', borderRadius:11, color:'#ef4444', marginBottom:14, display:'flex', alignItems:'center', justifyContent:'space-between' }}>{error}<button onClick={()=>setError('')} style={{ background:'none', border:'none', cursor:'pointer', color:'#ef4444' }}>✕</button></div>}
+        {success && <div style={{ padding:'13px 16px', background:isDark?'rgba(16,185,129,.1)':'#f0fdf4', border:'1px solid rgba(16,185,129,.3)', borderRadius:11, color:'#10b981', marginBottom:14, display:'flex', alignItems:'center', gap:8 }}><CheckCircle2 size={15}/> {success} <button onClick={()=>setSuccess('')} style={{ marginLeft:'auto', background:'none', border:'none', cursor:'pointer', color:'#10b981' }}></button></div>}
+        {error && <div style={{ padding:'13px 16px', background:'rgba(239,68,68,.1)', border:'1px solid rgba(239,68,68,.3)', borderRadius:11, color:'#ef4444', marginBottom:14, display:'flex', alignItems:'center', justifyContent:'space-between' }}>{error}<button onClick={()=>setError('')} style={{ background:'none', border:'none', cursor:'pointer', color:'#ef4444' }}></button></div>}
 
         {/* Photo gallery */}
         <div style={{ borderRadius:16, overflow:'hidden', marginBottom:16, background:D.card, border:`1px solid ${D.border}` }}>
@@ -146,7 +146,7 @@ export default function ListingDetail() {
             {allPhotos.length > 0
               ? <img src={allPhotos[imgIdx]?.url} alt={animal?.name} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
               : <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
-                  <div style={{ fontSize:56 }}>🐄</div>
+                  <div style={{ fontSize:56 }}></div>
                   {isMine && <div style={{ fontSize:13, color:D.text3 }}>Add photos below</div>}
                 </div>
             }
@@ -194,7 +194,7 @@ export default function ListingDetail() {
           <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:16 }}>
             <div>
               <div style={{ fontSize:26, fontWeight:900, color:isDark?'#22d3ee':'#0e7490' }}>{formatKes(listing.askingPrice)}</div>
-              {listing.negotiable && <div style={{ fontSize:12, color:'#10b981', fontWeight:600, marginTop:2 }}>✓ Negotiable</div>}
+              {listing.negotiable && <div style={{ fontSize:12, color:'#10b981', fontWeight:600, marginTop:2 }}> Negotiable</div>}
               <div style={{ fontSize:13, color:D.text3, display:'flex', alignItems:'center', gap:6, marginTop:4 }}>
                 <MapPin size={12}/> {listing.county}{listing.town ? `, ${listing.town}` : ''}
                 <span>·</span><Eye size={12}/> {listing.viewCount || 0} views

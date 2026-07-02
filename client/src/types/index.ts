@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role: 'superadmin' | 'admin' | 'worker' | 'buyer' | 'vet';
   farmId: number | null;
+  farmName?: string | null;
   isActive: boolean;
 }
 
