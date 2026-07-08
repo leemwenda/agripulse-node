@@ -9,24 +9,16 @@ const ThemeContext = createContext<ThemeCtx | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDark, setIsDark] = useState<boolean>(() => {
-    // Check localStorage first
     const saved = localStorage.getItem('theme');
-    if (saved) {
-      return saved === 'dark';
-    }
-    // Check system preference
+    if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
   useEffect(() => {
-    // Update localStorage and DOM
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     const html = document.documentElement;
-    if (isDark) {
-      html.classList.add('dark');
-    } else {
-      html.classList.remove('dark');
-    }
+    if (isDark) html.classList.add('dark');
+    else html.classList.remove('dark');
   }, [isDark]);
 
   const toggleTheme = () => setIsDark(!isDark);

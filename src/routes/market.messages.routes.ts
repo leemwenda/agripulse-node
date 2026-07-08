@@ -5,6 +5,31 @@ import prisma from '../lib/prisma';
 const router = Router();
 router.use(requireAuth);
 
+function computeUnread(thread: any, userId: number) {
+  const isSeller = thread.listing.sellerId === userId;
+  const lastReadAt = isSeller ? thread.sellerLastReadAt : thread.buyerLastReadAt;
+  const lastMsg = thread.messages?.[0];
+  return !!lastMsg && lastMsg.senderId !== userId && (!lastReadAt || lastMsg.createdAt > lastReadAt);
+}
+
+// GET /api/market-messages/unread/count — total unread thread count (for navbar badge)
+// Registered BEFORE /:threadId so 'unread' is never swallowed as a threadId param.
+router.get('/unread/count', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.user!.id;
+    const threads = await prisma.marketThread.findMany({
+      where: { OR: [{ buyerId: userId }, { listing: { sellerId: userId } }] },
+      include: {
+        listing: { select: { sellerId: true } },
+        messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+    const count = threads.filter(t => computeUnread(t, userId)).length;
+    res.json({ count });
+  } catch (err: any) { res.status(400).json({ error: err.message }); }
+});
+
+// GET /api/market-messages — list threads with unread flag + last message
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
@@ -17,18 +42,28 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
       },
       orderBy: { updatedAt: 'desc' },
     });
-    res.json({ threads });
+    const withUnread = threads.map(t => ({ ...t, unread: computeUnread(t, userId) }));
+    res.json({ threads: withUnread });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
 
+// GET /api/market-messages/:threadId — fetch messages, mark thread as read for this user
 router.get('/:threadId', async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.id;
     const threadId = parseInt(req.params.threadId as string);
     const thread = await prisma.marketThread.findFirst({
       where: { id: threadId, OR: [{ buyerId: userId }, { listing: { sellerId: userId } }] },
+      include: { listing: { select: { sellerId: true } } },
     });
     if (!thread) { res.status(404).json({ error: 'Thread not found' }); return; }
+
+    const isSeller = thread.listing.sellerId === userId;
+    await prisma.marketThread.update({
+      where: { id: threadId },
+      data: isSeller ? { sellerLastReadAt: new Date() } : { buyerLastReadAt: new Date() },
+    });
+
     const messages = await prisma.marketMessage.findMany({
       where: { threadId },
       include: { sender: { select: { id: true, name: true } } },
@@ -57,6 +92,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       data: { threadId: tid, senderId, body: String(message), type: 'text' },
       include: { sender: { select: { id: true, name: true } } },
     });
+    await prisma.marketThread.update({ where: { id: tid }, data: { updatedAt: new Date() } });
     res.status(201).json({ message: msg });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });
@@ -71,6 +107,7 @@ router.post('/:threadId', async (req: Request, res: Response): Promise<void> => 
       data: { threadId, senderId, body: String(message), type: 'text' },
       include: { sender: { select: { id: true, name: true } } },
     });
+    await prisma.marketThread.update({ where: { id: threadId }, data: { updatedAt: new Date() } });
     res.status(201).json({ message: msg });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });

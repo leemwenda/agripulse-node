@@ -20,9 +20,17 @@ import marketReviewsRoutes from './routes/market.reviews.routes';
 import marketWatchlistRoutes from './routes/market.watchlist.routes';
 import marketSavedSearchRoutes from './routes/market.savedsearch.routes';
 import vetProfileRoutes from './routes/vet.profile.routes';
+import vetReviewsRoutes from './routes/vet.reviews.routes';
+import vetAdminRoutes from './routes/vet.admin.routes';
+import vetMessagesRoutes from './routes/vet.messages.routes';
 import vetSlotsRoutes from './routes/vet.slots.routes';
 import vetAppointmentsRoutes from './routes/vet.appointments.routes';
 import vetEmergencyRoutes from './routes/vet.emergency.routes';
+import vetTreatmentsRoutes from './routes/vet.treatments.routes';
+import vetVaccinationsRoutes from './routes/vet.vaccinations.routes';
+import vetPrescriptionsRoutes from './routes/vet.prescriptions.routes';
+import vetCertificatesRoutes from './routes/vet.certificates.routes';
+import vetLabTestsRoutes from './routes/vet.labtests.routes';
 import animalsRoutes from './routes/animals.routes';
 import { milkRouter, healthRouter, breedingRouter, financialRouter } from './routes/data.routes';
 import { startAnimalCategoryCron, updateAllAnimalCategories } from './services/animalCategory.service';
@@ -129,9 +137,17 @@ app.use('/api/market-reviews', marketReviewsRoutes);
 app.use('/api/market-watchlist', marketWatchlistRoutes);
 app.use('/api/market-saved-search', marketSavedSearchRoutes);
 app.use('/api/vet', vetProfileRoutes);
+app.use('/api/vet-reviews', vetReviewsRoutes);
+app.use('/api/vet-admin', vetAdminRoutes);
+app.use('/api/vet-messages', vetMessagesRoutes);
 app.use('/api/vet/slots', vetSlotsRoutes);
 app.use('/api/vet/appointments', vetAppointmentsRoutes);
 app.use('/api/vet/emergency', vetEmergencyRoutes);
+app.use('/api/vet-treatments', vetTreatmentsRoutes);
+app.use('/api/vet-vaccinations', vetVaccinationsRoutes);
+app.use('/api/vet-prescriptions', vetPrescriptionsRoutes);
+app.use('/api/vet-certificates', vetCertificatesRoutes);
+app.use('/api/vet-labtests', vetLabTestsRoutes);
 app.use('/api/marketplace',      marketRoutes); // redirect old route
 
 

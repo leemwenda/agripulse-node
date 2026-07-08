@@ -11,6 +11,9 @@ import { DashboardPage } from './pages/Dashboard';
 import VetDashboard from './pages/VetDashboard';
 import VetProfile from './pages/VetProfile';
 import FindVet from './pages/FindVet';
+import MyVetAppointments from './pages/MyVetAppointments';
+import VetVerifications from './pages/VetVerifications';
+import VetMessagesInbox from './pages/VetMessagesInbox';
 import VetProfilePublic from './pages/VetProfilePublic';
 import { AnimalsPage } from './pages/Animals';
 import { AnimalDetailPage } from './pages/AnimalDetail';
@@ -99,6 +102,8 @@ function AppRoutes() {
       <Route path="/vet-dashboard" element={<VetRoute><VetDashboard /></VetRoute>} />
       <Route path="/vet-settings" element={<VetRoute><VetProfile /></VetRoute>} />
       <Route path="/find-vet" element={<PrivateRoute><FindVet /></PrivateRoute>} />
+      <Route path="/my-vet-appointments" element={<PrivateRoute><MyVetAppointments /></PrivateRoute>} />
+      <Route path="/vet-messages" element={<PrivateRoute><VetMessagesInbox /></PrivateRoute>} />
       <Route path="/vet/:id" element={<PrivateRoute><VetProfilePublic /></PrivateRoute>} />
       {/* Public pages — no auth required */}
       <Route path="/" element={<LandingPage />} />
@@ -121,6 +126,7 @@ function AppRoutes() {
       
       <Route path="/animal/:agripulseId" element={<AnimalPassport />} />
       <Route path="/system" element={<SystemRoute />} />
+      <Route path="/system/vet-verifications" element={<VetVerifications />} />
 
       {/* Protected pages — auth required */}
       <Route element={<Layout />}>

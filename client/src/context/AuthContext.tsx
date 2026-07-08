@@ -6,7 +6,7 @@ interface AuthCtx {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<any>;
-  logout: () => Promise<void>;
+  logout: (portal?: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -35,10 +35,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data.user;
   };
 
-  const logout = async () => {
+  const logout = async (portal?: string) => {
     await api.post('/auth/logout');
     setUser(null);
-    window.location.href = '/login';
+    const path = window.location.pathname;
+    if (portal === 'vet' || path.startsWith('/vet')) {
+      window.location.href = '/vet/login';
+    } else if (portal === 'marketplace' || path.startsWith('/marketplace')) {
+      window.location.href = '/marketplace/login';
+    } else {
+      window.location.href = '/login';
+    }
   };
 
   return (

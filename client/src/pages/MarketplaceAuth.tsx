@@ -150,7 +150,7 @@ export default function MarketplaceAuth() {
 
   if (isMobile) return (
     <div style={{ minHeight: '100vh', position: 'relative', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', display: 'flex', flexDirection: 'column' }}>
-      <BgSlideshow />
+      {BgSlideshow()}
       <div style={{ position: 'relative', zIndex: 2, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {Logo()}
         <Link to="/" style={{ fontSize: 12, color: 'rgba(255,255,255,.7)', textDecoration: 'none', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.07)' }}>← Home</Link>
@@ -162,7 +162,7 @@ export default function MarketplaceAuth() {
               <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 30, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             </div>
           </div>
-          <TabBar />
+          {TabBar()}
           {FormContent()}
         </div>
       </div>
@@ -171,7 +171,7 @@ export default function MarketplaceAuth() {
 
   return (
     <div style={{ minHeight: '100vh', position: 'relative', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', display: 'flex', flexDirection: 'column' }}>
-      <BgSlideshow />
+      {BgSlideshow()}
       <div style={{ position: 'relative', zIndex: 2, padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {Logo()}
         <Link to="/" style={{ fontSize: 13, color: 'rgba(255,255,255,.7)', textDecoration: 'none', padding: '7px 16px', borderRadius: 20, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.07)' }}>← Back to Home</Link>
@@ -197,7 +197,7 @@ export default function MarketplaceAuth() {
                 <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
-            <TabBar />
+            {TabBar()}
             {FormContent()}
           </div>
         </div>

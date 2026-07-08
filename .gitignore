@@ -13,3 +13,9 @@ dist/
 *.log
 .pm2/
 k8s/secret.yaml
+uploads/
+*.bak
+*.bak2
+*.bak3
+marketplace_dump.txt
+audit_*.txt

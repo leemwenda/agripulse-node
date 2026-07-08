@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 // ── Groq API helper (same service as PHP version) ────────────
 const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_KEY   = process.env.GROQ_API_KEY || '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';
+const GROQ_KEY   = process.env.GROQ_API_KEY;
+if (!GROQ_KEY) { console.error('[AI Advisor] GROQ_API_KEY is not set — AI Advisor will fail until it is configured in .env'); }
 const GROQ_MODEL = process.env.GROQ_MODEL   || 'llama-3.3-70b-versatile';
 
 async function callGroq(systemPrompt: string, messages: { role: string; content: string }[]): Promise<string> {

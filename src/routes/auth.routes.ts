@@ -259,6 +259,7 @@ router.post('/reset-password', authLimiter, async (req: Request, res: Response):
 // ── GET /api/auth/google ─────────────────────────────
 // Redirect to Google (simple redirect — no passport needed for basic flow)
 router.get('/google', (req: Request, res: Response) => {
+  const portal = (req.query.portal as string) || 'farm';
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID || '',
     redirect_uri: process.env.GOOGLE_CALLBACK_URL || '',
@@ -335,7 +336,11 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
 
     const jwtToken = issueToken(user.id);
     res.cookie('token', jwtToken, COOKIE_OPTS);
-    res.redirect(`${CLIENT_URL}/dashboard`);
+    // Redirect based on role
+    if (user.role === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
+    else if (user.role === 'buyer') res.redirect(`${CLIENT_URL}/marketplace`);
+    else if (user.role === 'superadmin') res.redirect(`${CLIENT_URL}/system`);
+    else res.redirect(`${CLIENT_URL}/dashboard`);
   } catch (err) {
     console.error('[Google OAuth]', err);
     res.redirect(`${CLIENT_URL}/login?error=google_failed`);

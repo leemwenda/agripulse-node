@@ -146,6 +146,15 @@ model User {
   marketReportsAgainst MarketReport[]       @relation("ReportsAgainst")
   marketNotifications MarketNotification[]
 
+  vetReviewsGiven   VetReview[]  @relation("VetReviewsGiven")
+  farmerVetThreads  VetThread[]  @relation("FarmerVetThreads")
+  vetMessagesSent   VetMessage[] @relation("VetMessagesSender")
+  treatmentsAsFarmer    Treatment[]    @relation("TreatmentsFarmer")
+  vaccinationsAsFarmer  Vaccination[]  @relation("VaccinationsFarmer")
+  prescriptionsAsFarmer Prescription[] @relation("PrescriptionsFarmer")
+  certificatesAsFarmer  Certificate[]  @relation("CertificatesFarmer")
+  labTestsAsFarmer      LabTest[]      @relation("LabTestsFarmer")
+
   vetProfile              VetProfile?
   vetAppointmentsAsFarmer VetAppointment[]    @relation("FarmerAppointments")
   vetEmergencyAlertsSent  VetEmergencyAlert[] @relation("FarmerEmergencyAlerts")
@@ -199,6 +208,11 @@ model Animal {
   photos            AnimalPhoto[]
   ownershipTransfers OwnershipTransfer[]
   listings           MarketListing[] @relation("MarketAnimal")
+  treatments         Treatment[]
+  vaccinations       Vaccination[]
+  prescriptions      Prescription[]
+  certificates       Certificate[]
+  labTests           LabTest[]
 
   @@map("animals")
 }
@@ -500,11 +514,13 @@ model MarketOffer {
 }
 
 model MarketThread {
-  id        Int       @id @default(autoincrement())
-  listingId Int       @map("listing_id")
-  buyerId   Int       @map("buyer_id")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id                Int       @id @default(autoincrement())
+  listingId         Int       @map("listing_id")
+  buyerId           Int       @map("buyer_id")
+  buyerLastReadAt   DateTime? @map("buyer_last_read_at")
+  sellerLastReadAt  DateTime? @map("seller_last_read_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   listing  MarketListing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
   buyer    User             @relation("ThreadsBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
@@ -741,6 +757,55 @@ enum VetVerificationStatus {
   rejected
 }
 
+model VetReview {
+  id            Int      @id @default(autoincrement())
+  appointmentId Int      @unique @map("appointment_id")
+  vetId         Int      @map("vet_id")
+  farmerId      Int      @map("farmer_id")
+  rating        Int
+  comment       String?  @db.Text
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  appointment VetAppointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  vet         VetProfile     @relation("VetReviews", fields: [vetId], references: [id], onDelete: Cascade)
+  farmer      User           @relation("VetReviewsGiven", fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@index([vetId])
+  @@map("vet_reviews")
+}
+
+model VetThread {
+  id             Int       @id @default(autoincrement())
+  vetId          Int       @map("vet_id")
+  farmerId       Int       @map("farmer_id")
+  vetLastReadAt  DateTime? @map("vet_last_read_at")
+  farmerLastReadAt DateTime? @map("farmer_last_read_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  vet      VetProfile   @relation("VetThreads", fields: [vetId], references: [id], onDelete: Cascade)
+  farmer   User         @relation("FarmerVetThreads", fields: [farmerId], references: [id], onDelete: Cascade)
+  messages VetMessage[]
+
+  @@unique([vetId, farmerId])
+  @@index([farmerId])
+  @@map("vet_threads")
+}
+
+model VetMessage {
+  id        Int      @id @default(autoincrement())
+  threadId  Int      @map("thread_id")
+  senderId  Int      @map("sender_id")
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  thread VetThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User      @relation("VetMessagesSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@map("vet_messages")
+}
+
 enum VetAppointmentStatus {
   confirmed
   completed
@@ -771,6 +836,13 @@ model VetProfile {
   slots        VetAvailabilitySlot[]
   appointments VetAppointment[]      @relation("VetAppointments")
   alerts       VetEmergencyAlert[]   @relation("VetEmergencyAlerts")
+  reviews      VetReview[]           @relation("VetReviews")
+  threads      VetThread[]           @relation("VetThreads")
+  treatments   Treatment[]           @relation("VetTreatments")
+  vaccinations Vaccination[]         @relation("VetVaccinations")
+  prescriptions Prescription[]       @relation("VetPrescriptions")
+  certificates Certificate[]         @relation("VetCertificates")
+  labTests     LabTest[]             @relation("VetLabTests")
 
   @@index([verificationStatus])
   @@map("vet_profiles")
@@ -807,6 +879,12 @@ model VetAppointment {
   vet    VetProfile          @relation("VetAppointments", fields: [vetId], references: [id], onDelete: Cascade)
   farmer User                @relation("FarmerAppointments", fields: [farmerId], references: [id], onDelete: Cascade)
   slot   VetAvailabilitySlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  review VetReview?
+  treatments    Treatment[]
+  vaccinations  Vaccination[]
+  prescriptions Prescription[]
+  certificates  Certificate[]
+  labTests      LabTest[]
 
   @@index([vetId])
   @@index([farmerId])
@@ -828,4 +906,129 @@ model VetEmergencyAlert {
   @@index([vetId])
   @@index([farmerId])
   @@map("vet_emergency_alerts")
+}
+
+
+enum CertificateType {
+  health
+  movement
+  export
+  vaccination
+}
+
+model Treatment {
+  id             Int       @id @default(autoincrement())
+  animalId       Int       @map("animal_id")
+  vetId          Int       @map("vet_id")
+  farmerId       Int       @map("farmer_id")
+  appointmentId  Int?      @map("appointment_id")
+  diagnosis      String    @db.Text
+  treatmentGiven String    @map("treatment_given") @db.Text
+  medication     String?
+  followUpDate   DateTime? @map("follow_up_date") @db.Date
+  notes          String?   @db.Text
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  animal      Animal          @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  vet         VetProfile      @relation("VetTreatments", fields: [vetId], references: [id], onDelete: Cascade)
+  farmer      User            @relation("TreatmentsFarmer", fields: [farmerId], references: [id], onDelete: Cascade)
+  appointment VetAppointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([animalId])
+  @@index([vetId])
+  @@map("treatments")
+}
+
+model Vaccination {
+  id               Int       @id @default(autoincrement())
+  animalId         Int       @map("animal_id")
+  vetId            Int       @map("vet_id")
+  farmerId         Int       @map("farmer_id")
+  appointmentId    Int?      @map("appointment_id")
+  vaccineName      String    @map("vaccine_name")
+  doseNumber       Int?      @map("dose_number")
+  dateAdministered DateTime  @map("date_administered") @db.Date
+  nextDueDate      DateTime? @map("next_due_date") @db.Date
+  batchNumber      String?   @map("batch_number")
+  notes            String?   @db.Text
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  animal      Animal          @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  vet         VetProfile      @relation("VetVaccinations", fields: [vetId], references: [id], onDelete: Cascade)
+  farmer      User            @relation("VaccinationsFarmer", fields: [farmerId], references: [id], onDelete: Cascade)
+  appointment VetAppointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([animalId])
+  @@index([vetId])
+  @@map("vaccinations")
+}
+
+model Prescription {
+  id             Int       @id @default(autoincrement())
+  animalId       Int       @map("animal_id")
+  vetId          Int       @map("vet_id")
+  farmerId       Int       @map("farmer_id")
+  appointmentId  Int?      @map("appointment_id")
+  medicationName String    @map("medication_name")
+  dosage         String
+  frequency      String
+  durationDays   Int?      @map("duration_days")
+  instructions   String?   @db.Text
+  issuedDate     DateTime  @map("issued_date") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  animal      Animal          @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  vet         VetProfile      @relation("VetPrescriptions", fields: [vetId], references: [id], onDelete: Cascade)
+  farmer      User            @relation("PrescriptionsFarmer", fields: [farmerId], references: [id], onDelete: Cascade)
+  appointment VetAppointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([animalId])
+  @@index([vetId])
+  @@map("prescriptions")
+}
+
+model Certificate {
+  id                Int              @id @default(autoincrement())
+  animalId          Int              @map("animal_id")
+  vetId             Int              @map("vet_id")
+  farmerId          Int              @map("farmer_id")
+  appointmentId     Int?             @map("appointment_id")
+  certificateType   CertificateType  @map("certificate_type")
+  issueDate         DateTime         @map("issue_date") @db.Date
+  expiryDate        DateTime?        @map("expiry_date") @db.Date
+  certificateNumber String           @unique @map("certificate_number")
+  pdfPath           String?          @map("pdf_path")
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  animal      Animal          @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  vet         VetProfile      @relation("VetCertificates", fields: [vetId], references: [id], onDelete: Cascade)
+  farmer      User            @relation("CertificatesFarmer", fields: [farmerId], references: [id], onDelete: Cascade)
+  appointment VetAppointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([animalId])
+  @@index([vetId])
+  @@map("certificates")
+}
+
+model LabTest {
+  id             Int       @id @default(autoincrement())
+  animalId       Int       @map("animal_id")
+  vetId          Int       @map("vet_id")
+  farmerId       Int       @map("farmer_id")
+  appointmentId  Int?      @map("appointment_id")
+  testType       String    @map("test_type")
+  sampleDate     DateTime  @map("sample_date") @db.Date
+  resultDate     DateTime? @map("result_date") @db.Date
+  results        String?   @db.Text
+  attachmentUrl  String?   @map("attachment_url")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  animal      Animal          @relation(fields: [animalId], references: [id], onDelete: Cascade)
+  vet         VetProfile      @relation("VetLabTests", fields: [vetId], references: [id], onDelete: Cascade)
+  farmer      User            @relation("LabTestsFarmer", fields: [farmerId], references: [id], onDelete: Cascade)
+  appointment VetAppointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([animalId])
+  @@index([vetId])
+  @@map("lab_tests")
 }

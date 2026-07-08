@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MapPin, Stethoscope, ShieldCheck } from 'lucide-react';
+import { Search, MapPin, Stethoscope } from 'lucide-react';
 import api from '../lib/api';
 import { PageLoader } from '../components/ui';
-
-const D = {
-  pageBg: '#0d1117', cardBg: 'linear-gradient(135deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.01) 100%)',
-  cardBorder: 'rgba(255,255,255,.07)', cardShadow: '0 4px 32px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.04) inset',
-  text: '#e2ede6', text2: '#8aab94', text3: '#4d6b57', green: '#10b981', greenLt: 'rgba(16,185,129,.12)',
-  amber: '#f59e0b', amberLt: 'rgba(245,158,11,.12)',
-};
+import { useTheme } from '../context/ThemeContext';
 
 export default function FindVet() {
+  const { isDark } = useTheme();
+  const D = isDark
+    ? { pageBg: '#0d1117', cardBg: 'rgba(255,255,255,.04)', cardBorder: 'rgba(255,255,255,.07)', text: '#e2ede6', text2: '#8aab94', text3: '#4d6b57', green: '#10b981', greenLt: 'rgba(16,185,129,.12)', amber: '#f59e0b', amberLt: 'rgba(245,158,11,.12)', input: 'rgba(255,255,255,.04)' }
+    : { pageBg: '#f9fafb', cardBg: '#ffffff', cardBorder: '#e5e7eb', text: '#111827', text2: '#4b5563', text3: '#9ca3af', green: '#15803d', greenLt: 'rgba(21,128,61,.08)', amber: '#b45309', amberLt: 'rgba(180,83,9,.08)', input: '#f8fafc' };
+
   const [county, setCounty] = useState('');
   const [specialization, setSpecialization] = useState('');
   const [vets, setVets] = useState<any[]>([]);
@@ -32,7 +31,7 @@ export default function FindVet() {
   }
 
   const inputStyle = {
-    padding: '10px 12px', borderRadius: 8, background: 'rgba(255,255,255,.04)',
+    padding: '10px 12px', borderRadius: 8, background: D.input,
     border: `1px solid ${D.cardBorder}`, color: D.text, fontSize: 14, outline: 'none', minWidth: 180,
   };
 
@@ -57,10 +56,7 @@ export default function FindVet() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px,1fr))', gap: 16 }}>
           {vets.map(v => (
             <Link key={v.id} to={`/vet/${v.id}`} style={{ textDecoration: 'none' }}>
-              <div style={{
-                background: D.cardBg, border: `1px solid ${D.cardBorder}`, boxShadow: D.cardShadow,
-                borderRadius: 14, padding: 18, height: '100%',
-              }}>
+              <div style={{ background: D.cardBg, border: `1px solid ${D.cardBorder}`, borderRadius: 14, padding: 18, height: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ color: D.text, fontWeight: 700, fontSize: 15 }}>{v.user?.name}</div>
                   <span style={{

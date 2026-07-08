@@ -3,7 +3,7 @@ import { NavLink, useNavigate, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, Beef, Milk, Heart, Baby, Wallet, Store, Tag,
   Users, Bot, LogOut, Menu, X, Bell, ChevronDown,
-  BarChart2, User, AlertTriangle, Sun, Moon, Shield, ArrowLeftRight, Stethoscope, Settings,} from 'lucide-react';
+  BarChart2, User, AlertTriangle, Sun, Moon, Shield, ArrowLeftRight, Stethoscope, Settings, Calendar,} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../lib/api';
@@ -20,6 +20,7 @@ const allNavItems = [
   { icon: Bot,             label: 'AI Advisor',to: '/ai',        roles: ['admin','superadmin'] },
   { icon: BarChart2,       label: 'Reports',   to: '/reports',   roles: ['admin','superadmin'] },
   { icon: Stethoscope,     label: 'Find a Vet', to: '/find-vet',  roles: ['admin','superadmin','worker'] },
+  { icon: Calendar,        label: 'My Vet Visits', to: '/my-vet-appointments', roles: ['admin','superadmin','worker'] },
 ];
 
 const TYPE_COLORS_DARK: Record<string, string> = {
@@ -39,7 +40,7 @@ const TYPE_COLORS_LIGHT: Record<string, string> = {
 
 export function Layout() {
   const { user, logout } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   useEffect(() => {
@@ -100,6 +101,7 @@ export function Layout() {
     },
   };
 
+  const { isDark, toggleTheme } = useTheme();
   const c = isDark ? colors.dark : colors.light;
 
   const navLinkStyle = (isActive: boolean) => ({

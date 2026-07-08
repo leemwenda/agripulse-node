@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, ShoppingCart, Beef, CheckCircle2 } from 'lucide-react';
 import api from '../lib/api';
@@ -14,6 +14,13 @@ export default function Cart() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 860);
+
+  useEffect(() => {
+    const h = () => setIsMobile(window.innerWidth < 860);
+    window.addEventListener('resize', h);
+    return () => window.removeEventListener('resize', h);
+  }, []);
 
   const bg     = isDark ? '#0d1117' : '#f9fafb';
   const card   = isDark ? 'rgba(255,255,255,.04)' : '#fff';
@@ -58,7 +65,7 @@ export default function Cart() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: bg, padding: '24px' }}>
+    <div style={{ minHeight: '100vh', background: bg, padding: isMobile ? '16px 12px 90px' : '24px' }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <button onClick={() => navigate('/marketplace')}
@@ -82,14 +89,14 @@ export default function Cart() {
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20, alignItems: 'start' }}>
+          <div style={{ display: isMobile ? 'flex' : 'grid', flexDirection: isMobile ? 'column' : undefined, gridTemplateColumns: isMobile ? undefined : '1fr 320px', gap: 20, alignItems: 'start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {items.map((item: any) => {
                 const listing = item.listing;
                 const photo = listing?.animal?.photos?.[0]?.url;
                 return (
-                  <div key={item.id} style={{ display: 'flex', background: card, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
-                    <div style={{ width: 110, height: 110, background: isDark ? '#1c2128' : '#f1f5f9', flexShrink: 0 }}>
+                  <div key={item.id} style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', background: card, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+                    <div style={{ width: isMobile ? '100%' : 110, height: isMobile ? 160 : 110, background: isDark ? '#1c2128' : '#f1f5f9', flexShrink: 0 }}>
                       {photo ? <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Beef size={28} color={text3} style={{ margin: 'auto', display: 'block', marginTop: 40 }} />}
                     </div>
                     <div style={{ flex: 1, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -108,7 +115,7 @@ export default function Cart() {
               })}
             </div>
 
-            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: '20px', position: 'sticky', top: 20 }}>
+            <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 16, padding: '20px', position: isMobile ? 'static' : 'sticky', top: 20 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: text, marginBottom: 16 }}>Order Summary</h3>
               {items.map((item: any) => (
                 <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
