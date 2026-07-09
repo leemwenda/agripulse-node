@@ -1890,7 +1890,7 @@ function MarketplaceTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 // NAV CONFIG
 // ══════════════════════════════════════════════════════════════════════════════
-type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace';
+type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications';
 
 const NAV: { section: string; items: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
   {
@@ -1918,6 +1918,12 @@ const NAV: { section: string; items: { id: TabId; label: string; icon: React.Rea
     ],
   },
   {
+    section: 'Veterinary',
+    items: [
+      { id: 'vet_verifications', label: 'Vet Approvals', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12l2 2 4-4" /><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.55 1.24" /><path d="M22 4L12 14.01l-3-3" /></svg> },
+    ],
+  },
+  {
     section: 'System',
     items: [
       { id: 'audit', label: 'Audit Log', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" /></svg> },
@@ -1938,6 +1944,7 @@ const TAB_META: Record<TabId, { title: string; sub: string }> = {
   audit: { title: 'Audit Log', sub: 'Full history of all admin actions and events' },
   notifications: { title: 'Notifications', sub: 'Recent alerts and system events' },
   marketplace: { title: 'Marketplace', sub: 'Listings, offers, and marketplace activity across the platform' },
+  vet_verifications: { title: 'Vet Approvals', sub: 'Review and approve veterinary professional registrations' },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1950,6 +1957,7 @@ function SuperAdminPanel() {
   const [pendingCount, setPendingCount] = useState(0);
   const [issueCount, setIssueCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
+  const [vetPendingCount, setVetPendingCount] = useState(0);
 
   // Load badge counts on mount
   useEffect(() => {
@@ -1964,6 +1972,10 @@ function SuperAdminPanel() {
     api.get('/admin/notifications').then(({ data }) => {
       const u = (data.notifications || []).filter((n: Notification) => !n.read).length;
       setNotifCount(u);
+    }).catch(() => {});
+    api.get('/vet-admin/all').then(({ data }) => {
+      const v = (data.vets || []).filter((vp: any) => vp.verificationStatus === 'pending').length;
+      setVetPendingCount(v);
     }).catch(() => {});
   }, []);
 
@@ -2000,12 +2012,15 @@ function SuperAdminPanel() {
                 <button
                   key={item.id}
                   className={`sp-nav-item${tab === item.id ? ' active' : ''}`}
-                  onClick={() => setTab(item.id)}
+                  onClick={() => item.id === 'vet_verifications' ? navigate('/system/vet-verifications') : setTab(item.id)}
                 >
                   {item.icon}
                   {item.label}
                   {hasBadge && (
                     <span className={`sp-nav-badge${item.id === 'users' ? ' amber' : ''}`}>{badgeVal}</span>
+                  )}
+                  {item.id === 'vet_verifications' && vetPendingCount > 0 && (
+                    <span className="sp-nav-badge amber">{vetPendingCount}</span>
                   )}
                 </button>
               );

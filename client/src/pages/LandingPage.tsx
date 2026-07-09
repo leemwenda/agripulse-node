@@ -455,14 +455,12 @@ export default function LandingPage() {
         <div className="ap-features-grid">
           {[
             { icon: <FileText size={20} color="#4ade80" />, bg: 'rgba(22,163,74,.15)', title: 'Digital Animal Passport', desc: 'QR-coded passports with full health, vaccination and ownership history.', badge: null },
-            { icon: <ShoppingCart size={20} color="#38bdf8" />, bg: 'rgba(14,165,233,.15)', title: 'Live Marketplace', desc: 'List animals, receive offers, negotiate prices and transfer ownership securely.', badge: { label: '✨ New', bg: 'rgba(14,165,233,.1)', color: '#38bdf8' } },
-            { icon: <Stethoscope size={20} color="#a78bfa" />, bg: 'rgba(139,92,246,.15)', title: 'Vet Network', desc: 'Connect with licensed vets across Kenya. Book appointments and get certificates.', badge: { label: '✨ New', bg: 'rgba(139,92,246,.1)', color: '#a78bfa' } },
+            { icon: <ShoppingCart size={20} color="#38bdf8" />, bg: 'rgba(14,165,233,.15)', title: 'Live Marketplace', desc: 'List animals, receive offers, negotiate prices and transfer ownership securely.', badge: { label: 'New', bg: 'rgba(14,165,233,.1)', color: '#38bdf8' } },
+            { icon: <Stethoscope size={20} color="#a78bfa" />, bg: 'rgba(139,92,246,.15)', title: 'Vet Network', desc: 'Connect with licensed vets across Kenya. Book appointments and get certificates.', badge: { label: 'New', bg: 'rgba(139,92,246,.1)', color: '#a78bfa' } },
             { icon: <Milk size={20} color="#fbbf24" />, bg: 'rgba(251,191,36,.15)', title: 'Milk Production Tracking', desc: 'Log daily production per animal and optimize your dairy herd performance.', badge: null },
             { icon: <Activity size={20} color="#f87171" />, bg: 'rgba(248,113,113,.15)', title: 'Health Records', desc: 'Detailed treatment logs, vaccination schedules and health certificates anywhere.', badge: null },
-            { icon: <MessageSquare size={20} color="#34d399" />, bg: 'rgba(52,211,153,.15)', title: 'Direct Messaging', desc: 'Buyers message sellers. Farmers communicate with vets. All verified.', badge: { label: '✨ New', bg: 'rgba(52,211,153,.1)', color: '#34d399' } },
-            { icon: <BarChart3 size={20} color="#60a5fa" />, bg: 'rgba(96,165,250,.15)', title: 'Farm Analytics', desc: 'Track performance — milk yield, health trends, breeding cycles, financials.', badge: null },
-            { icon: <Shield size={20} color="#4ade80" />, bg: 'rgba(22,163,74,.15)', title: 'Secure Transfers', desc: 'Digital e-signatures and transfer codes make buying & selling safe.', badge: { label: '✨ New', bg: 'rgba(22,163,74,.1)', color: '#4ade80' } },
-            { icon: <MapPin size={20} color="#fb923c" />, bg: 'rgba(251,146,60,.15)', title: 'Kenya-Wide Coverage', desc: 'All 47 counties. Find vets, buyers and farms near you.', badge: null },
+            { icon: <MessageSquare size={20} color="#34d399" />, bg: 'rgba(52,211,153,.15)', title: 'Direct Messaging', desc: 'Buyers message sellers. Farmers communicate with vets. All verified.', badge: null },
+            { icon: <Shield size={20} color="#4ade80" />, bg: 'rgba(22,163,74,.15)', title: 'Secure Transfers', desc: 'Digital e-signatures and transfer codes make buying & selling safe.', badge: null },
           ].map(({ icon, bg, title, desc, badge }) => (
             <div className="ap-feat ap-fade" key={title}>
               <div className="ap-feat-icon" style={{ background: bg }}>{icon}</div>

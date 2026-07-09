@@ -138,7 +138,7 @@ function PassportTab({ animal, dark }: { animal: any; dark: boolean }) {
 
     // ── Logo ──────────────────────────────────────────
     try {
-      const logoRes = await fetch('/agripulse-agripulse-logo.png');
+      const logoRes = await fetch('/agripulse-logo.png');
       const logoBlob = await logoRes.blob();
       const logoData = await new Promise<string>(resolve => {
         const r = new FileReader(); r.onload = () => resolve(r.result as string); r.readAsDataURL(logoBlob);
