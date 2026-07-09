@@ -815,13 +815,12 @@ function LabTestsTab({appointments,isMobile}:any){
     />;
 }
 
-function SettingsTab({user,isDark,toggleDark}:any){
+function SettingsTab({user}:any){
   return(
     <div style={{maxWidth:520}}>
       <div style={{marginBottom:18}}><h2 style={{fontSize:20,fontWeight:800,color:'var(--text)',margin:0}}>Settings</h2></div>
       <div style={{display:'flex',flexDirection:'column',gap:12}}>
         {[
-          {label:'Dark Mode',sub:'Toggle dark/light theme',action:<button onClick={toggleDark} style={{padding:'7px 18px',borderRadius:9,border:'1px solid var(--border)',background:isDark?'#0d9488':'var(--bg)',color:isDark?'#fff':'var(--text)',cursor:'pointer',fontWeight:700,fontSize:13}}>{isDark?'On':'Off'}</button>},
           {label:'Account Email',sub:user?.email,action:null},
           {label:'Change Password',sub:'Update your login password',action:<button style={{padding:'7px 18px',borderRadius:9,border:'1px solid var(--border)',background:'none',color:'var(--text)',cursor:'pointer',fontWeight:600,fontSize:13}}>Change</button>},
           {label:'Availability Slots',sub:'Manage appointment slots',action:<button style={{padding:'7px 18px',borderRadius:9,border:'none',background:'linear-gradient(135deg,#0d9488,#0f766e)',color:'#fff',cursor:'pointer',fontWeight:700,fontSize:13}}>Manage</button>},
@@ -855,7 +854,7 @@ export default function VetDashboard(){
   const {user,logout}=useAuth();
   const [tab,setTab]=useState('dashboard');
   const [collapsed,setCollapsed]=useState(false);
-  const [isDark,setIsDark]=useState(true);
+  const isDark=false; // light mode permanent — toggle removed
   const [appointments,setAppointments]=useState<any[]>([]);
   const [emergency,setEmergency]=useState<any[]>([]);
   const [profile,setProfile]=useState<any>(null);
@@ -895,7 +894,7 @@ export default function VetDashboard(){
     ::-webkit-scrollbar{width:4px;height:4px;}
     ::-webkit-scrollbar-thumb{background:rgba(128,128,128,.3);border-radius:4px;}
     input::placeholder,textarea::placeholder{color:var(--text2);}
-    select option{background:${isDark?'#0a1628':'#fff'};color:${T.text};}
+    select option{background:#0a1628;color:${T.text};}
     .vet-nav-btn{background:transparent!important;}
     .vet-nav-btn:hover{background:rgba(255,255,255,.06)!important;}
     .vet-nav-btn.active{background:var(--nav-active)!important;}
@@ -918,7 +917,7 @@ export default function VetDashboard(){
       case 'prescriptions': return <PrescriptionsTab appointments={appointments} isMobile={isMobile}/>;
       case 'certificates':  return <CertificatesTab appointments={appointments} isMobile={isMobile}/>;
       case 'labtests':      return <LabTestsTab appointments={appointments} isMobile={isMobile}/>;
-      case 'settings':     return <SettingsTab user={user} isDark={isDark} toggleDark={()=>setIsDark(p=>!p)}/>;
+      case 'settings':     return <SettingsTab user={user}/>;
       default:             return <ComingSoon id={tab}/>;
     }
   }
@@ -995,9 +994,6 @@ export default function VetDashboard(){
             </div>}
             {isMobile&&<div style={{fontWeight:700,fontSize:14,color:T.text,flex:1}}>{NAV.find(n=>n.id===tab)?.label}</div>}
             <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:8}}>
-              <button onClick={()=>setIsDark(p=>!p)} style={{width:36,height:36,borderRadius:9,border:`1px solid ${T.border}`,background:'none',cursor:'pointer',color:T.text2,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                {isDark?<Sun size={15}/>:<Moon size={15}/>}
-              </button>
               <div style={{position:'relative'}}>
                 <button onClick={()=>setNotifOpen(p=>!p)} style={{width:36,height:36,borderRadius:9,border:`1px solid ${T.border}`,background:'none',cursor:'pointer',color:T.text2,display:'flex',alignItems:'center',justifyContent:'center'}}><Bell size={15}/></button>
                 {openEm>0&&<span style={{position:'absolute',top:-4,right:-4,width:15,height:15,borderRadius:'50%',background:'#ef4444',color:'#fff',fontSize:8,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center'}}>{openEm}</span>}
