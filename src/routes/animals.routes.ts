@@ -161,7 +161,7 @@ import path from 'path';
 import fs from 'fs';
 
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, '/var/www/agripulse-staging/uploads/animals'),
+  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../uploads/animals')),
   filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
@@ -193,7 +193,7 @@ router.delete('/:id/photos/:photoId', requireAdmin, async (req: Request, res: Re
   if (!animal) { res.status(404).json({ error: 'Animal not found' }); return; }
   const photo = await prisma.animalPhoto.findFirst({ where: { id: photoId, animalId } });
   if (!photo) { res.status(404).json({ error: 'Photo not found' }); return; }
-  const filePath = `/var/www/agripulse-staging${photo.url}`;
+  const filePath = path.join(__dirname, '../../uploads', photo.url.replace('/uploads/', ''));
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   await prisma.animalPhoto.delete({ where: { id: photoId } });
   res.json({ message: 'Photo deleted' });

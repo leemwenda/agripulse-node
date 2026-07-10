@@ -267,13 +267,15 @@ router.get('/google', (req: Request, res: Response) => {
     scope: 'openid email profile',
     access_type: 'offline',
     prompt: 'select_account',
+    state: portal,
   });
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
 // ── GET /api/auth/google/callback ───────────────────
 router.get('/google/callback', async (req: Request, res: Response): Promise<void> => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+  const portal = (state as string) || 'farm';
   const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
   if (!code) {
@@ -336,8 +338,10 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
 
     const jwtToken = issueToken(user.id);
     res.cookie('token', jwtToken, COOKIE_OPTS);
-    // Redirect based on role
-    if (user.role === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
+    // Redirect based on where the login originated, falling back to role
+    if (portal === 'marketplace') res.redirect(`${CLIENT_URL}/marketplace`);
+    else if (portal === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
+    else if (user.role === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
     else if (user.role === 'buyer') res.redirect(`${CLIENT_URL}/marketplace`);
     else if (user.role === 'superadmin') res.redirect(`${CLIENT_URL}/system`);
     else res.redirect(`${CLIENT_URL}/dashboard`);

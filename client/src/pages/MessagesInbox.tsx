@@ -16,6 +16,12 @@ export default function MessagesInbox() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const bg = isDark ? '#0d1117' : '#f9fafb';
   const card = isDark ? 'rgba(255,255,255,.04)' : '#fff';
@@ -70,16 +76,22 @@ export default function MessagesInbox() {
 
   return (
     <div style={{ minHeight: '100vh', background: bg, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, background: card, position: 'sticky', top: 0, zIndex: 10 }}>
-        <button onClick={() => navigate('/marketplace')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: `1px solid ${border}`, background: 'transparent', color: text2 }}>
-          <ArrowLeft size={14} /> Back
-        </button>
-        <h1 style={{ fontSize: 18, fontWeight: 800, color: text1 }}>Messages</h1>
-      </div>
+      {(!isMobile || !activeThread) && (
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, background: card, position: 'sticky', top: 0, zIndex: 10 }}>
+          <button onClick={() => navigate('/marketplace')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 9, border: `1px solid ${border}`, background: 'transparent', color: text2 }}>
+            <ArrowLeft size={14} /> Back
+          </button>
+          <h1 style={{ fontSize: 18, fontWeight: 800, color: text1 }}>Messages</h1>
+        </div>
+      )}
 
-      <div style={{ display: 'flex', flex: 1 }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Threads List */}
-        <div style={{ width: 320, borderRight: `1px solid ${border}`, overflowY: 'auto', background: bg }}>
+        <div style={{
+          width: isMobile ? '100%' : 320,
+          display: isMobile && activeThread ? 'none' : 'block',
+          borderRight: `1px solid ${border}`, overflowY: 'auto', background: bg,
+        }}>
           {threads.map(t => (
             <div key={t.id} onClick={() => setActiveThread(t)}
               style={{ padding: '14px 16px', borderBottom: `1px solid ${border}`, cursor: 'pointer', background: activeThread?.id === t.id ? (isDark ? 'rgba(255,255,255,.08)' : '#f0fdf4') : 'transparent' }}>
@@ -90,12 +102,21 @@ export default function MessagesInbox() {
         </div>
 
         {/* Chat Area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          flex: 1, display: isMobile && !activeThread ? 'none' : 'flex', flexDirection: 'column', minWidth: 0,
+        }}>
           {activeThread ? (
             <>
-              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, background: card }}>
-                <div style={{ fontWeight: 700 }}>{activeThread.listing?.animal?.name}</div>
-                <div style={{ fontSize: 13, color: text2 }}>Conversation with {isSeller(activeThread) ? activeThread.buyer?.name : activeThread.listing?.seller?.name}</div>
+              <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, background: card, display: 'flex', alignItems: 'center', gap: 10 }}>
+                {isMobile && (
+                  <button onClick={() => setActiveThread(null)} style={{ display: 'flex', alignItems: 'center', padding: 6, borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: text2, flexShrink: 0 }}>
+                    <ArrowLeft size={16} />
+                  </button>
+                )}
+                <div>
+                  <div style={{ fontWeight: 700 }}>{activeThread.listing?.animal?.name}</div>
+                  <div style={{ fontSize: 13, color: text2 }}>Conversation with {isSeller(activeThread) ? activeThread.buyer?.name : activeThread.listing?.seller?.name}</div>
+                </div>
               </div>
 
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
