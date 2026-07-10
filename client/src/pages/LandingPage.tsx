@@ -277,7 +277,7 @@ export default function LandingPage() {
       {/* NAV */}
       <nav className={`ap-nav${scrolled ? ' scrolled' : ''}`}>
         <a href="#home" className="ap-nav-logo">
-          <img src="/agripulse-logo.png" alt="AgriPulse" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <img src="/agripulse-logo.png" alt="AgriPulse" style={{ background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           <div className="ap-nav-logo-text">
             <span className="ap-nav-logo-name">AgriPulse</span>
             <span className="ap-nav-logo-sub">Smart Farming. Stronger Future.</span>
@@ -291,7 +291,7 @@ export default function LandingPage() {
           <li><a href="#about">About</a></li>
         </ul>
         <div className="ap-nav-right">
-          <Link to="/login" className="ap-btn-ghost">Login</Link>
+          <Link to="/login" className="ap-btn-ghost">Login to Farm</Link>
           <Link to="/journey" className="ap-btn-cta">Get Started</Link>
         </div>
         <button className="ap-hamburger" onClick={() => setMobileOpen(p => !p)}>
@@ -302,10 +302,11 @@ export default function LandingPage() {
       {mobileOpen && (
         <div className="ap-mob">
           <button className="ap-mob-close" onClick={() => setMobileOpen(false)}><X size={28} /></button>
+          <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 40, width: 'auto', background: '#fff', padding: 6, borderRadius: 10, marginBottom: 24 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           {[['/#solutions', 'Solutions'], ['/#features', 'Features'], ['/#marketplace', 'Marketplace'], ['/#how', 'How it Works']].map(([h, l]) => (
             <a key={l} href={h} onClick={() => setMobileOpen(false)}>{l}</a>
           ))}
-          <Link to="/login" onClick={() => setMobileOpen(false)}>Login</Link>
+          <Link to="/login" onClick={() => setMobileOpen(false)}>Login to Farm</Link>
           <Link to="/marketplace/login" onClick={() => setMobileOpen(false)}>Marketplace</Link>
           <Link to="/vet/login" onClick={() => setMobileOpen(false)}>Vet Portal</Link>
           <Link to="/journey" onClick={() => setMobileOpen(false)} style={{ background: '#16a34a', padding: '.7rem 2rem', borderRadius: 10 }}>Get Started →</Link>
@@ -588,7 +589,7 @@ export default function LandingPage() {
           <div className="ap-footer-grid">
             <div>
               <div className="ap-footer-brand">
-                <img src="/agripulse-logo.png" alt="AgriPulse" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <img src="/agripulse-logo.png" alt="AgriPulse" style={{ background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 <div>
                   <div className="ap-footer-brand-name">AgriPulse</div>
                   <div className="ap-footer-brand-sub">SMART FARMING. STRONGER FUTURE.</div>

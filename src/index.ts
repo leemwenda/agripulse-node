@@ -110,7 +110,7 @@ app.use((req, res, next) => {
 });
 
 // ── Routes ───────────────────────────────────────────────────
-app.use('/api/auth',      authLimiter, authRoutes);
+app.use('/api/auth',      authRoutes);  // authLimiter applied per-route inside auth.routes.ts only — NOT globally, since /auth/me is called on every page load and must stay unthrottled
 app.use('/api/animals',   animalsRoutes);
 app.use('/api/milk',      milkRouter);
 app.use('/api/animal-health', healthRouter);

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, MapPin, Stethoscope } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, MapPin, Stethoscope, ArrowLeft } from 'lucide-react';
 import api from '../lib/api';
 import { PageLoader } from '../components/ui';
 import { useTheme } from '../context/ThemeContext';
 
 export default function FindVet() {
   const { isDark } = useTheme();
+  const navigate = useNavigate();
   const D = isDark
     ? { pageBg: '#0d1117', cardBg: 'rgba(255,255,255,.04)', cardBorder: 'rgba(255,255,255,.07)', text: '#e2ede6', text2: '#8aab94', text3: '#4d6b57', green: '#10b981', greenLt: 'rgba(16,185,129,.12)', amber: '#f59e0b', amberLt: 'rgba(245,158,11,.12)', input: 'rgba(255,255,255,.04)' }
     : { pageBg: '#f9fafb', cardBg: '#ffffff', cardBorder: '#e5e7eb', text: '#111827', text2: '#4b5563', text3: '#9ca3af', green: '#15803d', greenLt: 'rgba(21,128,61,.08)', amber: '#b45309', amberLt: 'rgba(180,83,9,.08)', input: '#f8fafc' };
@@ -37,6 +38,13 @@ export default function FindVet() {
 
   return (
     <div style={{ padding: '24px', background: D.pageBg, minHeight: '100vh' }}>
+      <button onClick={() => navigate(-1)} style={{
+        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, padding: '7px 12px',
+        borderRadius: 9, border: `1px solid ${D.cardBorder}`, background: 'transparent', color: D.text2,
+        cursor: 'pointer', fontSize: 14,
+      }}>
+        <ArrowLeft size={14} /> Back
+      </button>
       <h1 style={{ color: D.text, fontSize: 22, fontWeight: 700, marginBottom: 20 }}>Find a Vet</h1>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' as const, marginBottom: 24 }}>

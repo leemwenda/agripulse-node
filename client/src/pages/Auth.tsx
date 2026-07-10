@@ -77,7 +77,7 @@ export default function Auth() {
   const Logo = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{ background: '#fff', borderRadius: 9, padding: '4px 6px', display: 'flex', alignItems: 'center' }}>
-        <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 28, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 28, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
       </div>
       <span style={{ fontWeight: 800, fontSize: 18, color: '#fff', letterSpacing: '-0.5px' }}>AgriPulse</span>
       <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>| Farm</span>
@@ -186,7 +186,7 @@ export default function Auth() {
           <div style={{ height: 1, background: `linear-gradient(90deg,transparent,${GREEN_LIGHT} 40%,transparent)`, marginBottom: 24 }} />
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
             <div style={{ background: '#fff', borderRadius: 10, padding: '5px 8px' }}>
-              <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             </div>
           </div>
           <div style={{ display: 'flex', background: 'rgba(255,255,255,.07)', borderRadius: 11, padding: 3, marginBottom: 22, border: '1px solid rgba(255,255,255,.08)' }}>
@@ -243,7 +243,7 @@ export default function Auth() {
           <div style={{ flex: 1, background: 'rgba(8,18,10,.65)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', borderLeft: '1px solid rgba(255,255,255,.1)', padding: '44px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>
               <div style={{ background: '#fff', borderRadius: 10, padding: '5px 8px' }}>
-                <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
             <div style={{ display: 'flex', background: 'rgba(255,255,255,.07)', borderRadius: 12, padding: 4, marginBottom: 26, border: '1px solid rgba(255,255,255,.08)' }}>
