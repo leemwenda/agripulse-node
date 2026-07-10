@@ -1,44 +1,51 @@
-import VerifyEmail from './pages/VerifyEmail';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { MarketplacePage } from './pages/Marketplace';
+import { lazy, Suspense } from 'react';
+
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const MarketplacePage = lazy(() => import('./pages/Marketplace').then(m => ({ default: m.MarketplacePage })));
+const Auth = lazy(() => import('./pages/Auth'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotReset').then(m => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('./pages/ForgotReset').then(m => ({ default: m.ResetPasswordPage })));
+const DashboardPage = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.DashboardPage })));
+const VetDashboard = lazy(() => import('./pages/VetDashboard'));
+const VetProfile = lazy(() => import('./pages/VetProfile'));
+const FindVet = lazy(() => import('./pages/FindVet'));
+const MyVetAppointments = lazy(() => import('./pages/MyVetAppointments'));
+const VetVerifications = lazy(() => import('./pages/VetVerifications'));
+const VetMessagesInbox = lazy(() => import('./pages/VetMessagesInbox'));
+const VetProfilePublic = lazy(() => import('./pages/VetProfilePublic'));
+const AnimalsPage = lazy(() => import('./pages/Animals').then(m => ({ default: m.AnimalsPage })));
+const AnimalDetailPage = lazy(() => import('./pages/AnimalDetail').then(m => ({ default: m.AnimalDetailPage })));
+const AIAdvisorPage = lazy(() => import('./pages/AIAdvisor').then(m => ({ default: m.AIAdvisorPage })));
+const MilkPage = lazy(() => import('./pages/DataPages').then(m => ({ default: m.MilkPage })));
+const HealthPage = lazy(() => import('./pages/DataPages').then(m => ({ default: m.HealthPage })));
+const BreedingPage = lazy(() => import('./pages/DataPages').then(m => ({ default: m.BreedingPage })));
+const FinancialPage = lazy(() => import('./pages/DataPages').then(m => ({ default: m.FinancialPage })));
+const WorkersPage = lazy(() => import('./pages/DataPages').then(m => ({ default: m.WorkersPage })));
+const ReportsPage = lazy(() => import('./pages/Reports').then(m => ({ default: m.ReportsPage })));
+const ProfilePage = lazy(() => import('./pages/Profile').then(m => ({ default: m.ProfilePage })));
+const ReportIssuePage = lazy(() => import('./pages/ReportIssue').then(m => ({ default: m.ReportIssuePage })));
+const SystemPanel = lazy(() => import('./pages/SystemPanel').then(m => ({ default: m.SystemPanel })));
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const AnimalPassport = lazy(() => import('./pages/AnimalPassport'));
+const ChooseJourney = lazy(() => import('./pages/ChooseJourney'));
+const ListingDetail = lazy(() => import('./pages/ListingDetail'));
+const CreateListing = lazy(() => import('./pages/CreateListing'));
+const MarketplaceAuth = lazy(() => import('./pages/MarketplaceAuth'));
+const VetAuth = lazy(() => import('./pages/VetAuth'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Favorites = lazy(() => import('./pages/Favorites'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const SellerAnalytics = lazy(() => import('./pages/SellerAnalytics'));
+const AgreementSign = lazy(() => import('./pages/AgreementSign'));
+const MessagesInbox = lazy(() => import('./pages/MessagesInbox'));
+const MyOffers = lazy(() => import('./pages/MyOffers'));
+const MyListings = lazy(() => import('./pages/MyListings'));
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Layout } from './components/layout/Layout';
-import Auth from './pages/Auth';
-import { ForgotPasswordPage, ResetPasswordPage } from './pages/ForgotReset';
-import { DashboardPage } from './pages/Dashboard';
-import VetDashboard from './pages/VetDashboard';
-import VetProfile from './pages/VetProfile';
-import FindVet from './pages/FindVet';
-import MyVetAppointments from './pages/MyVetAppointments';
-import VetVerifications from './pages/VetVerifications';
-import VetMessagesInbox from './pages/VetMessagesInbox';
-import VetProfilePublic from './pages/VetProfilePublic';
-import { AnimalsPage } from './pages/Animals';
-import { AnimalDetailPage } from './pages/AnimalDetail';
-import { AIAdvisorPage } from './pages/AIAdvisor';
-import { MilkPage, HealthPage, BreedingPage, FinancialPage, WorkersPage } from './pages/DataPages';
-import { ReportsPage } from './pages/Reports';
-import { ProfilePage } from './pages/Profile';
-import { ReportIssuePage } from './pages/ReportIssue';
-import { SystemPanel } from './pages/SystemPanel';
 // @ts-ignore
-import LandingPage from './pages/LandingPage';
-import AnimalPassport from './pages/AnimalPassport';
-import ChooseJourney from './pages/ChooseJourney';
-import ListingDetail from './pages/ListingDetail';
-import CreateListing from './pages/CreateListing';
-import MarketplaceAuth from './pages/MarketplaceAuth';
-import VetAuth from './pages/VetAuth';
-import Cart from './pages/Cart';
-import Favorites from './pages/Favorites';
-import Notifications from './pages/Notifications';
-import SellerAnalytics from './pages/SellerAnalytics';
-import AgreementSign from './pages/AgreementSign';
-import MessagesInbox from './pages/MessagesInbox';
-import MyOffers from './pages/MyOffers';
-import MyListings from './pages/MyListings';
 import { PageLoader } from './components/ui';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -156,7 +163,9 @@ export default function App() {
       <ThemeProvider>
         <AuthProvider>
           <CartProvider>
-            <AppRoutes />
+            <Suspense fallback={<div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#0d1117',color:'#8aab94',fontSize:14}}>Loading...</div>}>
+              <AppRoutes />
+            </Suspense>
           </CartProvider>
         </AuthProvider>
       </ThemeProvider>
