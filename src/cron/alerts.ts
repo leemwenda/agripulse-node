@@ -4,6 +4,8 @@ import {
   mailLowMilkAlert,
   mailWeeklyReport,
   mailMonthlyOverview,
+  mailVaccinationReminder,
+  mailVetAppointmentReminder,
 } from '../services/mail.service';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -168,6 +170,66 @@ async function runMonthlyOverview() {
   }
 }
 
+async function runVaccinationReminders() {
+  const today = new Date();
+  const in3 = new Date(today); in3.setDate(today.getDate() + 3);
+  const in7 = new Date(today); in7.setDate(today.getDate() + 7);
+
+  const dueSoon = await prisma.vaccination.findMany({
+    where: { nextDueDate: { gte: today, lte: in7 } },
+    include: {
+      animal: { select: { name: true, tagNumber: true } },
+      farmer: { select: { email: true, name: true } },
+    },
+  });
+  for (const v of dueSoon) {
+    if (!v.nextDueDate) continue;
+    const days = Math.floor((v.nextDueDate.getTime() - today.getTime()) / 86400000);
+    const urgency = v.nextDueDate <= in3 ? 'due3' : 'due7';
+    await mailVaccinationReminder(
+      v.farmer.email, v.farmer.name, v.animal.name, v.animal.tagNumber,
+      v.vaccineName, `${days} day${days !== 1 ? 's' : ''}`, urgency
+    );
+  }
+
+  const overdue = await prisma.vaccination.findMany({
+    where: { nextDueDate: { lt: today } },
+    include: {
+      animal: { select: { name: true, tagNumber: true } },
+      farmer: { select: { email: true, name: true } },
+    },
+  });
+  for (const v of overdue) {
+    if (!v.nextDueDate) continue;
+    const days = Math.floor((today.getTime() - v.nextDueDate.getTime()) / 86400000);
+    await mailVaccinationReminder(
+      v.farmer.email, v.farmer.name, v.animal.name, v.animal.tagNumber,
+      v.vaccineName, `${days} day${days !== 1 ? 's' : ''} overdue`, 'overdue'
+    );
+  }
+}
+
+async function runVetAppointmentReminders() {
+  const today = new Date();
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  const appointments = await prisma.vetAppointment.findMany({
+    where: { status: 'confirmed', slot: { date: new Date(tomorrowStr) } },
+    include: {
+      farmer: { select: { email: true, name: true } },
+      vet: { include: { user: { select: { name: true } } } },
+      slot: true,
+    },
+  });
+  for (const appt of appointments) {
+    await mailVetAppointmentReminder(
+      appt.farmer.email, appt.farmer.name, appt.vet.user.name,
+      appt.serviceType, tomorrowStr, `${appt.slot.startTime}-${appt.slot.endTime}`
+    );
+  }
+}
+
 async function main() {
   const arg = process.argv[2];
   console.log(`[Cron] Running: ${arg || 'daily'}`);
@@ -176,6 +238,10 @@ async function main() {
     await runWeeklyReport();
   } else if (arg === 'monthly') {
     await runMonthlyOverview();
+  } else if (arg === 'vaccinations') {
+    await runVaccinationReminders();
+  } else if (arg === 'appointments') {
+    await runVetAppointmentReminders();
   } else {
     await runBreedingAlerts();
     await runMilkAlerts();

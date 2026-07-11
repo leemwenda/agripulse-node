@@ -11,6 +11,7 @@ import {
   mailWelcome,
   mailAdminNewRegistration,
   mailPasswordReset,
+  mailPasswordChanged,
   mailEmailVerification,
   mailResendVerification,
 } from '../services/mail.service';
@@ -252,7 +253,7 @@ router.post('/reset-password', authLimiter, async (req: Request, res: Response):
   const hashed = await bcrypt.hash(password, 12);
   await prisma.user.update({ where: { id: record.userId }, data: { password: hashed } });
   await prisma.rememberToken.delete({ where: { id: record.id } });
-
+  await mailPasswordChanged(record.user.email, record.user.name).catch(() => {});
   res.json({ message: 'Password updated. You can now log in.' });
 });
 

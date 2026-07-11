@@ -492,6 +492,55 @@ function mktRow(label: string, value: string): string {
 }
 
 // 1. New offer received — notifies SELLER
+export async function mailPasswordChanged(email: string, name: string): Promise<void> {
+  const body = p(`Hi <strong>${name}</strong>,`) +
+    p(`This is a confirmation that your AgriPulse password was successfully changed just now.`) +
+    alertBox('If you did not make this change, please contact support immediately and reset your password again.', 'warning');
+  await send(email, 'Your AgriPulse Password Was Changed', base('Password Changed', body));
+}
+
+export async function mailAnimalRegistered(email: string, name: string, animalName: string, agripulseId: string, tagNumber: string): Promise<void> {
+  const body = p(`Hi <strong>${name}</strong>,`) +
+    p(`<strong>${animalName}</strong> has been successfully registered on AgriPulse with a Digital Animal Passport.`) +
+    infoCard('Animal Details', [['Name', animalName], ['Tag Number', tagNumber], ['Passport ID', agripulseId]]) +
+    btn('View Animal Passport', `https://agripulse.me/animal/${agripulseId}`);
+  await send(email, `${animalName} Registered — Digital Passport Created`, base('Animal Registered', body));
+}
+
+export async function mailVetAppointmentConfirmation(
+  farmerEmail: string, farmerName: string, vetName: string,
+  serviceType: string, appointmentDate: string, appointmentTime: string
+): Promise<void> {
+  const body = p(`Hi <strong>${farmerName}</strong>,`) +
+    p(`Your vet appointment has been confirmed.`) +
+    infoCard('Appointment Details', [['Veterinarian', vetName], ['Service', serviceType], ['Date', appointmentDate], ['Time', appointmentTime]]) +
+    btn('View My Appointments', 'https://agripulse.me/my-vet-appointments');
+  await send(farmerEmail, `Vet Appointment Confirmed — ${appointmentDate}`, base('Appointment Confirmed', body));
+}
+
+export async function mailVaccinationReminder(
+  email: string, name: string, animalName: string, tagNumber: string,
+  vaccineName: string, dueInfo: string, urgency: 'due7'|'due3'|'overdue'
+): Promise<void> {
+  const type = urgency === 'overdue' ? 'danger' : urgency === 'due3' ? 'warning' : 'info';
+  const title = urgency === 'overdue' ? 'Vaccination Overdue' : 'Vaccination Due Soon';
+  const body = p(`Hi <strong>${name}</strong>,`) +
+    alertBox(`${animalName} (${tagNumber}) is ${urgency === 'overdue' ? 'overdue for' : 'due for'} <strong>${vaccineName}</strong> — ${dueInfo}.`, type) +
+    btn('View Animal Record', 'https://agripulse.me/animals');
+  await send(email, `${title}: ${animalName} — ${vaccineName}`, base(title, body));
+}
+
+export async function mailVetAppointmentReminder(
+  email: string, name: string, vetName: string,
+  serviceType: string, appointmentDate: string, appointmentTime: string
+): Promise<void> {
+  const body = p(`Hi <strong>${name}</strong>,`) +
+    p(`Reminder: you have a vet appointment tomorrow.`) +
+    infoCard('Appointment Details', [['Veterinarian', vetName], ['Service', serviceType], ['Date', appointmentDate], ['Time', appointmentTime]]) +
+    btn('View My Appointments', 'https://agripulse.me/my-vet-appointments');
+  await send(email, `Reminder: Vet Appointment Tomorrow — ${appointmentTime}`, base('Appointment Reminder', body));
+}
+
 export async function mailMarketNewOffer(
   sellerEmail: string, sellerName: string,
   buyerName: string, animalName: string,

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { generateAgripulseId } from '../services/passport.service';
+import { mailAnimalRegistered } from '../services/mail.service';
 import { requireAuth, requireAdmin, requireFarmer, getFarmId } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -99,6 +100,7 @@ router.post('/', requireAdmin, async (req: Request, res: Response): Promise<void
     await prisma.activityLog.create({
       data: { userId: req.user!.id, action: 'create_animal', entity: 'animals', entityId: animal.id },
     });
+    mailAnimalRegistered(req.user!.email, req.user!.name, animal.name, animal.agripulseId || '', animal.tagNumber).catch(() => {});
     res.status(201).json({ animal });
   } catch (err: unknown) {
     const e = err as { code?: string };
