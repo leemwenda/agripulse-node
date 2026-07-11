@@ -6,9 +6,17 @@ import {
   Star, CheckCircle, Menu, X, ChevronRight, QrCode
 } from 'lucide-react';
 import api from '../lib/api';
+import SEO from '../components/SEO';
 
 export default function LandingPage() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const seo = (
+    <SEO
+      title="AgriPulse | Smart Livestock Management Platform for Kenya"
+      description="AgriPulse helps farmers manage livestock, buy and sell animals, connect with verified veterinarians, and track farm operations from one platform."
+      url="https://agripulse.me/"
+    />
+  );
   const [scrolled, setScrolled] = useState(false);
   const [listings, setListings] = useState<any[]>([]);
   const [howTab, setHowTab] = useState('farmer');
@@ -57,6 +65,7 @@ export default function LandingPage() {
 
   return (
     <>
+      {seo}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

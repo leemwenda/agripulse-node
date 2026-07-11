@@ -11,6 +11,8 @@ const D = {
   amber: '#f59e0b', amberLt: 'rgba(245,158,11,.12)', red: '#ef4444', redLt: 'rgba(239,68,68,.12)',
 };
 
+import SEO from '../components/SEO';
+
 export default function VetProfilePublic() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -83,6 +85,11 @@ export default function VetProfilePublic() {
 
   return (
     <div style={{ padding: '24px', background: D.pageBg, minHeight: '100vh' }}>
+      <SEO
+        title={`${profile?.user?.name || 'Veterinarian'} — Verified Vet in ${profile?.county || 'Kenya'} | AgriPulse`}
+        description={`Book an appointment with ${profile?.user?.name || 'this veterinarian'}, a verified vet specializing in ${profile?.specialization || 'livestock care'} in ${profile?.county || 'Kenya'}. Find availability and book directly on AgriPulse.`}
+        url={typeof window !== 'undefined' ? window.location.href : undefined}
+      />
       <div style={{ background: D.cardBg, border: `1px solid ${D.cardBorder}`, boxShadow: D.cardShadow, borderRadius: 14, padding: 22, marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>

@@ -5,6 +5,7 @@ import {
   ChevronLeft, ChevronRight, ShieldCheck, FileText, Users, Plus, LogIn
 } from 'lucide-react';
 import api from '../lib/api';
+import SEO from '../components/SEO';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -269,6 +270,11 @@ export function MarketplacePage() {
 
   return (
     <div style={{ minHeight: '100vh', background: bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+      <SEO
+        title="Livestock Marketplace | Buy & Sell Verified Cattle in Kenya"
+        description="Browse verified livestock listings across Kenya. Buy and sell cattle, calves, and heifers with secure offers, digital agreements, and ownership transfer via AgriPulse."
+        url="https://agripulse.me/marketplace"
+      />
       {/* Top navbar */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20, background: cardBg,

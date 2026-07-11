@@ -12,6 +12,8 @@ function formatAge(dob: string) {
   return m >= 12 ? `${Math.floor(m/12)}y ${m%12}m` : `${m} months`;
 }
 
+import SEO from '../components/SEO';
+
 export default function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -115,6 +117,12 @@ export default function ListingDetail() {
 
   return (
     <div style={{ minHeight:'100vh', background:D.bg }}>
+      <SEO
+        title={`${listing.animal?.name || 'Livestock'} — KSh ${Number(listing.askingPrice).toLocaleString()} | AgriPulse Marketplace`}
+        description={`${listing.animal?.breed || ''} ${listing.animal?.gender || ''} listed at KSh ${Number(listing.askingPrice).toLocaleString()} on AgriPulse Marketplace. ${listing.description || 'View full details, health records, and contact the seller.'}`.trim()}
+        image={listing.photos?.[0]?.url || listing.animal?.photos?.[0]?.url}
+        url={`https://agripulse.me/marketplace/listing/${listing.id}`}
+      />
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px', borderBottom:`1px solid ${D.border}`, background:D.card, position:'sticky', top:0, zIndex:10 }}>
         <button onClick={()=>navigate('/marketplace')} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 12px', borderRadius:9, border:`1px solid ${D.border}`, background:'transparent', color:D.text2, cursor:'pointer', fontSize:14 }}>
