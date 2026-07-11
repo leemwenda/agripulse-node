@@ -541,6 +541,17 @@ export async function mailVetAppointmentReminder(
   await send(email, `Reminder: Vet Appointment Tomorrow — ${appointmentTime}`, base('Appointment Reminder', body));
 }
 
+export async function mailWorkerInvitation(
+  email: string, workerName: string, farmName: string, adminName: string, loginEmail: string
+): Promise<void> {
+  const body = p(`Hi <strong>${workerName}</strong>,`) +
+    p(`${adminName} has added you as a worker on <strong>${farmName}</strong>'s AgriPulse farm management account.`) +
+    infoCard('Your Login Details', [['Login Email', loginEmail], ['Farm', farmName]]) +
+    p(`Use the password provided to you by ${adminName} to log in. You can change it anytime from your profile settings.`) +
+    btn('Log In to AgriPulse', 'https://agripulse.me/login');
+  await send(email, `You've Been Added to ${farmName} on AgriPulse`, base('Welcome to the Team', body));
+}
+
 export async function mailMarketNewOffer(
   sellerEmail: string, sellerName: string,
   buyerName: string, animalName: string,
