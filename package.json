@@ -13,7 +13,8 @@
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",
     "db:migrate": "npx prisma migrate dev",
-    "db:studio": "npx prisma studio"
+    "db:studio": "npx prisma studio",
+    "vercel-build": "prisma generate && npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
