@@ -57,9 +57,10 @@ const allowedOrigins = [
   'https://agripulse.me',
   'https://www.agripulse.me',
 ];
+const vercelProjectPattern = /^https:\/\/agripulse-node-f43w(-[a-z0-9-]+)?\.vercel\.app$/;
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    if (!origin || allowedOrigins.includes(origin) || vercelProjectPattern.test(origin)) return cb(null, true);
     cb(new Error('Not allowed by CORS'));
   },
   credentials: true,
