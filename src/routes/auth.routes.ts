@@ -374,7 +374,7 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
     else if (portal === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
     else if (user.role === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
     else if (user.role === 'superadmin') res.redirect(`${CLIENT_URL}/system`);
-    else if (user.role === 'buyer' || portal === 'marketplace') res.redirect(`${CLIENT_URL}/marketplace`);
+    else if (user.role === 'buyer') res.redirect(`${CLIENT_URL}/marketplace`);
     else res.redirect(`${CLIENT_URL}/dashboard`);
   } catch (err) {
     console.error('[Google OAuth]', err);
