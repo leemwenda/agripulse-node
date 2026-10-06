@@ -25,7 +25,7 @@ async function callGroq(systemPrompt: string, messages: { role: string; content:
   return data.choices?.[0]?.message?.content ?? '';
 }
 import prisma from '../lib/prisma';
-import { mailIssueSubmitted, mailAdminIssueSubmitted, mailIssueResolved, mailAnnouncement } from '../services/mail.service';
+import { mailIssueSubmitted, mailAdminIssueSubmitted, mailIssueResolved, mailAnnouncement, mailWorkerInvitation } from '../services/mail.service';
 import { requireAuth, requireAdmin, requireSuperAdmin, getFarmId } from '../middleware/auth.middleware';
 
 // ── DASHBOARD ────────────────────────────────────────────────
@@ -168,6 +168,12 @@ workersRouter.post('/', requireAdmin, async (req: Request, res: Response): Promi
     },
     select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
   });
+  const farmAdmin = await prisma.user.findUnique({ where: { id: farmId ?? req.user!.id }, select: { name: true, farmName: true } });
+  mailWorkerInvitation(
+    worker.email, worker.name,
+    farmAdmin?.farmName || farmAdmin?.name || 'your farm',
+    req.user!.name, worker.email
+  ).catch(() => {});
   res.status(201).json({ worker });
 });
 

@@ -104,7 +104,7 @@ export default function CreateListing() {
               ) : (
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:12 }}>
                   {animals.map(a => {
-                    const photo = resolvePhoto(a.photoUrl);
+                    const photo = resolvePhoto(a.photos?.[0]?.url);
                     const isSelected = form.animalId === String(a.id);
                     return (
                       <label key={a.id} style={{

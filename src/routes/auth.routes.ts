@@ -11,6 +11,7 @@ import {
   mailWelcome,
   mailAdminNewRegistration,
   mailPasswordReset,
+  mailPasswordChanged,
   mailEmailVerification,
   mailResendVerification,
 } from '../services/mail.service';
@@ -262,7 +263,7 @@ router.post('/reset-password', authLimiter, async (req: Request, res: Response):
   const hashed = await bcrypt.hash(password, 12);
   await prisma.user.update({ where: { id: record.userId }, data: { password: hashed } });
   await prisma.rememberToken.delete({ where: { id: record.id } });
-
+  await mailPasswordChanged(record.user.email, record.user.name).catch(() => {});
   res.json({ message: 'Password updated. You can now log in.' });
 });
 
@@ -369,7 +370,9 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
     await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } });
     res.cookie('token', issueToken(user.id), COOKIE_OPTS);
 
-    if (user.role === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
+    if (portal === 'marketplace') res.redirect(`${CLIENT_URL}/marketplace`);
+    else if (portal === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
+    else if (user.role === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
     else if (user.role === 'superadmin') res.redirect(`${CLIENT_URL}/system`);
     else if (user.role === 'buyer' || portal === 'marketplace') res.redirect(`${CLIENT_URL}/marketplace`);
     else res.redirect(`${CLIENT_URL}/dashboard`);

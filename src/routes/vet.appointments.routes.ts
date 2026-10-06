@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.middleware';
 import prisma from '../lib/prisma';
+import { mailVetAppointmentConfirmation } from '../services/mail.service';
 
 const router = Router();
 router.use(requireAuth);
@@ -29,6 +30,11 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       }),
       prisma.vetAvailabilitySlot.update({ where: { id: slot.id }, data: { isBooked: true } }),
     ]);
+    const vetWithUser = await prisma.vetProfile.findUnique({ where: { id: slot.vetId }, include: { user: { select: { name: true } } } });
+    mailVetAppointmentConfirmation(
+      req.user!.email, req.user!.name, vetWithUser?.user?.name || 'your vet',
+      serviceType, slot.date.toISOString().slice(0, 10), `${slot.startTime}-${slot.endTime}`
+    ).catch(() => {});
     res.status(201).json({ appointment });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });

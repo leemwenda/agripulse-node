@@ -113,9 +113,18 @@ export default function AnimalPassport() {
                   <div style={{ fontFamily: 'monospace', fontSize: 18, fontWeight: 700 }}>{passport.agripulseId}</div>
                 </div>
               </div>
-              <div style={{ background: '#fff', borderRadius: 8, padding: 8, textAlign: 'center' as const }}>
-                <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700, marginBottom: 4 }}> VERIFIED</div>
-                <div style={{ fontSize: 9, color: '#64748b' }}>by AgriPulse</div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                {passport.photos?.[0]?.url && (
+                  <img
+                    src={passport.photos[0].url}
+                    alt={passport.name}
+                    style={{ width: 90, height: 90, borderRadius: 8, objectFit: 'cover', border: '2px solid rgba(255,255,255,0.4)' }}
+                  />
+                )}
+                <div style={{ background: '#fff', borderRadius: 8, padding: 8, textAlign: 'center' as const }}>
+                  <div style={{ fontSize: 10, color: '#15803d', fontWeight: 700, marginBottom: 4 }}> VERIFIED</div>
+                  <div style={{ fontSize: 9, color: '#64748b' }}>by AgriPulse</div>
+                </div>
               </div>
             </div>
 

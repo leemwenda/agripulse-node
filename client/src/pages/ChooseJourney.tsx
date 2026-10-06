@@ -88,7 +88,7 @@ export default function ChooseJourney() {
       }} />
 
       {/* Ambient glow orbs */}
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none' }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none', overflow: 'hidden' }}>
         <div style={{
           position: 'absolute', top: '15%', left: '8%',
           width: 500, height: 500, borderRadius: '50%',
@@ -112,7 +112,7 @@ export default function ChooseJourney() {
         {/* Header */}
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <img src="/agripulse-logo.png" alt="AgriPulse" style={{ width: 30, height: 30, borderRadius: 7 }} />
+            <img src="/agripulse-logo.png" alt="AgriPulse" style={{ width: 30, height: 30, borderRadius: 7, background: '#fff', padding: 4 }} />
             <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase' }}>AgriPulse</span>
           </div>
 

@@ -69,7 +69,7 @@ export default function VetAuth() {
   const Logo = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{ background: '#fff', borderRadius: 9, padding: '4px 6px', display: 'flex', alignItems: 'center' }}>
-        <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 28, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 28, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
       </div>
       <span style={{ fontWeight: 800, fontSize: 18, color: '#fff', letterSpacing: '-0.5px' }}>AgriPulse</span>
       <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>| Veterinary</span>
@@ -229,7 +229,7 @@ export default function VetAuth() {
         <div style={{ width: '100%', maxWidth: 420, background: 'rgba(5,15,35,.6)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', border: '1px solid rgba(255,255,255,.13)', borderRadius: 22, padding: '32px 24px', boxShadow: '0 32px 80px rgba(0,0,0,.6)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <div style={{ background: '#fff', borderRadius: 10, padding: '5px 8px' }}>
-              <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 30, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 30, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             </div>
           </div>
           {TabBar()}
@@ -264,7 +264,7 @@ export default function VetAuth() {
           <div style={{ flex: 1, background: 'rgba(5,15,35,.65)', backdropFilter: 'blur(32px)', borderLeft: '1px solid rgba(255,255,255,.1)', padding: '44px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>
               <div style={{ background: '#fff', borderRadius: 10, padding: '5px 8px' }}>
-                <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
             {TabBar()}

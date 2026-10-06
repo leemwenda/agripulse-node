@@ -1890,7 +1890,7 @@ function MarketplaceTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 // NAV CONFIG
 // ══════════════════════════════════════════════════════════════════════════════
-type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications';
+type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications' | 'server';
 
 const NAV: { section: string; items: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
   {
@@ -1928,6 +1928,7 @@ const NAV: { section: string; items: { id: TabId; label: string; icon: React.Rea
     items: [
       { id: 'audit', label: 'Audit Log', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" /></svg> },
       { id: 'notifications', label: 'Notifications', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg> },
+      { id: 'server', label: 'Server Performance', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg> },
     ],
   },
 ];
@@ -1945,11 +1946,131 @@ const TAB_META: Record<TabId, { title: string; sub: string }> = {
   notifications: { title: 'Notifications', sub: 'Recent alerts and system events' },
   marketplace: { title: 'Marketplace', sub: 'Listings, offers, and marketplace activity across the platform' },
   vet_verifications: { title: 'Vet Approvals', sub: 'Review and approve veterinary professional registrations' },
+  server: { title: 'Server Performance', sub: 'Live system health, resource usage, and process monitoring' },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SUPER ADMIN SHELL
 // ══════════════════════════════════════════════════════════════════════════════
+function ServerHealthTab() {
+  const [health, setHealth] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    load();
+    const interval = setInterval(load, 10000); // refresh every 10s
+    return () => clearInterval(interval);
+  }, []);
+
+  async function load() {
+    try {
+      const res = await api.get('/system/health');
+      setHealth(res.data);
+      setError('');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to load server health');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function fmtUptime(seconds: number) {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${d}d ${h}h ${m}m`;
+  }
+
+  function Bar({ percent, color }: { percent: number; color: string }) {
+    return (
+      <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,.08)', borderRadius: 4, overflow: 'hidden', marginTop: 8 }}>
+        <div style={{ width: `${Math.min(percent, 100)}%`, height: '100%', background: color, transition: 'width .4s ease' }} />
+      </div>
+    );
+  }
+
+  function Card({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+      <div style={{ background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, padding: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 14 }}>{title}</div>
+        {children}
+      </div>
+    );
+  }
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'rgba(255,255,255,.4)' }}>Loading server health…</div>;
+  if (error) return <div style={{ padding: 40, textAlign: 'center', color: '#ef4444' }}>{error}</div>;
+  if (!health) return null;
+
+  const memColor = health.memory.usedPercent > 85 ? '#ef4444' : health.memory.usedPercent > 65 ? '#f59e0b' : '#10b981';
+  const diskColor = health.disk.usedPercent > 85 ? '#ef4444' : health.disk.usedPercent > 65 ? '#f59e0b' : '#10b981';
+  const cpuColor = health.cpu.loadPercent > 85 ? '#ef4444' : health.cpu.loadPercent > 65 ? '#f59e0b' : '#10b981';
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'rgba(255,255,255,.4)' }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+        Live — refreshes every 10s · {health.environment} · v{health.version} · Server uptime: {fmtUptime(health.uptimeSeconds)}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+        <Card title="CPU">
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{health.cpu.loadPercent}%</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 4 }}>{health.cpu.cores} core{health.cpu.cores !== 1 ? 's' : ''} · load avg {health.cpu.loadAvg1}</div>
+          <Bar percent={health.cpu.loadPercent} color={cpuColor} />
+        </Card>
+
+        <Card title="Memory">
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{health.memory.usedPercent}%</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 4 }}>{health.memory.usedMB}MB / {health.memory.totalMB}MB</div>
+          <Bar percent={health.memory.usedPercent} color={memColor} />
+        </Card>
+
+        <Card title="Disk">
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{health.disk.usedPercent}%</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 4 }}>{health.disk.usedGB}GB / {health.disk.totalGB}GB</div>
+          <Bar percent={health.disk.usedPercent} color={diskColor} />
+        </Card>
+
+        <Card title="Swap">
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#fff' }}>{health.swap.usedMB}MB</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 4 }}>of {health.swap.totalMB}MB total</div>
+          <Bar percent={health.swap.totalMB ? (health.swap.usedMB / health.swap.totalMB) * 100 : 0} color={health.swap.usedMB > 500 ? '#f59e0b' : '#10b981'} />
+        </Card>
+
+        <Card title="Database">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: health.database.connectionOk ? '#10b981' : '#ef4444' }} />
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{health.database.connectionOk ? 'Connected' : 'Down'}</div>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,.4)', marginTop: 8 }}>Size: {health.database.sizeGB ?? '—'} GB</div>
+        </Card>
+      </div>
+
+      <Card title={`PM2 Processes (${health.pm2.length})`}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {health.pm2.map((p: any, i: number) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,.03)', borderRadius: 10, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: p.status === 'online' ? '#10b981' : '#ef4444' }} />
+                <span style={{ fontWeight: 700, color: '#fff', fontSize: 14 }}>{p.name}</span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,.35)' }}>PID {p.pid}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(255,255,255,.5)' }}>
+                <span>CPU: {p.cpu}%</span>
+                <span>MEM: {p.memoryMB}MB</span>
+                <span>Uptime: {fmtUptime(Math.floor(p.uptime / 1000))}</span>
+                <span style={{ color: p.restarts > 10 ? '#f59e0b' : 'inherit' }}>Restarts: {p.restarts}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 function SuperAdminPanel() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -2085,6 +2206,7 @@ function SuperAdminPanel() {
           {tab === 'features' && <FeaturesTab />}
           {tab === 'audit' && <AuditTab />}
           {tab === 'marketplace' && <MarketplaceTab />}
+          {tab === 'server' && <ServerHealthTab />}
           {tab === 'notifications' && <NotificationsTab onMarkRead={() => setNotifCount(0)} />}
         </div>
       </main>

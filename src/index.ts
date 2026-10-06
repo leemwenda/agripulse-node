@@ -23,6 +23,7 @@ import vetProfileRoutes from './routes/vet.profile.routes';
 import vetReviewsRoutes from './routes/vet.reviews.routes';
 import vetAdminRoutes from './routes/vet.admin.routes';
 import vetMessagesRoutes from './routes/vet.messages.routes';
+import systemHealthRoutes from './routes/system.health.routes';
 import vetSlotsRoutes from './routes/vet.slots.routes';
 import vetAppointmentsRoutes from './routes/vet.appointments.routes';
 import vetEmergencyRoutes from './routes/vet.emergency.routes';
@@ -111,7 +112,7 @@ app.use((req, res, next) => {
 });
 
 // ── Routes ───────────────────────────────────────────────────
-app.use('/api/auth',      authLimiter, authRoutes);
+app.use('/api/auth',      authRoutes);  // authLimiter applied per-route inside auth.routes.ts only — NOT globally, since /auth/me is called on every page load and must stay unthrottled
 app.use('/api/animals',   animalsRoutes);
 app.use('/api/milk',      milkRouter);
 app.use('/api/animal-health', healthRouter);
@@ -141,6 +142,7 @@ app.use('/api/vet', vetProfileRoutes);
 app.use('/api/vet-reviews', vetReviewsRoutes);
 app.use('/api/vet-admin', vetAdminRoutes);
 app.use('/api/vet-messages', vetMessagesRoutes);
+app.use('/api/system', systemHealthRoutes);
 app.use('/api/vet/slots', vetSlotsRoutes);
 app.use('/api/vet/appointments', vetAppointmentsRoutes);
 app.use('/api/vet/emergency', vetEmergencyRoutes);

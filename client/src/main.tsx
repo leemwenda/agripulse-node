@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
 
 Sentry.init({
@@ -19,7 +20,9 @@ Sentry.init({
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Sentry.ErrorBoundary fallback={<p>Something went wrong. Please refresh the page.</p>}>
-      <App />
+      <HelmetProvider>
+        <App />
+      </HelmetProvider>
     </Sentry.ErrorBoundary>
   </React.StrictMode>
 );

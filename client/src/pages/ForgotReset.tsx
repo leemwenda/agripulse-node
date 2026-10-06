@@ -111,7 +111,7 @@ function GlassCard({ children, title, subtitle }: { children: React.ReactNode; t
 
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-            <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 36, width: 'auto', borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 36, width: 'auto', borderRadius: 8, background: '#fff', padding: 4 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           </div>
           <div style={{
             width: 52, height: 52, borderRadius: 14, margin: '0 auto 16px',

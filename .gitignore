@@ -19,3 +19,4 @@ uploads/
 *.bak3
 marketplace_dump.txt
 audit_*.txt
+*.backup-*

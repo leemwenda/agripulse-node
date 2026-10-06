@@ -1,9 +1,20 @@
 User-agent: *
 Allow: /
+Allow: /login
+Allow: /register
+Allow: /marketplace
+Allow: /marketplace/login
+Allow: /marketplace/register
+Allow: /marketplace/listing/
+Allow: /find-vet
+Allow: /vet/login
+Allow: /vet/register
+Allow: /vet/
+Allow: /journey
+
 Disallow: /api/
 Disallow: /admin/
-Disallow: /superadmin/
-Disallow: /_next/
+Disallow: /system
 Disallow: /dashboard
 Disallow: /animals
 Disallow: /milk-production
@@ -11,13 +22,18 @@ Disallow: /health-records
 Disallow: /finances
 Disallow: /settings
 Disallow: /profile
-
-# Allow key public pages
-Allow: /
-Allow: /login
-Allow: /register
+Disallow: /vet-dashboard
+Disallow: /vet-settings
+Disallow: /marketplace/cart
+Disallow: /marketplace/messages
+Disallow: /marketplace/favorites
+Disallow: /marketplace/notifications
+Disallow: /marketplace/my-listings
+Disallow: /marketplace/my-offers
+Disallow: /marketplace/create
+Disallow: /marketplace/analytics
+Disallow: /vet-messages
+Disallow: /my-vet-appointments
 
 Sitemap: https://agripulse.me/sitemap.xml
-
-# Crawl delay for courtesy
 Crawl-delay: 1

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { generateAgripulseId } from '../services/passport.service';
+import { mailAnimalRegistered } from '../services/mail.service';
 import { requireAuth, requireAdmin, requireFarmer, getFarmId } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -99,6 +100,7 @@ router.post('/', requireAdmin, async (req: Request, res: Response): Promise<void
     await prisma.activityLog.create({
       data: { userId: req.user!.id, action: 'create_animal', entity: 'animals', entityId: animal.id },
     });
+    mailAnimalRegistered(req.user!.email, req.user!.name, animal.name, animal.agripulseId || '', animal.tagNumber).catch(() => {});
     res.status(201).json({ animal });
   } catch (err: unknown) {
     const e = err as { code?: string };
@@ -161,7 +163,7 @@ import path from 'path';
 import fs from 'fs';
 
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, '/var/www/agripulse-staging/uploads/animals'),
+  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../uploads/animals')),
   filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
 });
 const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
@@ -193,7 +195,7 @@ router.delete('/:id/photos/:photoId', requireAdmin, async (req: Request, res: Re
   if (!animal) { res.status(404).json({ error: 'Animal not found' }); return; }
   const photo = await prisma.animalPhoto.findFirst({ where: { id: photoId, animalId } });
   if (!photo) { res.status(404).json({ error: 'Photo not found' }); return; }
-  const filePath = `/var/www/agripulse-staging${photo.url}`;
+  const filePath = path.join(__dirname, '../../uploads', photo.url.replace('/uploads/', ''));
   if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   await prisma.animalPhoto.delete({ where: { id: photoId } });
   res.json({ message: 'Photo deleted' });
