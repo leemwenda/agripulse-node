@@ -179,7 +179,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, '127.0.0.1', async () => {
   console.log(`\n AgriPulse API v2.0`);
   console.log(`   Server : http://localhost:${PORT}`);
   console.log(`   Client : ${process.env.CLIENT_URL}`);
