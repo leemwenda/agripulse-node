@@ -104,21 +104,6 @@ export default function MarketplaceAuth() {
           {loading ? 'Signing in...' : 'Login →'}
         </button>
       </form>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0 14px' }}>
-        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.12)' }} />
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>or</span>
-        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.12)' }} />
-      </div>
-      <button type="button" onClick={() => { window.location.href = '/api/auth/google?portal=marketplace'; }}
-        style={{ width: '100%', height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: '#fff', color: '#1f2937', border: 'none', borderRadius: 11, fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
-        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
-          <path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/>
-          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
-        </svg>
-        Continue with Google
-      </button>
       <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,.4)', marginTop: 22 }}>
         Don't have an account? <Link to="/marketplace/register" style={{ color: BLUE, fontWeight: 700, textDecoration: 'none' }}>Sign up here</Link>
       </p>
@@ -149,21 +134,6 @@ export default function MarketplaceAuth() {
           {loading ? 'Creating account...' : 'Create Account →'}
         </button>
       </form>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '18px 0 14px' }}>
-        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.12)' }} />
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>or</span>
-        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.12)' }} />
-      </div>
-      <button type="button" onClick={() => { window.location.href = '/api/auth/google?portal=marketplace'; }}
-        style={{ width: '100%', height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: '#fff', color: '#1f2937', border: 'none', borderRadius: 11, fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
-        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-          <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/>
-          <path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/>
-          <path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/>
-          <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.3-8.4 2.3-6.3 0-11.6-4-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/>
-        </svg>
-        Continue with Google
-      </button>
       <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,.4)', marginTop: 16 }}>
         Already have an account? <Link to="/marketplace/login" style={{ color: BLUE, fontWeight: 700, textDecoration: 'none' }}>Login here</Link>
       </p>
