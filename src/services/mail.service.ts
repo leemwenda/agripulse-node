@@ -82,7 +82,7 @@ const PROVIDERS: Provider[] = [
 ];
 
 // ─── Core Send ────────────────────────────────────────────────────────────────
-const FROM  = process.env.MAIL_FROM   || 'AgriPulse <notifications@agripulse.me>';
+const FROM  = process.env.MAIL_FROM   || 'AgriPulse <agripulse254@gmail.com>';
 const ADMIN = process.env.ADMIN_EMAIL || 'leemwenda8714@gmail.com';
 const SITE  = process.env.SITE_NAME   || 'AgriPulse';
 const URL   = process.env.CLIENT_URL  || 'https://agripulse.me';
@@ -174,7 +174,7 @@ function base(title: string, bodyContent: string): string {
       <p style="margin:0;color:#2E7D32;font-size:15px;font-weight:700;">${SITE} </p>
       <p style="margin:6px 0;color:#666666;font-size:13px;">Empowering Agriculture Through Technology</p>
       <p style="margin:6px 0;color:#666666;font-size:13px;">
-        <a href="mailto:notifications@agripulse.me" style="color:#2E7D32;text-decoration:none;">notifications@agripulse.me</a>
+        <a href="mailto:agripulse254@gmail.com" style="color:#2E7D32;text-decoration:none;">agripulse254@gmail.com</a>
         &nbsp;|&nbsp;
         <a href="${URL}" style="color:#2E7D32;text-decoration:none;">agripulse.me</a>
       </p>
@@ -226,7 +226,7 @@ export async function mailWelcome(email: string, name: string): Promise<void> {
     ${p(`With ${SITE} you can:`)}
     ${ul(['Manage farm records efficiently','Track crop and livestock performance','Receive smart agricultural insights','Monitor health, breeding, and milk production'])}
     ${btn('Access Your Dashboard', `${URL}/dashboard`)}
-    ${infoCard('Account Information', [['Status','Active'],['Platform',`${SITE} Smart Farm Management`],['Support','notifications@agripulse.me']])}
+    ${infoCard('Account Information', [['Status','Active'],['Platform',`${SITE} Smart Farm Management`],['Support','agripulse254@gmail.com']])}
     ${p('<span style="font-size:13px;color:#999;">If you did not create this account, you can safely ignore this email.</span>')}
   `));
 }
@@ -421,31 +421,95 @@ export async function mailResendVerification(email: string, name: string, token:
 }
 
 export async function mailSecurityAlert(data: {
-  type:string;title:string;message:string;ip:string;details:[string,string][];
+  type: string;
+  title: string;
+  message: string;
+  ip: string;
+  details: [string, string][];
 }): Promise<void> {
-  const adminEmail = 'leemwenda8714@gmail.com, agripulse254@gmail.com';
-  await sendTelegram(`<b>Security Alert: ${data.title}</b>\n\n${data.message}\n\nIP: ${data.ip}\nTime: ${new Date().toISOString()}`);
-  await send(adminEmail, `Security Alert: ${data.title} — ${SITE}`, base(` Security Alert: ${data.title}`, `
-    ${alertBox(data.message,'danger')}
-    ${infoCard('Incident Details', [...data.details,['IP Address',data.ip],['Time',new Date().toLocaleString('en-KE')]])}
-    ${alertBox('If this was not you, please review your security settings immediately.','warning')}
-    ${btn('View Admin Panel',`${URL}/system`)}
-  `));
+  const adminEmails = [
+    'leemwenda8714@gmail.com',
+    'agripulse254@gmail.com'
+  ];
+
+  await sendTelegram(
+    `<b>Security Alert: ${data.title}</b>\n\n${data.message}\n\nIP: ${data.ip}\nTime: ${new Date().toISOString()}`
+  );
+
+  const html = base(`Security Alert: ${data.title}`, `
+    ${alertBox(data.message, 'danger')}
+    ${infoCard(
+      'Incident Details',
+      [...data.details, ['IP Address', data.ip], ['Time', new Date().toLocaleString('en-KE')]]
+    )}
+    ${alertBox(
+      'If this was not you, please review your security settings immediately.',
+      'warning'
+    )}
+    ${btn('View Admin Panel', `${URL}/system`)}
+  `);
+
+  for (const adminEmail of adminEmails) {
+    await send(
+      adminEmail,
+      `Security Alert: ${data.title} — ${SITE}`,
+      html
+    );
+  }
 }
 
 export async function mailDailySecuritySummary(data: {
-  failedLogins:number;successfulLogins:number;newUsers:number;
-  activeUsers:number;topAttackers:string;date:string;
+  failedLogins: number;
+  successfulLogins: number;
+  newUsers: number;
+  activeUsers: number;
+  topAttackers: string;
+  date: string;
 }): Promise<void> {
-  const adminEmail = 'leemwenda8714@gmail.com, agripulse254@gmail.com';
-  const threatLevel = data.failedLogins>20?'HIGH':data.failedLogins>5?'MEDIUM':'LOW';
-  const threatType = threatLevel==='HIGH'?'danger':threatLevel==='MEDIUM'?'warning':'success';
-  await send(adminEmail, `Daily Security Report — ${data.date} — ${SITE}`, base(`Daily Security Report — ${data.date}`, `
-    ${alertBox(`Threat Level: <strong>${threatLevel}</strong> — ${data.failedLogins} failed login attempt(s) detected.`, threatType as 'danger'|'warning'|'success')}
-    ${statsRow([{label:'Successful Logins',value:String(data.successfulLogins)},{label:'Failed Attempts',value:String(data.failedLogins)},{label:'New Registrations',value:String(data.newUsers)},{label:'Active Users',value:String(data.activeUsers)}])}
-    ${infoCard('Top Suspicious IPs (Last 24h)', [['Details',data.topAttackers||'None detected']])}
-    ${btn('View Admin Panel',`${URL}/system`)}
-  `));
+  const adminEmails = [
+    'leemwenda8714@gmail.com',
+    'agripulse254@gmail.com'
+  ];
+
+  const threatLevel =
+    data.failedLogins > 20
+      ? 'HIGH'
+      : data.failedLogins > 5
+        ? 'MEDIUM'
+        : 'LOW';
+
+  const threatType =
+    threatLevel === 'HIGH'
+      ? 'danger'
+      : threatLevel === 'MEDIUM'
+        ? 'warning'
+        : 'success';
+
+  const html = base(`Daily Security Report — ${data.date}`, `
+    ${alertBox(
+      `Threat Level: <strong>${threatLevel}</strong> — ${data.failedLogins} failed login attempt(s) detected.`,
+      threatType as 'danger' | 'warning' | 'success'
+    )}
+    ${statsRow([
+      {label: 'Successful Logins', value: String(data.successfulLogins)},
+      {label: 'Failed Attempts', value: String(data.failedLogins)},
+      {label: 'New Registrations', value: String(data.newUsers)},
+      {label: 'Active Users', value: String(data.activeUsers)}
+    ])}
+    ${infoCard(
+      'Top Suspicious IPs (Last 24h)',
+      [['Details', data.topAttackers || 'None detected']]
+    )}
+    ${btn('View Admin Panel', `${URL}/system`)}
+  `);
+
+  for (const adminEmail of adminEmails) {
+    await send(
+      adminEmail,
+      `Daily Security Report — ${data.date} — ${SITE}`,
+      html
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -726,4 +790,21 @@ export async function mailMarketTransferCompleteToSeller(
     `Sale Complete — ${animalName} sold to ${buyerName}`,
     mktHtml('Sale Completed ', `${animalName} has been transferred to ${buyerName}`, body)
   );
+}
+
+export async function mailVetVerificationDecision(email: string, name: string, status: string, reason?: string): Promise<void> {
+  const approved = status === 'verified';
+  const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const subject = approved
+    ? `Your veterinarian profile is verified - ${SITE}`
+    : `Update on your veterinarian verification - ${SITE}`;
+  const body = approved
+    ? `<p>Your veterinarian profile has been <strong>verified</strong>. Farmers can now find you, book appointments and message you on ${SITE}.</p>`
+    : `<p>We were unable to verify your veterinarian profile at this time.</p>${reason ? `<p><strong>Reason:</strong> ${esc(reason)}</p>` : ''}<p>You can update your details and contact us to have your profile reviewed again.</p>`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#111;">
+    <img src="${LOGO}" alt="${SITE}" width="48" height="48" style="display:block;margin-bottom:16px;">
+    <p>Hello <strong>${esc(name)}</strong>,</p>${body}
+    <p><a href="${URL}/vet-dashboard" style="display:inline-block;background:#4f46e5;color:#ffffff;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600;">Open ${SITE}</a></p>
+    <p style="font-size:12px;color:#888;">${SITE} - ${URL}</p></div>`;
+  await send(email, subject, html);
 }

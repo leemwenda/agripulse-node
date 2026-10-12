@@ -628,7 +628,7 @@ export default function LandingPage() {
               <h4>Contact Us</h4>
               <ul>
                 <li><a href="tel:+254700123456">+254 700 123 456</a></li>
-                <li><a href="mailto:support@agripulse.me">support@agripulse.me</a></li>
+                <li><a href="mailto:agripulse254@gmail.com">agripulse254@gmail.com</a></li>
                 <li><a href="#contact">Nairobi, Kenya</a></li>
               </ul>
             </div>

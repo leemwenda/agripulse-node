@@ -95,7 +95,7 @@ fi
 # 7. Send email report if issues found
 if [ "$ISSUES" -gt 0 ]; then
   log "Sending alert email — $ISSUES issue(s) detected"
-  BODY="From: notifications@agripulse.me
+  BODY="From: agripulse254@gmail.com
 To: $ALERT_EMAIL
 Subject: AgriPulse Auto-Healer Report — $ISSUES Issue(s) Fixed
 MIME-Version: 1.0
