@@ -46,7 +46,7 @@ const html = `<!DOCTYPE html>
 </td></tr></table>
 </body></html>`;
 
-t.sendMail({ from: 'agripulse254@gmail.com', to: 'leemwenda8714@gmail.com', subject: 'AgriPulse — Welcome to Smart Farm Management', html }, (err, info) => {
+t.sendMail({ from: 'notifications@agripulse.me', to: 'leemwenda8714@gmail.com', subject: 'AgriPulse — Welcome to Smart Farm Management', html }, (err, info) => {
   if (err) console.error('FAIL:', err.message);
   else console.log('SENT:', info.response);
 });

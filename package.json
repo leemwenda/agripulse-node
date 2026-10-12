@@ -8,7 +8,7 @@
     "client": "cd client && npm run dev",
     "build:server": "tsc",
     "build:client": "cd client && npm run build",
-    "build": "npm run build:server && npm run build:client && sudo cp -r /home/mwenda/agripulse/client/dist/. /var/www/agripulse/client/dist/",
+    "build": "npm run build:server && npm run build:client && cp -a client/dist/. /var/www/agripulse/",
     "start": "node dist/index.js",
     "db:generate": "npx prisma generate",
     "db:push": "npx prisma db push",

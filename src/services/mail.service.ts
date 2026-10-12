@@ -82,7 +82,7 @@ const PROVIDERS: Provider[] = [
 ];
 
 // ─── Core Send ────────────────────────────────────────────────────────────────
-const FROM  = process.env.MAIL_FROM   || 'AgriPulse <agripulse254@gmail.com>';
+const FROM  = process.env.MAIL_FROM   || 'AgriPulse <notifications@agripulse.me>';
 const ADMIN = process.env.ADMIN_EMAIL || 'leemwenda8714@gmail.com';
 const SITE  = process.env.SITE_NAME   || 'AgriPulse';
 const URL   = process.env.CLIENT_URL  || 'https://agripulse.me';

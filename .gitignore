@@ -20,3 +20,8 @@ uploads/
 marketplace_dump.txt
 audit_*.txt
 *.backup-*
+*.bak*
+*.before-*
+*.pre-*
+.env.*
+!.env.example
