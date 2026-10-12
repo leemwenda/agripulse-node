@@ -9,6 +9,25 @@ const GROQ_KEY   = process.env.GROQ_API_KEY;
 if (!GROQ_KEY) { console.error('[AI Advisor] GROQ_API_KEY is not set — AI Advisor will fail until it is configured in .env'); }
 const GROQ_MODEL = process.env.GROQ_MODEL   || 'llama-3.3-70b-versatile';
 
+function cleanAdvisorMarkdown(text: string): string {
+  return text
+    // Remove Markdown heading markers.
+    .replace(/^\s{0,3}#{1,6}\s*/gm, '')
+    // Remove bold and italic formatting while preserving the text.
+    .replace(/\*\*(.*?)\*\*/gs, '$1')
+    .replace(/__(.*?)__/gs, '$1')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1$2')
+    // Replace Markdown bullet symbols with readable bullet points.
+    .replace(/^\s*\*\s+/gm, '• ')
+    .replace(/^\s*[-+]\s+/gm, '• ')
+    // Remove Markdown horizontal rules.
+    .replace(/^\s*[-*_]{3,}\s*$/gm, '')
+    // Clean up excess whitespace.
+    .replace(/[ \t]+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 async function callGroq(systemPrompt: string, messages: { role: string; content: string }[]): Promise<string> {
   const res = await fetch(GROQ_URL, {
     method: 'POST',
@@ -25,7 +44,7 @@ async function callGroq(systemPrompt: string, messages: { role: string; content:
     throw new Error(`Groq API error ${res.status}: ${err}`);
   }
   const data = await res.json() as { choices: { message: { content: string } }[] };
-  return data.choices?.[0]?.message?.content ?? '';
+  return cleanAdvisorMarkdown(data.choices?.[0]?.message?.content ?? '');
 }
 import prisma from '../lib/prisma';
 import { mailIssueSubmitted, mailAdminIssueSubmitted, mailIssueResolved, mailAnnouncement, mailWorkerInvitation } from '../services/mail.service';
