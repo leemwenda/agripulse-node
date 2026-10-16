@@ -69,14 +69,25 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Global rate limit: 100 requests per 15 min per IP
-app.use(rateLimit({
+// Admin panel limit: higher, because the dashboard and image gallery fire many requests.
+// These routes still require login + superadmin; this only governs request volume.
+const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
-  skip: (req) => req.path === '/api/health',
+});
+app.use('/api/admin', adminLimiter);
+
+// Global rate limit: 300 requests per 15 min per IP (admin routes use adminLimiter above)
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+  skip: (req) => req.path === '/api/health' || req.path.startsWith('/api/admin'),
 }));
 
 // Strict auth rate limit: 10 attempts per 15 min
@@ -122,13 +133,16 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/workers',   workersRouter);
 app.use('/api/ai',        aiRouter);
 import imageIntelligenceRoutes from './routes/imageIntelligence.routes';
+import reidRoutes from './routes/reid.routes';
 app.use('/api/admin/images', imageIntelligenceRoutes);
+app.use('/api/admin/reid', reidRoutes);
 app.use('/api/admin',         adminRouter);
 app.use('/api/reports',       reportsRouter);
 app.use('/api/profile',       profileRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/issues',        issuesRouter);
 app.use('/api/passport',      passportRoutes);
+app.use('/uploads', require('express').static(require('path').resolve(__dirname, '../uploads')));
 app.use('/uploads', require('express').static('/var/www/agripulse-staging/uploads'));
 app.use('/api/market',           marketRoutes);
 app.use('/api/market-offers',    marketOffersRoutes);

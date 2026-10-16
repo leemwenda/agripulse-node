@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { ImageIntelligenceTab } from '../features/image-intelligence';
+import { ReidTab } from '../features/reid/ReidTab';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 interface PlatformStats {
@@ -2133,7 +2134,7 @@ function MarketplaceTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 // NAV CONFIG
 // ══════════════════════════════════════════════════════════════════════════════
-type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications' | 'server' | 'image_intelligence';
+type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications' | 'server' | 'image_intelligence' | 'reid';
 
 const NAV: { section: string; items: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
   {
@@ -2163,6 +2164,7 @@ const NAV: { section: string; items: { id: TabId; label: string; icon: React.Rea
   {
     section: 'Intelligence',
     items: [
+      { id: 'reid', label: 'Cow Re-ID', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg> },
       { id: 'image_intelligence', label: 'Image Intelligence', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg> },
     ],
   },
@@ -2196,6 +2198,7 @@ const TAB_META: Record<TabId, { title: string; sub: string }> = {
   marketplace: { title: 'Marketplace', sub: 'Listings, offers, and marketplace activity across the platform' },
   vet_verifications: { title: 'Vet Approvals', sub: 'Review and approve veterinary professional registrations' },
   server: { title: 'Server Performance', sub: 'Live system health, resource usage, and process monitoring' },
+  reid: { title: 'Cow Re-ID', sub: 'Identify, register and group cattle photos' },
   image_intelligence: { title: 'Image Intelligence', sub: 'Review image evidence, duplicates, and technical signals' },
 };
 
@@ -2603,6 +2606,7 @@ function SuperAdminPanel() {
           {tab === 'server' && <ServerHealthTab />}
           {tab === 'vet_verifications' && <VetApprovalsTab />}
           {tab === 'image_intelligence' && <ImageIntelligenceTab />}
+          {tab === 'reid' && <ReidTab />}
           {tab === 'notifications' && <NotificationsTab onMarkRead={() => setNotifCount(0)} />}
         </div>
       </main>
