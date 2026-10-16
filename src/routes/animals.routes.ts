@@ -158,6 +158,7 @@ router.delete('/:id', requireAdmin, async (req: Request, res: Response): Promise
 export default router;
 
 // POST /api/animals/:id/photos — upload animal photo
+import { queueImageAnalysis } from '../services/imageAnalysis.service';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -184,6 +185,7 @@ router.post('/:id/photos', requireAdmin, upload.single('photo'), async (req: Req
   const photo = await prisma.animalPhoto.create({
     data: { animalId, url, isPrimary },
   });
+  queueImageAnalysis('animal_photo', photo.id);
   res.status(201).json({ photo });
 });
 

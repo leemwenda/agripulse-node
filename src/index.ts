@@ -121,6 +121,8 @@ app.use('/api/financial', financialRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/workers',   workersRouter);
 app.use('/api/ai',        aiRouter);
+import imageIntelligenceRoutes from './routes/imageIntelligence.routes';
+app.use('/api/admin/images', imageIntelligenceRoutes);
 app.use('/api/admin',         adminRouter);
 app.use('/api/reports',       reportsRouter);
 app.use('/api/profile',       profileRouter);
