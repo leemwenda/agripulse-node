@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { ImageIntelligenceTab } from '../features/image-intelligence';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 interface PlatformStats {
@@ -2132,7 +2133,7 @@ function MarketplaceTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 // NAV CONFIG
 // ══════════════════════════════════════════════════════════════════════════════
-type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications' | 'server';
+type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications' | 'server' | 'image_intelligence';
 
 const NAV: { section: string; items: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
   {
@@ -2157,6 +2158,12 @@ const NAV: { section: string; items: { id: TabId; label: string; icon: React.Rea
     section: 'Marketplace',
     items: [
       { id: 'marketplace', label: 'Marketplace', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" /><path d="M9 22V12h6v10" /></svg> },
+    ],
+  },
+  {
+    section: 'Intelligence',
+    items: [
+      { id: 'image_intelligence', label: 'Image Intelligence', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg> },
     ],
   },
   {
@@ -2189,6 +2196,7 @@ const TAB_META: Record<TabId, { title: string; sub: string }> = {
   marketplace: { title: 'Marketplace', sub: 'Listings, offers, and marketplace activity across the platform' },
   vet_verifications: { title: 'Vet Approvals', sub: 'Review and approve veterinary professional registrations' },
   server: { title: 'Server Performance', sub: 'Live system health, resource usage, and process monitoring' },
+  image_intelligence: { title: 'Image Intelligence', sub: 'Review image evidence, duplicates, and technical signals' },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2455,7 +2463,7 @@ function VetApprovalsTab() {
 function SuperAdminPanel() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<TabId>('overview');
+  const [tab, setTab] = useState<TabId>(() => (new URLSearchParams(window.location.search).get('tab') === 'image_intelligence' ? 'image_intelligence' : 'overview'));
   const [navOpen, setNavOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [issueCount, setIssueCount] = useState(0);
@@ -2594,6 +2602,7 @@ function SuperAdminPanel() {
           {tab === 'marketplace' && <MarketplaceTab />}
           {tab === 'server' && <ServerHealthTab />}
           {tab === 'vet_verifications' && <VetApprovalsTab />}
+          {tab === 'image_intelligence' && <ImageIntelligenceTab />}
           {tab === 'notifications' && <NotificationsTab onMarkRead={() => setNotifCount(0)} />}
         </div>
       </main>

@@ -133,6 +133,7 @@ function AppRoutes() {
       
       <Route path="/animal/:agripulseId" element={<AnimalPassport />} />
       <Route path="/system" element={<SystemRoute />} />
+      <Route path="/system/image-intelligence" element={<Navigate to="/system?tab=image_intelligence" replace />} />
       <Route path="/system/vet-verifications" element={<VetVerifications />} />
 
       {/* Protected pages — auth required */}

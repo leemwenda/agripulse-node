@@ -1,0 +1,1 @@
+export { ImageIntelligenceTab } from './ImageIntelligenceTab';
