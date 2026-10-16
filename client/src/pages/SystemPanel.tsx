@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { ImageIntelligenceTab } from '../features/image-intelligence';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 interface PlatformStats {
@@ -98,6 +99,33 @@ function timeAgo(d: string) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+import { useTheme } from '../context/ThemeContext';
+
+function ThemeToggle() {
+  const { isDark, toggleTheme } = useTheme();
+  return (
+    <button
+      type="button"
+      className="sp-top-btn"
+      onClick={toggleTheme}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={isDark ? 'Light mode' : 'Dark mode'}
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, padding: 0 }}
+    >
+      {isDark ? (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 // ─── Design tokens ──────────────────────────────────────────────────────────
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
@@ -137,8 +165,8 @@ const CSS = `
     display: flex;
   }
 
-  @media (prefers-color-scheme: dark) {
-    .sp-root {
+  @media all {
+    html.dark .sp-root {
       --c-bg: #141414;
       --c-surface: #0d0d0d;
       --c-border: rgba(255,255,255,0.07);
@@ -712,9 +740,183 @@ const CSS = `
     .sp-grid-3 { grid-template-columns: 1fr 1fr; }
     .sp-content { padding: 14px; }
   }
+  /* sp-polish v1 */
+  .sp-root { --c-hover: rgba(0,0,0,0.035); }
+  html.dark .sp-root {
+    --c-bg: #171a21;
+    --c-surface: #0f1217;
+    --c-hover: rgba(255,255,255,0.045);
+    --c-border: rgba(255,255,255,0.07);
+    --c-border-med: rgba(255,255,255,0.12);
+    --c-text: #e4e7ee;
+    --c-text-2: #a4abbb;
+    --c-text-3: #707889;
+    --c-purple: #8a82ea;
+    --c-purple-bg: rgba(138,130,234,0.14);
+    --c-purple-border: rgba(138,130,234,0.32);
+    --c-green: #4cc9a0;
+    --c-green-bg: rgba(76,201,160,0.12);
+    --c-green-border: rgba(76,201,160,0.30);
+    --c-amber: #e3ab55;
+    --c-amber-bg: rgba(227,171,85,0.12);
+    --c-amber-border: rgba(227,171,85,0.30);
+    --c-red: #f08585;
+    --c-red-bg: rgba(240,133,133,0.12);
+    --c-red-border: rgba(240,133,133,0.30);
+    --c-blue: #6db2ee;
+    --c-blue-bg: rgba(109,178,238,0.12);
+    --c-blue-border: rgba(109,178,238,0.30);
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.30);
+    --shadow-md: 0 6px 20px rgba(0,0,0,0.40);
+    background: var(--c-surface) !important;
+    color: var(--c-text);
+  }
+  html.dark .sp-root .sp-card, html.dark .sp-root .sp-metric, html.dark .sp-root .sp-farm-card,
+  html.dark .sp-root .sp-sidebar { background: var(--c-bg) !important; border-color: var(--c-border) !important; }
+  html.dark .sp-root input:not([type=checkbox]):not([type=radio]), html.dark .sp-root textarea, html.dark .sp-root select {
+    background: var(--c-surface) !important; color: var(--c-text) !important; border-color: var(--c-border-med) !important; }
+  html.dark .sp-root ::placeholder { color: var(--c-text-3); }
+  html.dark .sp-root [style*="background: rgb(255, 255, 255)"], html.dark .sp-root [style*="background-color: rgb(255, 255, 255)"] {
+    background: var(--c-bg) !important; }
+  html.dark .sp-root .sp-btn.primary { background: #5b52c9; border-color: #5b52c9; color: #f4f4fb; }
+  html.dark .sp-root .sp-logo-mark::after { opacity: .8; }
+
+  /* hover: no lift, no shadow, no purple bar - just a faint background */
+  .sp-root .sp-metric:hover, .sp-root .sp-card:hover { transform: none !important; box-shadow: var(--shadow-sm, none) !important; border-color: var(--c-border) !important; }
+  .sp-root .sp-table tbody tr:hover, .sp-root tbody tr:hover, html.dark .sp-root tbody tr:hover { background: transparent !important; }
+  .sp-root .sp-table tbody tr:hover td, .sp-root tbody tr:hover td, html.dark .sp-root tbody tr:hover td { background: var(--c-hover) !important; }
+  .sp-root .sp-table tbody tr:hover td:first-child { box-shadow: none !important; }
+  .sp-root .sp-flag-row:hover, .sp-root .sp-activity-item:hover, .sp-root .sp-notif-item:hover, .sp-root .sp-farm-card:hover {
+    background: var(--c-hover) !important; box-shadow: none !important; }
+  .sp-root .sp-farm-card:hover { border-color: var(--c-border) !important; }
+  .sp-root .sp-nav-item:hover:not(.active) { background: var(--c-hover); color: var(--c-text); }
+  .sp-root .sp-top-btn:hover { background: var(--c-hover); border-color: var(--c-border-med); color: var(--c-text); }
+  .sp-root .sp-input:hover, .sp-root .sp-select:hover { border-color: var(--c-border-med); }
+
+  /* analytics */
+  .sp-root .sp-an-stack { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+  .sp-root .sp-an-chart { display: flex; gap: 10px; padding: 18px 18px 6px; height: 220px; }
+  .sp-root .sp-an-yaxis { display: flex; flex-direction: column; justify-content: space-between; min-width: 24px;
+    text-align: right; font-size: 11px; line-height: 1; color: var(--c-text-3); }
+  .sp-root .sp-an-plot { position: relative; flex: 1; min-width: 0; }
+  .sp-root .sp-an-grid { position: absolute; left: 0; right: 0; height: 1px; background: var(--c-border); }
+  .sp-root .sp-an-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 4px; }
+  .sp-root .sp-an-bar { flex: 1; min-width: 0; background: var(--c-purple); border-radius: 4px 4px 0 0; opacity: .9; }
+  .sp-root .sp-an-xaxis { display: flex; justify-content: space-between; padding: 0 18px 16px 52px; font-size: 11px; color: var(--c-text-3); }
+  .sp-root .sp-an-rec { padding: 8px 18px 18px; display: flex; flex-direction: column; gap: 14px; }
+  .sp-root .sp-an-rec-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+  .sp-root .sp-an-track { height: 6px; border-radius: 6px; background: color-mix(in srgb, var(--c-text) 9%, transparent); overflow: hidden; }
+  .sp-root .sp-an-fill { height: 100%; border-radius: 6px; }
+  @media (max-width: 900px) { .sp-root .sp-an-stack { grid-template-columns: minmax(0, 1fr); } }
+
 `;
 
 // ─── Micro components ──────────────────────────────────────────────────────
+const THEME = `
+  .sp-root {
+    --c-bg: #ffffff; --c-surface: #f6f7f9;
+    --c-border: rgba(15,23,42,0.08); --c-border-med: rgba(15,23,42,0.14);
+    --c-text: #0f172a; --c-text-2: #475569; --c-text-3: #64748b;
+    --c-purple: #4f46e5; --c-purple-bg: #eef2ff; --c-purple-border: #c7d2fe;
+    --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.05);
+    --shadow-md: 0 6px 20px rgba(15,23,42,0.08);
+  }
+  @media all {
+    html.dark .sp-root {
+      --c-bg: #0f1117; --c-surface: #0a0b10;
+      --c-border: rgba(255,255,255,0.08); --c-border-med: rgba(255,255,255,0.14);
+      --c-text: #f1f5f9; --c-text-2: #94a3b8; --c-text-3: #8b98ab;
+      --c-purple: #818cf8; --c-purple-bg: rgba(99,102,241,0.16); --c-purple-border: rgba(99,102,241,0.35);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+      --shadow-md: 0 6px 20px rgba(0,0,0,0.45);
+    }
+  }
+  /* hover, pointer and caret feedback */
+  .sp-root button, .sp-root select, .sp-root summary, .sp-root [role="button"] { cursor: pointer; }
+  .sp-root button:disabled { cursor: not-allowed; }
+  .sp-root input, .sp-root textarea { caret-color: var(--c-purple); }
+  .sp-root .sp-nav-item:hover { background: color-mix(in srgb, var(--c-purple) 10%, transparent); color: var(--c-purple); }
+  .sp-root .sp-top-btn:hover { background: color-mix(in srgb, var(--c-purple) 10%, transparent); border-color: var(--c-purple-border); color: var(--c-purple); }
+  .sp-root tbody tr:hover { background: color-mix(in srgb, var(--c-purple) 7%, var(--c-bg)); }
+  .sp-logo-img { height: 34px; width: auto; max-width: 40px; object-fit: contain; flex-shrink: 0; display: block; }
+  /* shield the panel from the app's global .dark rules (green-tinted greys, !important) */
+  html .sp-root { color-scheme: light; }
+  html.dark .sp-root { color-scheme: dark; }
+  html.dark .sp-root thead th { background: var(--c-surface) !important; color: var(--c-text-3) !important; border-color: var(--c-border) !important; }
+  html.dark .sp-root tbody td { color: var(--c-text) !important; border-color: var(--c-border) !important; }
+  html.dark .sp-root tbody td.td-muted { color: var(--c-text-2) !important; }
+  html.dark .sp-root tbody tr:hover { background: color-mix(in srgb, var(--c-purple) 7%, var(--c-bg)) !important; }
+  html.dark .sp-root select option { background: var(--c-bg); color: var(--c-text); }
+  .sp-root { -webkit-font-smoothing: antialiased; }
+  .sp-main { flex: 1; min-width: 0; }
+  .sp-content { padding: 24px 28px 48px; max-width: 1440px; margin: 0 auto; width: 100%; }
+
+  .sp-sidebar { width: 248px; }
+  .sp-logo-mark { background: linear-gradient(135deg, #6366f1, #4338ca); box-shadow: var(--shadow-sm); }
+  .sp-logo-mark::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: #fff; opacity: .95; }
+  .sp-nav-item { padding: 8px 12px; font-weight: 500; border-radius: var(--radius-sm); }
+  .sp-nav-item:hover { background: var(--c-surface); color: var(--c-text); }
+  .sp-nav-item.active { background: var(--c-purple-bg); color: var(--c-purple); box-shadow: none; }
+  .sp-nav-item:focus-visible, .sp-top-btn:focus-visible, .sp-menu-btn:focus-visible { outline: 2px solid var(--c-purple); outline-offset: 2px; }
+
+  .sp-topbar { position: sticky; top: 0; z-index: 20; padding: 14px 28px;
+    background: color-mix(in srgb, var(--c-bg) 82%, transparent);
+    backdrop-filter: saturate(160%) blur(10px); -webkit-backdrop-filter: saturate(160%) blur(10px);
+    border-bottom: 1px solid var(--c-border); }
+  .sp-topbar-title { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+  .sp-top-btn { border-radius: var(--radius-sm); transition: background .15s ease, border-color .15s ease; }
+  .sp-top-btn:hover { background: var(--c-surface); }
+
+  .sp-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; }
+  .sp-metric { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm); transition: transform .18s ease, box-shadow .18s ease; overflow: hidden; }
+  .sp-metric:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .sp-metric-label { font-size: 12px; font-weight: 500; color: var(--c-text-2); }
+  .sp-metric-val { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; }
+  .sp-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+  .sp-root table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .sp-root th { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase;
+    color: var(--c-text-3); text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--c-border); }
+  .sp-root td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid var(--c-border); vertical-align: middle; }
+  .sp-root tbody tr { transition: background .12s ease; }
+  .sp-root tbody tr:hover { background: var(--c-surface); }
+  .sp-root tbody tr:last-child td { border-bottom: none; }
+
+  .sp-root input[type=text], .sp-root input[type=email], .sp-root input[type=search],
+  .sp-root input[type=password], .sp-root input[type=number], .sp-root select, .sp-root textarea {
+    border-radius: var(--radius-sm); border: 1px solid var(--c-border-med); background: var(--c-bg);
+    color: var(--c-text); font-family: inherit; transition: border-color .15s ease, box-shadow .15s ease; }
+  .sp-root input:focus, .sp-root select:focus, .sp-root textarea:focus {
+    outline: none; border-color: var(--c-purple); box-shadow: 0 0 0 3px var(--c-purple-bg); }
+
+  .sp-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+  .sp-root ::-webkit-scrollbar-thumb { background: var(--c-border-med); border-radius: 8px; }
+
+  .sp-menu-btn { display: none; align-items: center; justify-content: center; width: 38px; height: 38px;
+    border-radius: var(--radius-sm); border: 1px solid var(--c-border-med); background: var(--c-bg);
+    color: var(--c-text); cursor: pointer; flex-shrink: 0; }
+  .sp-overlay { display: none; }
+
+  @media (max-width: 900px) {
+    .sp-menu-btn { display: inline-flex; }
+    .sp-sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 50; width: 280px;
+      transform: translateX(-100%); transition: transform .22s ease; box-shadow: var(--shadow-md); }
+    .sp-sidebar.open { transform: none; }
+    .sp-overlay.show { display: block; position: fixed; inset: 0; z-index: 40; background: rgba(15,23,42,.45); }
+    .sp-topbar { padding: 10px 14px; justify-content: flex-start; gap: 10px; }
+    .sp-topbar-right { margin-left: auto; }
+    .sp-topbar-sub, .sp-live { display: none; }
+    .sp-content { padding: 16px 14px 40px; }
+    .sp-grid-2 { grid-template-columns: minmax(0, 1fr); }
+    .sp-root table { display: block; overflow-x: auto; white-space: nowrap; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sp-root *, .sp-root *::before, .sp-root *::after { transition: none !important; animation: none !important; }
+  }
+`;
+
 function Spinner() {
   return <div className="sp-spinner"><div className="sp-spinner-ring" /></div>;
 }
@@ -897,29 +1099,59 @@ function OverviewTab() {
 // ANALYTICS TAB
 // ══════════════════════════════════════════════════════════════════════════════
 function AnalyticsTab() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get('/admin/analytics')
+      .then(({ data }) => setData(data))
+      .catch((e: any) => setError(e?.response?.data?.error || 'Could not load analytics'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner />;
+  if (!data) return <Card><EmptyState label={error || 'No analytics data'} /></Card>;
+
+  const daily: { day: string; count: number }[] = data.daily || [];
+  const max = Math.max(1, ...daily.map(d => d.count));
+  const rec = data.records || {};
+  const kpis = [
+    { label: 'Registrations (30 days)', val: data.registrations30d ?? 0, sub: 'New accounts', bar: 'var(--c-purple)' },
+    { label: 'Active users (7 days)', val: data.activeUsers7d ?? 0, sub: 'Logged in this week', bar: 'var(--c-green)' },
+    { label: 'Failed logins (7 days)', val: data.failedLogins7d ?? 0, sub: 'Wrong password attempts', bar: 'var(--c-red)' },
+    { label: 'Records created', val: rec.total ?? 0, sub: `${rec.milk ?? 0} milk · ${rec.health ?? 0} health · ${rec.breeding ?? 0} breeding · ${rec.financial ?? 0} financial`, bar: 'var(--c-amber)' },
+  ];
+
   return (
     <>
-      <div className="sp-grid-3">
-        {[
-          { label: 'Registrations (30d)', val: '—', sub: 'Fetching…', bar: 'var(--c-purple)' },
-          { label: 'Avg logins / day', val: '—', sub: 'Last 7 days', bar: 'var(--c-green)' },
-          { label: 'Records created', val: '—', sub: 'All time', bar: '#BA7517' },
-        ].map(k => (
+      <div className="sp-metrics">
+        {kpis.map(k => (
           <div className="sp-metric" key={k.label}>
             <div className="sp-metric-label">{k.label}</div>
-            <div className="sp-metric-val" style={{ fontSize: 22 }}>{k.val}</div>
+            <div className="sp-metric-val">{k.val}</div>
             <div className="sp-metric-sub">{k.sub}</div>
             <div className="sp-metric-bar" style={{ background: k.bar }} />
           </div>
         ))}
       </div>
       <Card>
-        <CardHead title="Farm registrations over time" sub="Connect your analytics API to populate this chart" />
-        <EmptyState label="No analytics data available — wire up /admin/analytics to enable charts" />
+        <CardHead title="Registrations per day" sub="Last 30 days" />
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 160, padding: '16px 18px 0' }}>
+          {daily.map(d => (
+            <div key={d.day} title={`${d.day}: ${d.count}`}
+              style={{ flex: 1, minWidth: 3, height: `${Math.max(d.count ? 4 : 2, (d.count / max) * 100)}%`,
+                background: d.count ? 'var(--c-purple)' : 'var(--c-border-med)', borderRadius: '3px 3px 0 0' }} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 18px 16px', fontSize: 12, color: 'var(--c-text-3)' }}>
+          <span>{daily[0]?.day}</span><span>Peak: {max > 1 || daily.some(d => d.count) ? max : 0} a day</span><span>{daily[daily.length - 1]?.day}</span>
+        </div>
       </Card>
     </>
   );
 }
+
 
 // ══════════════════════════════════════════════════════════════════════════════
 // FARMS TAB
@@ -1430,6 +1662,22 @@ function AnnouncementsTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 // FEATURE FLAGS TAB
 // ══════════════════════════════════════════════════════════════════════════════
+function FlagTextInput({ value, onCommit }: { value: string; onCommit: (v: string) => void }) {
+  const [v, setV] = useState(value);
+  useEffect(() => { setV(value); }, [value]);
+  const commit = () => { if (v !== value) onCommit(v); };
+  return (
+    <input
+      className="sp-input"
+      value={v}
+      onChange={e => setV(e.target.value)}
+      onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+      style={{ width: 120, textAlign: 'right' }}
+    />
+  );
+}
+
 function FeaturesTab() {
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1484,12 +1732,7 @@ function FeaturesTab() {
                     <span className="sp-toggle-thumb" />
                   </label>
                 ) : (
-                  <input
-                    className="sp-input"
-                    value={f.value}
-                    onChange={e => update(f.flagKey, e.target.value)}
-                    style={{ width: 120, textAlign: 'right' }}
-                  />
+                  <FlagTextInput value={f.value ?? ''} onCommit={v => update(f.flagKey, v)} />
                 )}
               </div>
             ))}
@@ -1890,7 +2133,7 @@ function MarketplaceTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 // NAV CONFIG
 // ══════════════════════════════════════════════════════════════════════════════
-type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications';
+type TabId = 'overview' | 'analytics' | 'farms' | 'users' | 'issues' | 'announcements' | 'email_blast' | 'features' | 'audit' | 'notifications' | 'marketplace' | 'vet_verifications' | 'server' | 'image_intelligence';
 
 const NAV: { section: string; items: { id: TabId; label: string; icon: React.ReactNode }[] }[] = [
   {
@@ -1918,6 +2161,12 @@ const NAV: { section: string; items: { id: TabId; label: string; icon: React.Rea
     ],
   },
   {
+    section: 'Intelligence',
+    items: [
+      { id: 'image_intelligence', label: 'Image Intelligence', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg> },
+    ],
+  },
+  {
     section: 'Veterinary',
     items: [
       { id: 'vet_verifications', label: 'Vet Approvals', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 12l2 2 4-4" /><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.55 1.24" /><path d="M22 4L12 14.01l-3-3" /></svg> },
@@ -1928,6 +2177,7 @@ const NAV: { section: string; items: { id: TabId; label: string; icon: React.Rea
     items: [
       { id: 'audit', label: 'Audit Log', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" /></svg> },
       { id: 'notifications', label: 'Notifications', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 01-3.46 0" /></svg> },
+      { id: 'server', label: 'Server Performance', icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg> },
     ],
   },
 ];
@@ -1945,15 +2195,276 @@ const TAB_META: Record<TabId, { title: string; sub: string }> = {
   notifications: { title: 'Notifications', sub: 'Recent alerts and system events' },
   marketplace: { title: 'Marketplace', sub: 'Listings, offers, and marketplace activity across the platform' },
   vet_verifications: { title: 'Vet Approvals', sub: 'Review and approve veterinary professional registrations' },
+  server: { title: 'Server Performance', sub: 'Live system health, resource usage, and process monitoring' },
+  image_intelligence: { title: 'Image Intelligence', sub: 'Review image evidence, duplicates, and technical signals' },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SUPER ADMIN SHELL
 // ══════════════════════════════════════════════════════════════════════════════
+function ServerHealthTab() {
+  const [health, setHealth] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    try {
+      const res = await api.get('/system/health');
+      setHealth(res.data);
+      setError('');
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Failed to load server health');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    const t = setInterval(() => { if (!document.hidden) load(); }, 20000);
+    return () => clearInterval(t);
+  }, []);
+
+  const pctColor = (p: number) => (p >= 90 ? 'var(--c-red)' : p >= 70 ? 'var(--c-amber)' : 'var(--c-green)');
+  const fmtUp = (sec: number) => {
+    const d = Math.floor(sec / 86400), hr = Math.floor((sec % 86400) / 3600), mi = Math.floor((sec % 3600) / 60);
+    return d > 0 ? `${d}d ${hr}h ${mi}m` : hr > 0 ? `${hr}h ${mi}m` : `${mi}m`;
+  };
+  const meter = (label: string, pct: number, detail: string) => (
+    <div className="sp-metric">
+      <div className="sp-metric-label">{label}</div>
+      <div className="sp-metric-val" style={{ color: pctColor(pct) }}>{pct}%</div>
+      <div style={{ height: 6, borderRadius: 4, background: 'var(--c-border-med)', overflow: 'hidden', marginTop: 10 }}>
+        <div style={{ width: `${Math.min(100, Math.max(0, pct))}%`, height: '100%', background: pctColor(pct), transition: 'width .4s ease' }} />
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginTop: 8 }}>{detail}</div>
+    </div>
+  );
+
+  if (loading) return <Spinner />;
+  if (!health) {
+    return (
+      <Card>
+        <EmptyState label={error || 'No server data'} />
+        <div style={{ padding: '0 18px 18px' }}><Btn onClick={() => { setLoading(true); load(); }}>Retry</Btn></div>
+      </Card>
+    );
+  }
+  const hd = health;
+
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--c-text-2)', marginBottom: 12, flexWrap: 'wrap' }}>
+        <div className="sp-live-dot" />
+        <span>Updated {hd.timestamp ? timeAgo(hd.timestamp) : '-'} · refreshes every 20s · server up {fmtUp(hd.systemUptimeSec || 0)}</span>
+        {error && <span style={{ color: 'var(--c-red)' }}>· {error}</span>}
+      </div>
+
+      <div className="sp-metrics">
+        {meter('CPU load', hd.cpu?.loadPct ?? 0, `${hd.cpu?.cores ?? '?'} cores · load avg ${Number(hd.cpu?.loadAvg1 ?? 0).toFixed(2)}`)}
+        {meter('Memory', hd.memory?.usedPct ?? 0, `${hd.memory?.usedMB ?? 0} MB / ${hd.memory?.totalMB ?? 0} MB`)}
+        {meter('Disk', hd.disk?.usedPct ?? 0, `${hd.disk?.used || '-'} / ${hd.disk?.total || '-'} · ${hd.disk?.avail || '-'} free`)}
+        {meter('Swap', hd.swap?.usedPct ?? 0, `${hd.swap?.usedMB ?? 0} MB / ${hd.swap?.totalMB ?? 0} MB`)}
+      </div>
+
+      <div className="sp-grid-2" style={{ marginTop: 16 }}>
+        <Card>
+          <CardHead title="Database" sub="MySQL" action={<Badge label={hd.database?.status || 'unknown'} color={hd.database?.status === 'online' ? 'green' : 'red'} />} />
+          <div style={{ padding: '14px 18px', fontSize: 13, color: 'var(--c-text)' }}>Active connections: <strong>{hd.database?.activeConnections ?? 0}</strong></div>
+        </Card>
+        <Card>
+          <CardHead title="Environment" sub={hd.environment || 'production'} />
+          <div style={{ padding: '14px 18px', fontSize: 13, color: 'var(--c-text)' }}>Server time: <strong>{hd.timestamp ? new Date(hd.timestamp).toLocaleString() : '-'}</strong></div>
+        </Card>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <Card>
+          <CardHead title="Processes" sub="Managed by PM2" />
+          {(hd.pm2 || []).length === 0 ? <EmptyState label="No PM2 process data" /> : (
+            <div className="sp-table-wrap">
+              <table className="sp-table">
+                <thead><tr><th>Name</th><th>Status</th><th>PID</th><th>CPU</th><th>Memory</th><th>Uptime</th><th>Restarts</th></tr></thead>
+                <tbody>
+                  {hd.pm2.map((p: any, i: number) => (
+                    <tr key={i}>
+                      <td className="td-bold">{p.name}</td>
+                      <td><Badge label={p.status || 'unknown'} color={p.status === 'online' ? 'green' : 'red'} /></td>
+                      <td className="td-mono td-muted">{p.pid || '-'}</td>
+                      <td>{p.cpu ?? 0}%</td>
+                      <td>{Math.round((p.memory || 0) / 1048576)} MB</td>
+                      <td>{fmtUp(Math.floor((p.uptime || 0) / 1000))}</td>
+                      <td>{p.restarts ?? 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </div>
+    </>
+  );
+}
+
+function VetApprovalsTab() {
+  const [vets, setVets] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'pending' | 'verified' | 'rejected' | 'all'>('pending');
+  const [search, setSearch] = useState('');
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+  const [reason, setReason] = useState('');
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null);
+
+  useEffect(() => {
+    api.get('/vet-admin/all')
+      .then(({ data }) => setVets(data.vets || []))
+      .catch(() => setToast({ msg: 'Could not load vets', type: 'error' }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const decide = async (id: number, status: string, why?: string) => {
+    setBusyId(id);
+    try {
+      await api.patch(`/vet-admin/${id}/verify`, { status, ...(why ? { reason: why } : {}) });
+      setVets(list => list.map(v => (v.id === id ? { ...v, verificationStatus: status } : v)));
+      setRejectingId(null);
+      setReason('');
+      setToast({ msg: status === 'verified' ? 'Vet approved - they have been emailed' : status === 'rejected' ? 'Vet rejected - they have been emailed' : 'Moved back to pending' });
+    } catch (e: any) {
+      setToast({ msg: e?.response?.data?.error || 'Update failed', type: 'error' });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const count = (st: string) => vets.filter(v => v.verificationStatus === st).length;
+  const counts: Record<string, number> = { pending: count('pending'), verified: count('verified'), rejected: count('rejected'), all: vets.length };
+  const q = search.trim().toLowerCase();
+  const shown = vets
+    .filter(v => filter === 'all' || v.verificationStatus === filter)
+    .filter(v => !q || [v.user?.name, v.user?.email, v.user?.county, v.licenseNumber, v.clinicName, v.specialization]
+      .some((x: any) => String(x || '').toLowerCase().includes(q)))
+    .sort((a, b) => (filter === 'pending' ? 1 : -1) * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+
+  const FILTERS = [['pending', 'Pending'], ['verified', 'Verified'], ['rejected', 'Rejected'], ['all', 'All']] as const;
+
+  if (loading) return <Spinner />;
+
+  return (
+    <>
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+
+      <div className="sp-metrics" style={{ marginBottom: 16 }}>
+        <div className="sp-metric"><div className="sp-metric-label">Waiting for review</div><div className="sp-metric-val" style={{ color: 'var(--c-amber)' }}>{counts.pending}</div></div>
+        <div className="sp-metric"><div className="sp-metric-label">Verified</div><div className="sp-metric-val" style={{ color: 'var(--c-green)' }}>{counts.verified}</div></div>
+        <div className="sp-metric"><div className="sp-metric-label">Rejected</div><div className="sp-metric-val" style={{ color: 'var(--c-red)' }}>{counts.rejected}</div></div>
+        <div className="sp-metric"><div className="sp-metric-label">Total vets</div><div className="sp-metric-val">{counts.all}</div></div>
+      </div>
+
+      <Card>
+        <div className="sp-search-row">
+          <div className="sp-search-wrap">
+            <svg className="sp-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input className="sp-input sp-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, license, clinic..." />
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {FILTERS.map(([k, label]) => (
+              <Btn key={k} size="sm" variant={filter === k ? 'primary' : ''} onClick={() => setFilter(k)}>{label} ({counts[k]})</Btn>
+            ))}
+          </div>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--c-text-3)' }}>{shown.length} shown</span>
+        </div>
+
+        {shown.length === 0 ? (
+          <EmptyState label={search ? 'No vets match your search' : filter === 'pending' ? 'No vets waiting for review - you are all caught up' : 'Nothing here yet'} />
+        ) : shown.map(v => {
+          const st = String(v.verificationStatus);
+          const busy = busyId === v.id;
+          const open = openId === v.id;
+          const meta: [string, string][] = [
+            ['License', v.licenseNumber || '-'],
+            ['Specialization', v.specialization || '-'],
+            ['Clinic', v.clinicName || '-'],
+            ['Experience', v.yearsExperience != null ? `${v.yearsExperience} yrs` : '-'],
+            ['Consult fee', v.consultationFee != null ? `KSh ${Number(v.consultationFee).toLocaleString()}` : '-'],
+            ['Applied', v.createdAt ? timeAgo(v.createdAt) : '-'],
+          ];
+          return (
+            <div key={v.id} style={{ padding: '16px 18px', borderTop: '1px solid var(--c-border)' }}>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <Avatar name={v.user?.name || 'Vet'} role="vet" />
+                <div style={{ flex: 1, minWidth: 220 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--c-text)' }}>{v.user?.name}</span>
+                    <Badge label={st} color={st === 'verified' ? 'green' : st === 'rejected' ? 'red' : 'amber'} />
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--c-text-2)', marginTop: 2 }}>
+                    {[v.user?.email, v.user?.phone, v.user?.county].filter(Boolean).join(' · ')}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px 16px', marginTop: 10 }}>
+                    {meta.map(([k, val]) => (
+                      <div key={k}>
+                        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--c-text-3)' }}>{k}</div>
+                        <div style={{ fontSize: 13, color: 'var(--c-text)' }}>{val}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {open && (
+                    <div style={{ marginTop: 10, fontSize: 13, color: 'var(--c-text-2)', lineHeight: 1.5 }}>
+                      {v.bio ? v.bio : 'No bio provided.'}
+                      <div style={{ marginTop: 6, fontSize: 12, color: 'var(--c-text-3)' }}>
+                        Rating: {v.rating ? Number(v.rating).toFixed(1) : '-'} ({v.totalReviews ?? 0} reviews)
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {st !== 'verified' && (
+                    <Btn variant="success" size="sm" disabled={busy}
+                      onClick={() => { if (window.confirm(`Approve ${v.user?.name}? They will be notified by email.`)) decide(v.id, 'verified'); }}>
+                      Approve
+                    </Btn>
+                  )}
+                  {st !== 'rejected' && (
+                    <Btn variant="danger" size="sm" disabled={busy} onClick={() => { setRejectingId(v.id); setReason(''); }}>Reject</Btn>
+                  )}
+                  {st !== 'pending' && (
+                    <Btn size="sm" disabled={busy} onClick={() => decide(v.id, 'pending')}>Move to pending</Btn>
+                  )}
+                  <Btn size="sm" onClick={() => setOpenId(open ? null : v.id)}>{open ? 'Hide details' : 'Details'}</Btn>
+                </div>
+              </div>
+
+              {rejectingId === v.id && (
+                <div style={{ marginTop: 12 }}>
+                  <label className="sp-label">Reason for rejection (included in the email to the vet)</label>
+                  <textarea className="sp-input sp-input-full" rows={3} value={reason} onChange={e => setReason(e.target.value)}
+                    placeholder="e.g. License number could not be confirmed with the Kenya Veterinary Board" />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    <Btn variant="danger" size="sm" disabled={busy || reason.trim().length < 5} onClick={() => decide(v.id, 'rejected', reason.trim())}>Confirm rejection</Btn>
+                    <Btn size="sm" onClick={() => { setRejectingId(null); setReason(''); }}>Cancel</Btn>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </Card>
+    </>
+  );
+}
+
+
 function SuperAdminPanel() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<TabId>('overview');
+  const [tab, setTab] = useState<TabId>(() => (new URLSearchParams(window.location.search).get('tab') === 'image_intelligence' ? 'image_intelligence' : 'overview'));
+  const [navOpen, setNavOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [issueCount, setIssueCount] = useState(0);
   const [notifCount, setNotifCount] = useState(0);
@@ -1981,16 +2492,18 @@ function SuperAdminPanel() {
 
   function handleLogout() { logout(); navigate('/login'); }
 
-  const meta = TAB_META[tab];
+  const meta = TAB_META[tab] || { title: 'Vet Approvals', sub: 'Review and verify veterinarian applications' };
 
   return (
     <div className="sp-root">
       <style>{CSS}</style>
+      <style>{THEME}</style>
 
       {/* Sidebar */}
-      <aside className="sp-sidebar">
+      <div className={`sp-overlay${navOpen ? ' show' : ''}`} onClick={() => setNavOpen(false)} />
+      <aside className={`sp-sidebar${navOpen ? ' open' : ''}`}>
         <div className="sp-logo">
-          <div className="sp-logo-mark"></div>
+          <img className="sp-logo-img" src="/agripulse-logo.png" alt="AgriPulse" />
           <div>
             <div className="sp-logo-name">AgriPulse</div>
             <div className="sp-logo-tag">System</div>
@@ -2012,7 +2525,7 @@ function SuperAdminPanel() {
                 <button
                   key={item.id}
                   className={`sp-nav-item${tab === item.id ? ' active' : ''}`}
-                  onClick={() => item.id === 'vet_verifications' ? navigate('/system/vet-verifications') : setTab(item.id)}
+                  onClick={() => { setTab(item.id); setNavOpen(false); }}
                 >
                   {item.icon}
                   {item.label}
@@ -2047,11 +2560,13 @@ function SuperAdminPanel() {
       {/* Main */}
       <main className="sp-main">
         <div className="sp-topbar">
+          <button className="sp-menu-btn" onClick={() => setNavOpen(true)} aria-label="Open menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg></button>
           <div className="sp-topbar-left">
             <div className="sp-topbar-title">{meta.title}</div>
             <div className="sp-topbar-sub">{meta.sub}</div>
           </div>
           <div className="sp-topbar-right">
+          <ThemeToggle />
             <div className="sp-live">
               <div className="sp-live-dot" />
               Live
@@ -2085,6 +2600,9 @@ function SuperAdminPanel() {
           {tab === 'features' && <FeaturesTab />}
           {tab === 'audit' && <AuditTab />}
           {tab === 'marketplace' && <MarketplaceTab />}
+          {tab === 'server' && <ServerHealthTab />}
+          {tab === 'vet_verifications' && <VetApprovalsTab />}
+          {tab === 'image_intelligence' && <ImageIntelligenceTab />}
           {tab === 'notifications' && <NotificationsTab onMarkRead={() => setNotifCount(0)} />}
         </div>
       </main>
@@ -2107,6 +2625,7 @@ function WorkerPanel() {
       fontFamily: "'Inter', system-ui, sans-serif",
     }}>
       <style>{CSS}</style>
+      <style>{THEME}</style>
       <div style={{ textAlign: 'center', padding: 40 }}>
         <div style={{
           width: 56, height: 56, borderRadius: 16, background: '#EEEDFE',

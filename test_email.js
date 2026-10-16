@@ -32,7 +32,7 @@ const html = `<!DOCTYPE html>
     <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin:16px 0;">
       <tr style="background:#f9fafb;"><td style="padding:12px 16px;font-size:13px;color:#6b7280;width:160px;border-bottom:1px solid #f3f4f6;">Account Status</td><td style="padding:12px 16px;font-size:13px;font-weight:600;border-bottom:1px solid #f3f4f6;"><span style="background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">ACTIVE</span></td></tr>
       <tr><td style="padding:12px 16px;font-size:13px;color:#6b7280;border-bottom:1px solid #f3f4f6;">Platform</td><td style="padding:12px 16px;font-size:13px;color:#111827;font-weight:600;border-bottom:1px solid #f3f4f6;">AgriPulse Smart Farm Management</td></tr>
-      <tr style="background:#f9fafb;"><td style="padding:12px 16px;font-size:13px;color:#6b7280;">Support</td><td style="padding:12px 16px;font-size:13px;color:#111827;font-weight:600;">notifications@agripulse.me</td></tr>
+      <tr style="background:#f9fafb;"><td style="padding:12px 16px;font-size:13px;color:#6b7280;">Support</td><td style="padding:12px 16px;font-size:13px;color:#111827;font-weight:600;">agripulse254@gmail.com</td></tr>
     </table>
   </td></tr>
   <tr><td style="background:#1a2e1a;border-radius:0 0 12px 12px;padding:28px 40px;">

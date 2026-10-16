@@ -23,6 +23,7 @@ import vetProfileRoutes from './routes/vet.profile.routes';
 import vetReviewsRoutes from './routes/vet.reviews.routes';
 import vetAdminRoutes from './routes/vet.admin.routes';
 import vetMessagesRoutes from './routes/vet.messages.routes';
+import systemHealthRoutes from './routes/system.health.routes';
 import vetSlotsRoutes from './routes/vet.slots.routes';
 import vetAppointmentsRoutes from './routes/vet.appointments.routes';
 import vetEmergencyRoutes from './routes/vet.emergency.routes';
@@ -68,14 +69,25 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Global rate limit: 100 requests per 15 min per IP
-app.use(rateLimit({
+// Admin panel limit: higher, because the dashboard and image gallery fire many requests.
+// These routes still require login + superadmin; this only governs request volume.
+const adminLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
-  skip: (req) => req.path === '/api/health',
+});
+app.use('/api/admin', adminLimiter);
+
+// Global rate limit: 300 requests per 15 min per IP (admin routes use adminLimiter above)
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+  skip: (req) => req.path === '/api/health' || req.path.startsWith('/api/admin'),
 }));
 
 // Strict auth rate limit: 10 attempts per 15 min
@@ -111,7 +123,7 @@ app.use((req, res, next) => {
 });
 
 // ── Routes ───────────────────────────────────────────────────
-app.use('/api/auth',      authLimiter, authRoutes);
+app.use('/api/auth',      authRoutes);  // authLimiter applied per-route inside auth.routes.ts only — NOT globally, since /auth/me is called on every page load and must stay unthrottled
 app.use('/api/animals',   animalsRoutes);
 app.use('/api/milk',      milkRouter);
 app.use('/api/animal-health', healthRouter);
@@ -120,12 +132,18 @@ app.use('/api/financial', financialRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/workers',   workersRouter);
 app.use('/api/ai',        aiRouter);
+import imageIntelligenceRoutes from './routes/imageIntelligence.routes';
+import './services/imageAnalysis.scheduler';
+import reidRoutes from './routes/reid.routes';
+app.use('/api/admin/images', imageIntelligenceRoutes);
+app.use('/api/admin/reid', reidRoutes);
 app.use('/api/admin',         adminRouter);
 app.use('/api/reports',       reportsRouter);
 app.use('/api/profile',       profileRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/issues',        issuesRouter);
 app.use('/api/passport',      passportRoutes);
+app.use('/uploads', require('express').static(require('path').resolve(__dirname, '../uploads')));
 app.use('/uploads', require('express').static('/var/www/agripulse-staging/uploads'));
 app.use('/api/market',           marketRoutes);
 app.use('/api/market-offers',    marketOffersRoutes);
@@ -141,6 +159,7 @@ app.use('/api/vet', vetProfileRoutes);
 app.use('/api/vet-reviews', vetReviewsRoutes);
 app.use('/api/vet-admin', vetAdminRoutes);
 app.use('/api/vet-messages', vetMessagesRoutes);
+app.use('/api/system', systemHealthRoutes);
 app.use('/api/vet/slots', vetSlotsRoutes);
 app.use('/api/vet/appointments', vetAppointmentsRoutes);
 app.use('/api/vet/emergency', vetEmergencyRoutes);
@@ -179,7 +198,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, '127.0.0.1', async () => {
   console.log(`\n AgriPulse API v2.0`);
   console.log(`   Server : http://localhost:${PORT}`);
   console.log(`   Client : ${process.env.CLIENT_URL}`);

@@ -60,7 +60,13 @@ export function Layout() {
   useEffect(() => {
     const load = () =>
       api.get('/notifications')
-        .then(r => { setNotifications(r.data.notifications); setUnread(r.data.unread); })
+        .then(r => {
+          let dismissed: string[] = [];
+          try { dismissed = JSON.parse(localStorage.getItem('agripulse_dismissed_notifications') || '[]'); } catch {}
+          const fresh = (r.data.notifications || []).filter((n: any) => !dismissed.includes(n.id));
+          setNotifications(fresh);
+          setUnread(fresh.length);
+        })
         .catch(() => {});
     load();
     const iv = setInterval(load, 60000);
@@ -309,7 +315,8 @@ export function Layout() {
                       );
                     })}
                   </div>
-                  <div style={{ padding: '8px 16px', borderTop: `1px solid ${c.border}` }}>
+                  <div style={{ padding: '8px 16px', borderTop: `1px solid ${c.border}`, display: 'flex', justifyContent: 'space-between' }}>
+                    <button onClick={async () => { try { localStorage.setItem('agripulse_dismissed_notifications', JSON.stringify(notifications.map((n: any) => n.id))); setNotifications([]); setUnread(0); } catch {} }} style={{ fontSize: 12, color: c.text3, background: 'none', border: 'none', cursor: 'pointer' }}>Clear all</button>
                     <button onClick={() => setNotifOpen(false)} style={{ fontSize: 12, color: c.text3, background: 'none', border: 'none', cursor: 'pointer' }}>Close</button>
                   </div>
                 </div>

@@ -7,8 +7,10 @@ import { useAuth } from '../context/AuthContext';
 const BLUE = '#0ea5e9';
 const BLUE_DARK = '#0284c7';
 const SLIDES = [
-  { img: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=900&q=80', caption: 'Buy verified livestock with full health history.' },
-  { img: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?w=900&q=80', caption: 'Connect directly with trusted farmers across Kenya.' },
+  { img: '/farm-hero.jpg', caption: 'Buy verified livestock with complete digital health records.' },
+  { img: '/cow1.jpg', caption: 'Connect with trusted dairy farmers across Kenya.' },
+  { img: '/cow2.jpg', caption: 'Verified livestock backed by Digital Animal Passports.' },
+  { img: '/cow3.jpg', caption: 'Secure livestock trading powered by AgriPulse.' },
 ];
 const COUNTIES = ['Nairobi','Kiambu','Nakuru','Meru','Nyandarua','Laikipia','Trans Nzoia','Uasin Gishu','Kericho','Bomet','Nyeri','Muranga','Kirinyaga','Embu','Machakos','Kajiado','Other'];
 
@@ -41,7 +43,7 @@ export default function MarketplaceAuth() {
     e.preventDefault(); setError(''); setLoading(true);
     try {
       await login(loginForm.email, loginForm.password);
-      navigate('/marketplace');
+      window.location.href = '/marketplace';
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Invalid email or password.');
     } finally { setLoading(false); }
@@ -66,7 +68,7 @@ export default function MarketplaceAuth() {
   const Logo = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <div style={{ background: '#fff', borderRadius: 9, padding: '4px 6px', display: 'flex', alignItems: 'center' }}>
-        <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 28, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 28, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
       </div>
       <span style={{ fontWeight: 800, fontSize: 18, color: '#fff', letterSpacing: '-0.5px' }}>AgriPulse</span>
       <span style={{ fontSize: 12, color: 'rgba(255,255,255,.4)' }}>| Marketplace</span>
@@ -77,6 +79,15 @@ export default function MarketplaceAuth() {
     <>
       <h2 style={{ fontSize: isMobile ? 20 : 26, fontWeight: 800, color: '#fff', marginBottom: 4 }}>Welcome back!</h2>
       <p style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', marginBottom: 24 }}>Login to buy and sell livestock on the marketplace.</p>
+      <button type="button" onClick={() => window.location.href = '/api/auth/google?portal=marketplace'} style={{ width: '100%', height: 48, background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,.12)', borderRadius: 11, fontWeight: 600, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#fff', marginBottom: 16 }}>
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0 20px' }}>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.12)' }} />
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,.35)' }}>OR</span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,.12)' }} />
+      </div>
       {error && <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,.15)', border: '1px solid rgba(239,68,68,.3)', borderRadius: 10, color: '#fca5a5', fontSize: 13, marginBottom: 16 }}>{error}</div>}
       <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div><label style={lbl}>Email</label><input style={inp} type="email" value={loginForm.email} onChange={e => setLoginForm(p => ({ ...p, email: e.target.value }))} required /></div>
@@ -159,7 +170,7 @@ export default function MarketplaceAuth() {
         <div style={{ width: '100%', maxWidth: 420, background: 'rgba(5,15,35,.6)', backdropFilter: 'blur(32px)', WebkitBackdropFilter: 'blur(32px)', border: '1px solid rgba(255,255,255,.13)', borderRadius: 22, padding: '32px 24px', boxShadow: '0 32px 80px rgba(0,0,0,.6)' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
             <div style={{ background: '#fff', borderRadius: 10, padding: '5px 8px' }}>
-              <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 30, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 30, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             </div>
           </div>
           {TabBar()}
@@ -194,7 +205,7 @@ export default function MarketplaceAuth() {
           <div style={{ flex: 1, background: 'rgba(5,15,35,.65)', backdropFilter: 'blur(32px)', borderLeft: '1px solid rgba(255,255,255,.1)', padding: '44px 44px', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>
               <div style={{ background: '#fff', borderRadius: 10, padding: '5px 8px' }}>
-                <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                <img src="/agripulse-logo.png" alt="AgriPulse" style={{ height: 32, width: 'auto', display: 'block', background: '#fff', padding: 4, borderRadius: 8 }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               </div>
             </div>
             {TabBar()}

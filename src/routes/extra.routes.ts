@@ -1,3 +1,6 @@
+import * as nodeFs from 'fs';
+import * as nodeOs from 'os';
+import * as nodePath from 'path';
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 // ── Groq API helper (same service as PHP version) ────────────
@@ -5,6 +8,25 @@ const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_KEY   = process.env.GROQ_API_KEY;
 if (!GROQ_KEY) { console.error('[AI Advisor] GROQ_API_KEY is not set — AI Advisor will fail until it is configured in .env'); }
 const GROQ_MODEL = process.env.GROQ_MODEL   || 'llama-3.3-70b-versatile';
+
+function cleanAdvisorMarkdown(text: string): string {
+  return text
+    // Remove Markdown heading markers.
+    .replace(/^\s{0,3}#{1,6}\s*/gm, '')
+    // Remove bold and italic formatting while preserving the text.
+    .replace(/\*\*(.*?)\*\*/gs, '$1')
+    .replace(/__(.*?)__/gs, '$1')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1$2')
+    // Replace Markdown bullet symbols with readable bullet points.
+    .replace(/^\s*\*\s+/gm, '• ')
+    .replace(/^\s*[-+]\s+/gm, '• ')
+    // Remove Markdown horizontal rules.
+    .replace(/^\s*[-*_]{3,}\s*$/gm, '')
+    // Clean up excess whitespace.
+    .replace(/[ \t]+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 async function callGroq(systemPrompt: string, messages: { role: string; content: string }[]): Promise<string> {
   const res = await fetch(GROQ_URL, {
@@ -22,10 +44,10 @@ async function callGroq(systemPrompt: string, messages: { role: string; content:
     throw new Error(`Groq API error ${res.status}: ${err}`);
   }
   const data = await res.json() as { choices: { message: { content: string } }[] };
-  return data.choices?.[0]?.message?.content ?? '';
+  return cleanAdvisorMarkdown(data.choices?.[0]?.message?.content ?? '');
 }
 import prisma from '../lib/prisma';
-import { mailIssueSubmitted, mailAdminIssueSubmitted, mailIssueResolved, mailAnnouncement } from '../services/mail.service';
+import { mailIssueSubmitted, mailAdminIssueSubmitted, mailIssueResolved, mailAnnouncement, mailWorkerInvitation } from '../services/mail.service';
 import { requireAuth, requireAdmin, requireSuperAdmin, getFarmId } from '../middleware/auth.middleware';
 
 // ── DASHBOARD ────────────────────────────────────────────────
@@ -168,6 +190,12 @@ workersRouter.post('/', requireAdmin, async (req: Request, res: Response): Promi
     },
     select: { id: true, name: true, email: true, role: true, isActive: true, createdAt: true },
   });
+  const farmAdmin = await prisma.user.findUnique({ where: { id: farmId ?? req.user!.id }, select: { name: true, farmName: true } });
+  mailWorkerInvitation(
+    worker.email, worker.name,
+    farmAdmin?.farmName || farmAdmin?.name || 'your farm',
+    req.user!.name, worker.email
+  ).catch(() => {});
   res.status(201).json({ worker });
 });
 
@@ -814,6 +842,337 @@ adminRouter.put('/marketplace/listings/:id/status', async (req: Request, res: Re
 // ══════════════════════════════════════════════════════════════
 // REPORTS ROUTER
 // ══════════════════════════════════════════════════════════════
+// ─── Email blast: direct email to all active users (no announcement record) ───
+interface BlastEntry { subject: string; body: string; report: BroadcastReport }
+const emailBlasts = new Map<string, BlastEntry>();
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+adminRouter.post('/email-blast', async (req: Request, res: Response): Promise<void> => {
+  const parsed = z.object({ subject: z.string().min(1).max(200), body: z.string().min(1) }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ message: 'Subject and body are required.' }); return; }
+  const { subject, body } = parsed.data;
+
+  const users = await prisma.user.findMany({ where: { isActive: true }, select: { name: true, email: true } });
+  const valid = users.filter(u => u.email && EMAIL_RE.test(u.email.trim()));
+  const blastId = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const report: BroadcastReport = { total: valid.length, sent: 0, failed: 0, failures: [], done: false };
+  emailBlasts.set(blastId, { subject, body, report });
+
+  res.status(201).json({ blastId, emailsQueued: valid.length, skippedInvalid: users.length - valid.length });
+
+  setImmediate(async () => {
+    for (const u of valid) {
+      try {
+        await mailAnnouncement(u.email.trim(), u.name, subject, body, 'info');
+        report.sent++;
+        await new Promise(r => setTimeout(r, 150));
+      } catch (e: unknown) {
+        report.failed++;
+        report.failures.push({ email: u.email, name: u.name, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    report.done = true;
+    console.log(`[EmailBlast] ${blastId}: ${report.sent} sent, ${report.failed} failed`);
+  });
+});
+
+adminRouter.get('/email-blast/:id/report', (req: Request, res: Response): void => {
+  const entry = emailBlasts.get(String(req.params.id));
+  if (!entry) { res.status(404).json({ message: 'No delivery report for this blast (server may have restarted).' }); return; }
+  res.json({ report: entry.report });
+});
+
+adminRouter.post('/email-blast/:id/retry', async (req: Request, res: Response): Promise<void> => {
+  const entry = emailBlasts.get(String(req.params.id));
+  if (!entry || entry.report.failures.length === 0) { res.status(404).json({ message: 'No failed deliveries to retry.' }); return; }
+  const { report, subject, body } = entry;
+  const toRetry = [...report.failures];
+  report.failures = [];
+  report.done = false;
+  res.json({ retrying: toRetry.length });
+
+  setImmediate(async () => {
+    for (const u of toRetry) {
+      try {
+        await mailAnnouncement(u.email, u.name, subject, body, 'info');
+        report.sent++;
+        report.failed--;
+        await new Promise(r => setTimeout(r, 150));
+      } catch (e: unknown) {
+        report.failures.push({ email: u.email, name: u.name, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    report.done = true;
+  });
+});
+
+// ─── Admin: farms, audit log, notifications ───
+adminRouter.get('/farms', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const owners = await prisma.user.findMany({
+      where: { farmId: null },
+      select: {
+        id: true, name: true, farmName: true, county: true, role: true, isActive: true, createdAt: true,
+        _count: { select: { workers: true, animals: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const farms = owners
+      .filter(o => !['superadmin', 'buyer', 'vet', 'worker'].includes(String(o.role)))
+      .map(o => ({
+        id: o.id,
+        name: o.farmName || `${o.name}'s farm`,
+        location: o.county || undefined,
+        adminName: o.name,
+        workerCount: o._count.workers,
+        animalCount: o._count.animals,
+        status: o.isActive ? 'active' : 'inactive',
+        createdAt: o.createdAt.toISOString(),
+      }));
+    res.json({ farms });
+  } catch (err) {
+    console.error('[Admin] farms failed:', err);
+    res.status(500).json({ message: 'Could not load farms.' });
+  }
+});
+
+adminRouter.get('/audit', async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const logs = await prisma.activityLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+      include: { user: { select: { name: true } } },
+    });
+    const entries = logs.map(l => ({
+      id: l.id,
+      action: l.action,
+      actorName: l.user?.name || 'System',
+      target: l.entity ? `${l.entity}${l.entityId ? ` #${l.entityId}` : ''}` : '—',
+      ip: l.ipAddress || undefined,
+      createdAt: l.createdAt.toISOString(),
+    }));
+    res.json({ entries });
+  } catch (err) {
+    console.error('[Admin] audit failed:', err);
+    res.status(500).json({ message: 'Could not load audit log.' });
+  }
+});
+
+// Notifications are derived from live data; only the read state is stored (small JSON file).
+const NOTIF_STATE_FILE = nodePath.join(nodeOs.homedir(), '.agripulse_admin_notifications.json');
+interface NotifState { readAllAt: Record<string, string>; readIds: Record<string, number[]> }
+
+function loadNotifState(): NotifState {
+  try {
+    const raw = JSON.parse(nodeFs.readFileSync(NOTIF_STATE_FILE, 'utf8'));
+    return { readAllAt: raw.readAllAt || {}, readIds: raw.readIds || {} };
+  } catch { return { readAllAt: {}, readIds: {} }; }
+}
+function saveNotifState(st: NotifState): void {
+  try { nodeFs.writeFileSync(NOTIF_STATE_FILE, JSON.stringify(st)); }
+  catch (e) { console.error('[Admin] notification state save failed:', e); }
+}
+
+async function buildAdminNotifications(adminId: number) {
+  const since7 = new Date(Date.now() - 7 * 86400000);
+  const since14 = new Date(Date.now() - 14 * 86400000);
+  const [pending, issues, anns, fresh] = await Promise.all([
+    prisma.user.findMany({
+      where: { registrationStatus: 'pending' },
+      select: { id: true, name: true, email: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }, take: 30,
+    }),
+    prisma.systemIssue.findMany({
+      where: { status: { in: ['open', 'in_review'] } },
+      select: { id: true, title: true, priority: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }, take: 30,
+    }),
+    prisma.systemAnnouncement.findMany({
+      where: { createdAt: { gte: since14 } },
+      select: { id: true, title: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }, take: 10,
+    }),
+    prisma.user.findMany({
+      where: { farmId: null, farmName: { not: null }, createdAt: { gte: since7 } },
+      select: { id: true, name: true, farmName: true, createdAt: true },
+      orderBy: { createdAt: 'desc' }, take: 20,
+    }),
+  ]);
+
+  const st = loadNotifState();
+  const key = String(adminId);
+  const readAll = st.readAllAt[key] ? new Date(st.readAllAt[key]).getTime() : 0;
+  const readIds = new Set(st.readIds[key] || []);
+  const mk = (id: number, title: string, body: string, type: string, createdAt: Date) => ({
+    id, title, body, type,
+    read: createdAt.getTime() <= readAll || readIds.has(id),
+    createdAt: createdAt.toISOString(),
+  });
+
+  const items = [
+    ...pending.map(u => mk(u.id * 10 + 1, 'Registration awaiting approval', `${u.name} (${u.email}) is waiting for approval.`, 'pending_approval', u.createdAt)),
+    ...issues.map(i => mk(i.id * 10 + 2, 'Open system issue', `${i.title} (${String(i.priority)} priority)`, 'issue', i.createdAt)),
+    ...anns.map(a => mk(a.id * 10 + 3, 'Announcement published', a.title, 'announcement', a.createdAt)),
+    ...fresh.map(f => mk(f.id * 10 + 4, 'New farm registered', `${f.farmName || f.name} joined AgriPulse.`, 'new_farm', f.createdAt)),
+  ];
+  items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return items.slice(0, 50);
+}
+
+adminRouter.get('/notifications', async (req: Request, res: Response): Promise<void> => {
+  try {
+    res.json({ notifications: await buildAdminNotifications(req.user!.id) });
+  } catch (err) {
+    console.error('[Admin] notifications failed:', err);
+    res.status(500).json({ message: 'Could not load notifications.' });
+  }
+});
+
+adminRouter.put('/notifications/read-all', (req: Request, res: Response): void => {
+  const st = loadNotifState();
+  const key = String(req.user!.id);
+  st.readAllAt[key] = new Date().toISOString();
+  st.readIds[key] = [];
+  saveNotifState(st);
+  res.json({ ok: true });
+});
+
+adminRouter.put('/notifications/:id/read', (req: Request, res: Response): void => {
+  const id = parseInt(String(req.params.id));
+  if (Number.isNaN(id)) { res.status(400).json({ message: 'Invalid notification id.' }); return; }
+  const st = loadNotifState();
+  const key = String(req.user!.id);
+  const ids = new Set(st.readIds[key] || []);
+  ids.add(id);
+  st.readIds[key] = Array.from(ids).slice(-500);
+  saveNotifState(st);
+  res.json({ ok: true });
+});
+
+// ─── Super admin: farms, audit log, notifications, analytics ───
+adminRouter.get('/farms', async (_req: Request, res: Response) => {
+  try {
+    const farms: any[] = await prisma.user.findMany({
+      where: { role: 'admin' },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, name: true, farmName: true, county: true, isActive: true, registrationStatus: true, createdAt: true },
+    });
+    const ids = farms.map(f => f.id);
+    const workerRows: any[] = await (prisma.user as any).groupBy({ by: ['farmId'], where: { role: 'worker', farmId: { in: ids } }, _count: { _all: true } });
+    const animalRows: any[] = await (prisma.animal as any).groupBy({ by: ['farmId'], where: { farmId: { in: ids } }, _count: { _all: true } });
+    const wMap = new Map<number, number>(workerRows.map(r => [r.farmId, r._count._all]));
+    const aMap = new Map<number, number>(animalRows.map(r => [r.farmId, r._count._all]));
+    res.json({
+      farms: farms.map(f => ({
+        id: f.id,
+        name: f.farmName || f.name,
+        location: f.county || undefined,
+        adminName: f.name,
+        workerCount: wMap.get(f.id) ?? 0,
+        animalCount: aMap.get(f.id) ?? 0,
+        status: f.registrationStatus === 'pending' ? 'pending' : f.isActive ? 'active' : 'inactive',
+        createdAt: f.createdAt.toISOString(),
+      })),
+    });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/audit', async (_req: Request, res: Response) => {
+  try {
+    const rows: any[] = await prisma.activityLog.findMany({
+      where: { OR: [{ entity: null }, { entity: { not: 'admin_notif' } }] },
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+      include: { user: { select: { name: true } } },
+    });
+    res.json({
+      entries: rows.map(r => ({
+        id: r.id,
+        action: r.action,
+        actorName: r.user?.name || 'System',
+        target: r.entity ? `${r.entity}${r.entityId != null ? ' #' + r.entityId : ''}` : '-',
+        ip: r.ipAddress || undefined,
+        createdAt: r.createdAt.toISOString(),
+      })),
+    });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// Notifications are derived from live data (pending sign-ups, open issues, pending vets).
+// Read state is kept in activity_log under entity 'admin_notif'.
+const NOTIF_ISSUE = 1000000, NOTIF_VET = 2000000;
+adminRouter.get('/notifications', async (req: Request, res: Response) => {
+  try {
+    const adminId = req.user!.id;
+    const [pendingUsers, issues, vets, reads]: any[] = await Promise.all([
+      prisma.user.findMany({ where: { registrationStatus: 'pending' }, orderBy: { createdAt: 'desc' }, take: 30, select: { id: true, name: true, email: true, role: true, createdAt: true } }),
+      prisma.systemIssue.findMany({ where: { status: 'open' }, orderBy: { createdAt: 'desc' }, take: 30 }),
+      prisma.vetProfile.findMany({ where: { verificationStatus: 'pending' }, orderBy: { createdAt: 'desc' }, take: 30, include: { user: { select: { name: true } } } }),
+      prisma.activityLog.findMany({ where: { userId: adminId, entity: 'admin_notif' }, select: { action: true, entityId: true, createdAt: true } }),
+    ]);
+    const readIds = new Set<number>(reads.filter((r: any) => r.action === 'notif_read').map((r: any) => r.entityId));
+    const allTimes = reads.filter((r: any) => r.action === 'notif_read_all').map((r: any) => r.createdAt.getTime());
+    const lastAll = allTimes.length ? Math.max(...allTimes) : 0;
+    const mk = (id: number, title: string, body: string, type: string, createdAt: Date) => ({
+      id, title, body, type, createdAt: createdAt.toISOString(),
+      read: readIds.has(id) || createdAt.getTime() <= lastAll,
+    });
+    const list = [
+      ...pendingUsers.map((u: any) => mk(u.id, 'Sign-up waiting for approval', `${u.name} (${u.email}) registered as ${u.role}.`, 'pending_approval', u.createdAt)),
+      ...issues.map((i: any) => mk(NOTIF_ISSUE + i.id, 'Open issue', String(i.title || 'A user reported an issue.'), 'issue', i.createdAt)),
+      ...vets.map((v: any) => mk(NOTIF_VET + v.id, 'Vet waiting for verification', `${v.user?.name || 'A veterinarian'} applied for verification.`, 'pending_approval', v.createdAt)),
+    ].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 60);
+    res.json({ notifications: list });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.put('/notifications/read-all', async (req: Request, res: Response) => {
+  try {
+    await prisma.activityLog.create({ data: { userId: req.user!.id, action: 'notif_read_all', entity: 'admin_notif' } });
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.put('/notifications/:id/read', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(String(req.params.id));
+    if (!Number.isFinite(id)) { res.status(400).json({ error: 'Bad id' }); return; }
+    await prisma.activityLog.create({ data: { userId: req.user!.id, action: 'notif_read', entity: 'admin_notif', entityId: id } });
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+adminRouter.get('/analytics', async (_req: Request, res: Response) => {
+  try {
+    const DAY = 86400000;
+    const now = Date.now();
+    const d30 = new Date(now - 30 * DAY), d7 = new Date(now - 7 * DAY);
+    const [regs, active7, failed7, milk, health, breeding, fin]: any[] = await Promise.all([
+      prisma.user.findMany({ where: { createdAt: { gte: d30 } }, select: { createdAt: true } }),
+      prisma.user.count({ where: { lastLogin: { gte: d7 } } }),
+      prisma.loginAttempt.count({ where: { attemptedAt: { gte: d7 } } }),
+      prisma.milkProduction.count(),
+      prisma.healthRecord.count(),
+      prisma.breeding.count(),
+      prisma.financialTransaction.count(),
+    ]);
+    const perDay = new Map<string, number>();
+    regs.forEach((r: any) => { const k = r.createdAt.toISOString().slice(0, 10); perDay.set(k, (perDay.get(k) || 0) + 1); });
+    const daily: { day: string; count: number }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const k = new Date(now - i * DAY).toISOString().slice(0, 10);
+      daily.push({ day: k, count: perDay.get(k) || 0 });
+    }
+    res.json({
+      registrations30d: regs.length,
+      activeUsers7d: active7,
+      failedLogins7d: failed7,
+      records: { total: milk + health + breeding + fin, milk, health, breeding, financial: fin },
+      daily,
+    });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
 export const reportsRouter = Router();
 reportsRouter.use(requireAuth);
 

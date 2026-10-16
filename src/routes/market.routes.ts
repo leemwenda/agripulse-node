@@ -171,6 +171,7 @@ router.post('/', requireAuth, requireFarmer, async (req: Request, res: Response)
 });
 
 // ─── FARMER: Upload listing photo ─────────────────────────────────────────────
+import { queueImageAnalysis } from '../services/imageAnalysis.service';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -198,6 +199,7 @@ router.post('/:id/photos', requireAuth, upload.single('photo'), async (req: Requ
     const photo = await prisma.marketPhoto.create({
       data: { listingId, url: `/uploads/market/${req.file.filename}`, isPrimary, order: parseInt(req.body.order || '0') },
     });
+    queueImageAnalysis('market_photo', photo.id);
     res.status(201).json({ photo });
   } catch (err: any) { res.status(400).json({ error: err.message }); }
 });

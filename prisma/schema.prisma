@@ -1032,3 +1032,110 @@ model LabTest {
   @@index([vetId])
   @@map("lab_tests")
 }
+
+// ─── Image Intelligence (additive) ───────────────────────────────────────────
+enum ImageSource {
+  animal_photo
+  market_photo
+}
+
+enum ImageReviewStatus {
+  pending
+  needs_review
+  reviewed
+  confirmed_issue
+  inconclusive
+}
+
+enum ImageMatchType {
+  exact
+  perceptual
+}
+
+model ImageRecord {
+  id             Int               @id @default(autoincrement())
+  source         ImageSource
+  sourceId       Int               @map("source_id")
+  url            String            @db.VarChar(500)
+  animalId       Int?              @map("animal_id")
+  listingId      Int?              @map("listing_id")
+  farmId         Int?              @map("farm_id")
+  uploaderId     Int?              @map("uploader_id")
+  sha256         String?           @db.Char(64)
+  phash          String?           @db.Char(16)
+  mimeType       String?           @map("mime_type") @db.VarChar(50)
+  width          Int?
+  height         Int?
+  fileSize       Int?              @map("file_size")
+  metadataStatus String            @default("unknown") @map("metadata_status") @db.VarChar(20)
+  cameraMake     String?           @map("camera_make") @db.VarChar(100)
+  cameraModel    String?           @map("camera_model") @db.VarChar(100)
+  software       String?           @db.VarChar(150)
+  capturedAt     DateTime?         @map("captured_at")
+  hasGps         Boolean           @default(false) @map("has_gps")
+  c2paPresent    Boolean           @default(false) @map("c2pa_present")
+  exifJson       Json?             @map("exif_json")
+  quality        Json?
+  aiStatus       String            @default("not_run") @map("ai_status") @db.VarChar(20)
+  aiDetector     String?           @map("ai_detector") @db.VarChar(100)
+  aiDetectorVer  String?           @map("ai_detector_version") @db.VarChar(50)
+  aiScore        Float?            @map("ai_score")
+  aiThreshold    Float?            @map("ai_threshold")
+  flags          String            @default("") @db.VarChar(500)
+  analysisStatus String            @default("pending") @map("analysis_status") @db.VarChar(20)
+  analysisVer    String?           @map("analysis_version") @db.VarChar(40)
+  analysisError  String?           @map("analysis_error") @db.VarChar(255)
+  analyzedAt     DateTime?         @map("analyzed_at")
+  reviewStatus   ImageReviewStatus @default(pending) @map("review_status")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  matches   ImageMatch[]  @relation("MatchSource")
+  matchedBy ImageMatch[]  @relation("MatchTarget")
+  reviews   ImageReview[]
+
+  @@unique([source, sourceId])
+  @@index([sha256])
+  @@index([phash])
+  @@index([reviewStatus])
+  @@index([metadataStatus])
+  @@index([animalId])
+  @@index([listingId])
+  @@index([farmId])
+  @@map("image_records")
+}
+
+model ImageMatch {
+  id             Int            @id @default(autoincrement())
+  imageId        Int            @map("image_id")
+  matchedImageId Int            @map("matched_image_id")
+  matchType      ImageMatchType @map("match_type")
+  method         String         @db.VarChar(40)
+  score          Float
+  evidence       Json?
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  image        ImageRecord @relation("MatchSource", fields: [imageId], references: [id], onDelete: Cascade)
+  matchedImage ImageRecord @relation("MatchTarget", fields: [matchedImageId], references: [id], onDelete: Cascade)
+
+  @@unique([imageId, matchedImageId, matchType])
+  @@index([matchedImageId])
+  @@map("image_matches")
+}
+
+model ImageReview {
+  id         Int               @id @default(autoincrement())
+  imageId    Int               @map("image_id")
+  reviewerId Int               @map("reviewer_id")
+  decision   String            @db.VarChar(20)
+  fromStatus ImageReviewStatus @map("from_status")
+  toStatus   ImageReviewStatus @map("to_status")
+  reason     String            @db.Text
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  image ImageRecord @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@index([imageId])
+  @@index([reviewerId])
+  @@map("image_reviews")
+}

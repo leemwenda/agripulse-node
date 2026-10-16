@@ -19,3 +19,10 @@ uploads/
 *.bak3
 marketplace_dump.txt
 audit_*.txt
+*.backup-*
+*.bak*
+*.before-*
+*.pre-*
+.env.*
+!.env.example
+__pycache__/

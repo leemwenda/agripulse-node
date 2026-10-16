@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { ArrowLeft, Baby, Heart, Milk, Info, Shield, Download, Printer, Share2, ArrowRightLeft } from 'lucide-react';
+import { ArrowLeft, Baby, Heart, Milk, Info, Shield, Download, Printer, Share2, ArrowRightLeft, Camera } from 'lucide-react';
 import { QRCode as QRCodeCanvas } from 'react-qrcode-logo';
 import jsPDF from 'jspdf';
 import api from '../lib/api';
@@ -48,14 +48,14 @@ function PassportTab({ animal, dark }: { animal: any; dark: boolean }) {
     const ctx = c.getContext('2d'); if (!ctx) return;
     setIsSigning(true);
     const rect = c.getBoundingClientRect();
-    ctx.beginPath(); ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.beginPath(); ctx.moveTo((e.clientX - rect.left) * (c.width / rect.width), (e.clientY - rect.top) * (c.height / rect.height));
   };
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isSigning) return;
     const c = sigCanvasRef.current; if (!c) return;
     const ctx = c.getContext('2d'); if (!ctx) return;
     const rect = c.getBoundingClientRect();
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctx.lineTo((e.clientX - rect.left) * (c.width / rect.width), (e.clientY - rect.top) * (c.height / rect.height));
     ctx.strokeStyle = '#15803d'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke();
   };
   const endDraw = () => {
@@ -349,13 +349,23 @@ function PassportTab({ animal, dark }: { animal: any; dark: boolean }) {
       {/* Identity header */}
       <div className={`rounded-xl p-5 border ${card}`}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${label}`}>AgriPulse Digital Passport</div>
-            <div className={`text-xl font-black ${text}`}>{animal.name}</div>
-            <div className={`text-xs mt-1 ${subtle}`}>{animal.breed} · {animal.gender} · {animal.tagNumber}</div>
-            <div className="mt-3 inline-flex items-center gap-2 bg-green-700 rounded-lg px-3 py-1.5">
-              <span className="text-xs text-green-300 font-medium">ID</span>
-              <span className="font-mono font-bold text-white text-sm">{animal.agripulseId}</span>
+          <div className="flex items-start gap-4">
+            {animal.photos?.[0]?.url && (
+              <img
+                src={animal.photos[0].url}
+                alt={animal.name}
+                className="rounded-lg flex-shrink-0"
+                style={{ width: 72, height: 72, objectFit: 'cover' }}
+              />
+            )}
+            <div>
+              <div className={`text-xs font-bold uppercase tracking-widest mb-1 ${label}`}>AgriPulse Digital Passport</div>
+              <div className={`text-xl font-black ${text}`}>{animal.name}</div>
+              <div className={`text-xs mt-1 ${subtle}`}>{animal.breed} · {animal.gender} · {animal.tagNumber}</div>
+              <div className="mt-3 inline-flex items-center gap-2 bg-green-700 rounded-lg px-3 py-1.5">
+                <span className="text-xs text-green-300 font-medium">ID</span>
+                <span className="font-mono font-bold text-white text-sm">{animal.agripulseId}</span>
+              </div>
             </div>
           </div>
 
@@ -493,7 +503,7 @@ function PassportTab({ animal, dark }: { animal: any; dark: boolean }) {
                       width={340} height={80}
                       onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
                       className="rounded border w-full cursor-crosshair"
-                      style={{ background: dark ? '#0d1117' : '#fff', borderColor: dark ? 'rgba(255,255,255,0.1)' : '#e2e8f0' }}
+                      style={{ touchAction: 'none', background: dark ? '#0d1117' : '#fff', borderColor: dark ? 'rgba(255,255,255,0.1)' : '#e2e8f0' }}
                     />
                     <button onClick={clearSig} className={`text-xs mt-1 ${label} hover:underline`}>Clear</button>
                   </div>
@@ -558,11 +568,35 @@ export function AnimalDetailPage() {
   const [animal, setAnimal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('overview');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    api.get(`/animals/${id}`)
+  const fetchAnimal = () => {
+    return api.get(`/animals/${id}`)
       .then(r => setAnimal(r.data.animal))
       .finally(() => setLoading(false));
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('photo', file);
+      fd.append('isPrimary', 'true');
+      await api.post(`/animals/${id}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await fetchAnimal();
+    } catch (err: any) {
+      alert(err?.response?.data?.error || 'Failed to upload photo. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  };
+
+  useEffect(() => {
+    fetchAnimal();
   }, [id]);
 
   if (loading) return <PageLoader />;
@@ -588,7 +622,7 @@ export function AnimalDetailPage() {
         <button onClick={() => navigate('/animals')}
           className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors flex-shrink-0
             ${isDark ? 'text-white/50 hover:bg-white/6 hover:text-white/80' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}>
-          <ArrowLeft className="w-4 h-4" /> Back
+          <ArrowLeft className="w-4 h-4" /><span className="hidden sm:inline">Back</span>
         </button>
 
         <div className="flex-1 min-w-0">
@@ -607,7 +641,7 @@ export function AnimalDetailPage() {
         </div>
 
         {stage && (
-          <div className="flex-shrink-0 rounded-xl px-3 py-2 text-right"
+          <div className="w-full sm:w-auto flex-shrink-0 rounded-xl px-3 py-2 text-left sm:text-right"
             style={{ background: stage.glowColor, border: `1px solid ${stage.color}40`, boxShadow: stage.urgent ? `0 0 16px ${stage.glowColor}` : undefined }}>
             <div className="text-xs font-bold" style={{ color: stage.color }}>{stage.stage}</div>
             <div className="text-xs opacity-75" style={{ color: stage.color }}>{stage.detail}</div>
@@ -617,19 +651,16 @@ export function AnimalDetailPage() {
 
       <div className="max-w-3xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
 
-        {/* Tab bar */}
-        <div className={`flex gap-1 rounded-xl p-1 mb-5 overflow-x-auto ${isDark ? 'bg-white/4' : 'bg-gray-100'}`}>
+        {/* Tab bar: scrolls sideways on phones instead of squeezing */}
+        <div className={`flex gap-1 rounded-xl p-1 mb-5 overflow-x-auto ${isDark ? 'bg-white/4' : 'bg-gray-100'}`}
+          style={{ scrollbarWidth: 'none' }}>
           {TABS.map(({ id: tid, label, icon: Icon }) => (
             <button key={tid} onClick={() => setTab(tid)}
-              className={`flex-1 min-w-16 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg
-                text-xs sm:text-sm font-semibold transition-all whitespace-nowrap
+              className={`flex-shrink-0 sm:flex-1 flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg
+                text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap
                 ${tab === tid
-                  ? isDark
-                    ? 'bg-indigo-500/20 text-indigo-400 shadow-sm'
-                    : 'bg-white text-indigo-600 shadow-sm'
-                  : isDark
-                    ? 'text-white/40 hover:text-white/60'
-                    : 'text-gray-500 hover:text-gray-700'
+                  ? isDark ? 'bg-indigo-500/20 text-indigo-400' : 'bg-white text-indigo-600 shadow-sm'
+                  : isDark ? 'text-white/40 hover:text-white/60' : 'text-gray-500 hover:text-gray-700'
                 }`}>
               <Icon className="w-3.5 h-3.5 flex-shrink-0" />{label}
             </button>
@@ -639,6 +670,15 @@ export function AnimalDetailPage() {
         {/* OVERVIEW */}
         {tab === 'overview' && (
           <div className="flex flex-col gap-4">
+            {animal.photos?.[0]?.url && (
+              <div className={`rounded-xl overflow-hidden border ${isDark ? 'border-white/8' : 'border-gray-200'}`} style={{ maxHeight: 260 }}>
+                <img
+                  src={animal.photos[0].url}
+                  alt={animal.name}
+                  style={{ width: '100%', height: 260, objectFit: 'cover', display: 'block' }}
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <InfoCard label="Breed"         value={animal.breed}                                              dark={isDark} />
               <InfoCard label="Gender"        value={animal.gender}                                             dark={isDark} />
@@ -653,7 +693,7 @@ export function AnimalDetailPage() {
                 <p className={`text-sm leading-relaxed ${isDark ? 'text-white/60' : 'text-gray-600'}`}>{animal.notes}</p>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {isDark ? (
                 <>
                   <StatBadge value={animal.breeding?.length || 0}      label="Breeding"  color="#6366f1" />
@@ -801,20 +841,20 @@ export function AnimalDetailPage() {
                   </div>
                 </div>
                 <div className={`rounded-xl border overflow-auto ${isDark ? 'border-white/8 bg-white/3' : 'border-gray-200 bg-white'}`}>
-                  <table className="w-full text-sm" style={{ minWidth: 340 }}>
+                  <table className="w-full text-sm" style={{ minWidth: 300 }}>
                     <thead>
                       <tr className={`border-b ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
-                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white/30 bg-white/2' : 'text-gray-400 bg-gray-50'}`}>Date</th>
-                        <th className={`px-4 py-3 text-right text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white/30 bg-white/2' : 'text-gray-400 bg-gray-50'}`}>Quantity</th>
-                        <th className={`px-4 py-3 text-left text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white/30 bg-white/2' : 'text-gray-400 bg-gray-50'}`}>Notes</th>
+                        <th className={`px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white/30 bg-white/2' : 'text-gray-400 bg-gray-50'}`}>Date</th>
+                        <th className={`px-3 sm:px-4 py-2.5 sm:py-3 text-right text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white/30 bg-white/2' : 'text-gray-400 bg-gray-50'}`}>Quantity</th>
+                        <th className={`px-3 sm:px-4 py-2.5 sm:py-3 text-left text-xs font-bold uppercase tracking-wider ${isDark ? 'text-white/30 bg-white/2' : 'text-gray-400 bg-gray-50'}`}>Notes</th>
                       </tr>
                     </thead>
                     <tbody>
                       {animal.milkProduction.map((m: any) => (
                         <tr key={m.id} className={`border-b last:border-0 ${isDark ? 'border-white/4 hover:bg-white/2' : 'border-gray-50 hover:bg-gray-50'}`}>
-                          <td className={`px-4 py-3 ${isDark ? 'text-white/75' : 'text-gray-700'}`}>{format(new Date(m.productionDate), 'dd MMM yyyy')}</td>
-                          <td className="px-4 py-3 text-right font-bold text-blue-500">{Number(m.quantityLiters).toFixed(1)} L</td>
-                          <td className={`px-4 py-3 text-xs ${isDark ? 'text-white/30' : 'text-gray-400'}`}>{m.notes || '—'}</td>
+                          <td className={`px-3 sm:px-4 py-2.5 sm:py-3 whitespace-nowrap ${isDark ? 'text-white/75' : 'text-gray-700'}`}>{format(new Date(m.productionDate), 'dd MMM yyyy')}</td>
+                          <td className="px-3 sm:px-4 py-2.5 sm:py-3 text-right font-bold text-blue-500 whitespace-nowrap">{Number(m.quantityLiters).toFixed(1)} L</td>
+                          <td className={`px-3 sm:px-4 py-2.5 sm:py-3 text-xs ${isDark ? 'text-white/30' : 'text-gray-400'}`}>{m.notes || '—'}</td>
                         </tr>
                       ))}
                     </tbody>

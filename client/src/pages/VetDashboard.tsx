@@ -927,7 +927,7 @@ export default function VetDashboard(){
       {/* Logo */}
       <div style={{height:60,padding:'0 14px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid rgba(255,255,255,.08)',flexShrink:0}}>
         <div style={{width:34,height:34,borderRadius:9,background:'linear-gradient(135deg,#0d9488,#0f766e)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-          <img src="/agripulse-logo.png" alt="" style={{height:22,objectFit:'contain'}} onError={e=>{(e.target as HTMLImageElement).style.display='none'}}/>
+          <img src="/agripulse-logo.png" alt="" style={{height:22,objectFit:'contain', background: '#fff', padding: 4, borderRadius: 8}} onError={e=>{(e.target as HTMLImageElement).style.display='none'}}/>
         </div>
         {(!collapsed||isMobile)&&<div style={{overflow:'hidden'}}><div style={{fontWeight:900,fontSize:14,color:'#fff',whiteSpace:'nowrap'}}>AgriPulse</div><div style={{fontSize:9,color:'rgba(255,255,255,.4)',textTransform:'uppercase',letterSpacing:'.8px'}}>Veterinary</div></div>}
         {!isMobile&&<button onClick={()=>setCollapsed(p=>!p)} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,.4)',padding:4,flexShrink:0,display:'flex'}}>{collapsed?<Menu size={15}/>:<X size={15}/>}</button>}

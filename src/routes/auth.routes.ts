@@ -11,6 +11,7 @@ import {
   mailWelcome,
   mailAdminNewRegistration,
   mailPasswordReset,
+  mailPasswordChanged,
   mailEmailVerification,
   mailResendVerification,
 } from '../services/mail.service';
@@ -98,7 +99,13 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    res.status(409).json({ error: 'An account with this email already exists.' });
+    const code = existing.registrationStatus === 'pending' ? 'EMAIL_PENDING' : 'EMAIL_EXISTS';
+    const error = code === 'EMAIL_PENDING'
+      ? 'This email is registered but not verified yet. Request a new verification email.'
+      : assignedRole === 'buyer'
+        ? 'You already have an AgriPulse account with this email. Sign in with it to use the marketplace.'
+        : 'An account with this email already exists. Please sign in.';
+    res.status(409).json({ error, code });
     return;
   }
 
@@ -167,7 +174,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
     return;
   }
 
-  const user = await prisma.user.findFirst({ where: { email, isActive: true } });
+  const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     await recordAttempt(email, ip);
@@ -178,6 +185,10 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
 
   if (user.registrationStatus === 'pending') {
     res.status(403).json({ error: 'Please verify your email address before logging in. Check your inbox for the verification link.' });
+    return;
+  }
+  if (!user.isActive) {
+    res.status(403).json({ error: 'This account has been deactivated.' });
     return;
   }
 
@@ -252,14 +263,26 @@ router.post('/reset-password', authLimiter, async (req: Request, res: Response):
   const hashed = await bcrypt.hash(password, 12);
   await prisma.user.update({ where: { id: record.userId }, data: { password: hashed } });
   await prisma.rememberToken.delete({ where: { id: record.id } });
-
+  await mailPasswordChanged(record.user.email, record.user.name).catch(() => {});
   res.json({ message: 'Password updated. You can now log in.' });
 });
 
 // ── GET /api/auth/google ─────────────────────────────
 // Redirect to Google (simple redirect — no passport needed for basic flow)
+const PORTALS = ['farm', 'marketplace', 'vet'] as const;
+type Portal = typeof PORTALS[number];
+const toPortal = (v: unknown): Portal =>
+  (PORTALS as readonly string[]).includes(String(v)) ? (v as Portal) : 'farm';
+
 router.get('/google', (req: Request, res: Response) => {
-  const portal = (req.query.portal as string) || 'farm';
+  const portal = toPortal(req.query.portal);
+  const nonce = crypto.randomBytes(16).toString('hex');
+  res.cookie('oauth_state', nonce, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 10 * 60 * 1000,
+  });
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID || '',
     redirect_uri: process.env.GOOGLE_CALLBACK_URL || '',
@@ -267,22 +290,29 @@ router.get('/google', (req: Request, res: Response) => {
     scope: 'openid email profile',
     access_type: 'offline',
     prompt: 'select_account',
+    state: `${portal}.${nonce}`,
   });
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
 
-// ── GET /api/auth/google/callback ───────────────────
 router.get('/google/callback', async (req: Request, res: Response): Promise<void> => {
-  const { code } = req.query;
+  const { code, state } = req.query;
   const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+  const [portalRaw, nonce] = String(state || '').split('.');
+  const portal = toPortal(portalRaw);
+  const loginPath = portal === 'marketplace' ? '/marketplace/login' : '/login';
 
   if (!code) {
-    res.redirect(`${CLIENT_URL}/login?error=google_cancelled`);
+    res.redirect(`${CLIENT_URL}${loginPath}?error=google_cancelled`);
     return;
   }
+  if (!nonce || nonce !== req.cookies?.oauth_state) {
+    res.redirect(`${CLIENT_URL}${loginPath}?error=google_failed`);
+    return;
+  }
+  res.clearCookie('oauth_state');
 
   try {
-    // Exchange code for tokens
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -294,17 +324,15 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
         grant_type: 'authorization_code',
       }),
     });
-
     const tokens = await tokenRes.json() as { access_token?: string; error?: string };
     if (!tokens.access_token) throw new Error('No access token');
 
-    // Get user profile
     const profileRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    const profile = await profileRes.json() as { id: string; email: string; name: string };
+    const profile = await profileRes.json() as { id: string; email: string; name: string; verified_email?: boolean };
+    if (!profile.email || !profile.verified_email) throw new Error('Unverified Google email');
 
-    // Find or create user
     let user = await prisma.user.findFirst({
       where: { OR: [{ googleId: profile.id }, { email: profile.email }] },
     });
@@ -315,7 +343,7 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
           name: profile.name,
           email: profile.email,
           password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12),
-          role: 'admin',
+          role: portal === 'marketplace' ? 'buyer' : 'admin',
           googleId: profile.id,
           isActive: true,
           registrationStatus: 'approved',
@@ -327,23 +355,30 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
       await prisma.user.update({ where: { id: user.id }, data: { googleId: profile.id } });
     }
 
+    // Google has verified this email, so an unverified signup can be activated
+    if (user.registrationStatus === 'pending') {
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { isActive: true, registrationStatus: 'approved' },
+      });
+    }
     if (!user.isActive) {
-      res.redirect(`${CLIENT_URL}/login?error=account_inactive`);
+      res.redirect(`${CLIENT_URL}${loginPath}?error=account_inactive`);
       return;
     }
 
     await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } });
+    res.cookie('token', issueToken(user.id), COOKIE_OPTS);
 
-    const jwtToken = issueToken(user.id);
-    res.cookie('token', jwtToken, COOKIE_OPTS);
-    // Redirect based on role
-    if (user.role === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
-    else if (user.role === 'buyer') res.redirect(`${CLIENT_URL}/marketplace`);
+    if (portal === 'marketplace') res.redirect(`${CLIENT_URL}/marketplace`);
+    else if (portal === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
+    else if (user.role === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
     else if (user.role === 'superadmin') res.redirect(`${CLIENT_URL}/system`);
+    else if (user.role === 'buyer') res.redirect(`${CLIENT_URL}/marketplace`);
     else res.redirect(`${CLIENT_URL}/dashboard`);
   } catch (err) {
     console.error('[Google OAuth]', err);
-    res.redirect(`${CLIENT_URL}/login?error=google_failed`);
+    res.redirect(`${CLIENT_URL}${loginPath}?error=google_failed`);
   }
 });
 
