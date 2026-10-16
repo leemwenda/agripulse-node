@@ -133,6 +133,7 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/workers',   workersRouter);
 app.use('/api/ai',        aiRouter);
 import imageIntelligenceRoutes from './routes/imageIntelligence.routes';
+import './services/imageAnalysis.scheduler';
 import reidRoutes from './routes/reid.routes';
 app.use('/api/admin/images', imageIntelligenceRoutes);
 app.use('/api/admin/reid', reidRoutes);

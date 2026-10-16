@@ -167,3 +167,28 @@ export async function backfillImages(limit = 200) {
   }
   return out;
 }
+
+// ── Automatic sweep: retries pending/failed analyses and analyzes photos that have no record yet.
+// Runs one sweep at a time. Uses the same serialised queue as uploads and backfill.
+let sweepRunning = false;
+export async function sweepImageAnalysis(limit = 25): Promise<Record<string, number | boolean>> {
+  if (sweepRunning) return { skipped: true };
+  sweepRunning = true;
+  try {
+    const stuck = await prisma.imageRecord.findMany({
+      where: { analysisStatus: { in: ['pending', 'failed'] } },
+      select: { source: true, sourceId: true },
+      orderBy: { updatedAt: 'asc' },
+      take: limit,
+    });
+    let retried = 0;
+    for (const r of stuck) {
+      const out: any = await enqueue(() => analyzeImage(r.source as ImageSourceName, r.sourceId));
+      if (out && out.analysisStatus === 'done') retried++;
+    }
+    const missing = await backfillImages(limit);
+    return { retried, checked: stuck.length, analyzed: missing.analyzed, failed: missing.failed, remaining: missing.remaining };
+  } finally {
+    sweepRunning = false;
+  }
+}
