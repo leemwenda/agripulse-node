@@ -9,6 +9,7 @@ import { useDebounced, useImageList, useImageStats } from './hooks';
 import { StatsPanel } from './StatsPanel';
 import { IMAGE_INTELLIGENCE_CSS } from './styles';
 import type { ImageFilters } from './types';
+import { ReidTab } from '../reid/ReidTab';
 
 function backfillMessage(data: unknown): string {
   if (data && typeof data === 'object') {
@@ -80,6 +81,7 @@ export function ImageIntelligenceTab() {
   return (
     <div className="ii-root">
       <style>{IMAGE_INTELLIGENCE_CSS}</style>
+      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 8px' }}>Image fraud and evidence analysis</h2>
 
       <StatsPanel state={stats.state} onRetry={stats.reload} />
 
@@ -139,6 +141,10 @@ export function ImageIntelligenceTab() {
           onChanged={onChanged}
         />
       )}
+
+      <div style={{ marginTop: 32, paddingTop: 24, borderTop: '1px solid rgba(128,128,128,.25)' }}>
+        <ReidTab />
+      </div>
 
       {toast && <div className={`ii-toast${toast.error ? ' error' : ''}`} role="status">{toast.msg}</div>}
     </div>

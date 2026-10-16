@@ -95,6 +95,7 @@ export function MarketplacePage() {
     return () => window.removeEventListener('resize', h);
   }, []);
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState(params.get('search') || '');
   const [category, setCategory] = useState(params.get('category') || '');
   const [location, setLocation] = useState(params.get('location') || '');
@@ -198,7 +199,7 @@ export function MarketplacePage() {
         onClick={() => setCategory(active ? '' : value)}
         style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          width: '100%', padding: '9px 12px', borderRadius: 9, marginBottom: 4,
+          width: isMobile ? 'auto' : '100%', flexShrink: 0, whiteSpace: 'nowrap', padding: isMobile ? '7px 12px' : '9px 12px', borderRadius: isMobile ? 999 : 9, marginBottom: isMobile ? 0 : 4,
           border: 'none', background: active ? GREEN_BG : 'transparent',
           color: active ? GREEN : text2, fontWeight: active ? 700 : 500,
           fontSize: 13, cursor: 'pointer', textAlign: 'left',
@@ -278,7 +279,7 @@ export function MarketplacePage() {
       {/* Top navbar */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20, background: cardBg,
-        borderBottom: `1px solid ${border}`, padding: isMobile ? '10px 14px' : '12px 24px',
+        borderBottom: `1px solid ${border}`, padding: isMobile ? '10px 44px 10px 14px' : '12px 24px',
         display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} onClick={() => navigate('/marketplace')}>
@@ -296,7 +297,7 @@ export function MarketplacePage() {
             style={{ width: '100%', padding: '9px 12px 9px 36px', borderRadius: 20, border: `1px solid ${border}`, background: bg, color: text, fontSize: 13, outline: 'none', boxSizing: 'border-box' }} />
         </form>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 16, marginLeft: 'auto' }}>
           <button onClick={() => navigate('/marketplace')} style={{ display: isMobile ? 'none' : 'inline-block', background: 'none', border: 'none', color: text2, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Browse</button>
           <button onClick={() => user ? navigate('/marketplace/favorites') : navigate('/marketplace/login')} style={{ display: isMobile ? 'none' : 'inline-block', background: 'none', border: 'none', color: text2, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Saved</button>
           <button onClick={() => user ? navigate('/marketplace/messages') : navigate('/marketplace/login')} style={{ background: 'none', border: 'none', color: text2, cursor: 'pointer', position: 'relative' }} title="Messages">
@@ -324,7 +325,7 @@ export function MarketplacePage() {
                 <div style={{ width: 30, height: 30, borderRadius: '50%', background: GREEN_BG, color: GREEN, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 13 }}>
                   {user.name?.[0]?.toUpperCase() || '?'}
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 600, color: text }}>{user.name?.split(' ')[0]}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: text, display: isMobile ? 'none' : 'inline' }}>{user.name?.split(' ')[0]}</span>
               </button>
               {showMenu && (
                 <div style={{ position: 'absolute', right: 0, top: 40, background: cardBg, border: `1px solid ${border}`, borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.15)', minWidth: 180, zIndex: 30 }}>
@@ -344,7 +345,7 @@ export function MarketplacePage() {
       </div>
 
       {/* Body: sidebar / content / right rail */}
-      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 20, padding: isMobile ? '14px 12px' : '20px 24px', maxWidth: 1500, margin: '0 auto', alignItems: isMobile ? 'stretch' : 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 20, padding: isMobile ? '14px 44px 14px 12px' : '20px 24px', maxWidth: 1500, margin: '0 auto', alignItems: isMobile ? 'stretch' : 'flex-start' }}>
         {/* Left sidebar */}
         <div style={{ width: isMobile ? '100%' : 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
@@ -364,15 +365,18 @@ export function MarketplacePage() {
 
           <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
             <div style={{ fontWeight: 700, fontSize: 13, color: text, marginBottom: 10 }}>Categories</div>
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'row' : 'column', gap: isMobile ? 6 : 0, overflowX: isMobile ? 'auto' : 'visible', scrollbarWidth: 'none', paddingBottom: isMobile ? 2 : 0 }}>
             <CategoryButton value="" label="All Animals" />
             {CATEGORIES.map(c => <CategoryButton key={c} value={c} label={CATEGORY_LABELS[c]} />)}
+            </div>
           </div>
 
           <div style={{ background: cardBg, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontWeight: 700, fontSize: 13, color: text }}>Filters</div>
-              <button onClick={() => { setLocation(''); setBreed(''); setMinPrice(''); setMaxPrice(''); load(1); }} style={{ background: 'none', border: 'none', color: text3, fontSize: 11, cursor: 'pointer' }}>Reset</button>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>{isMobile && <button onClick={() => setFiltersOpen(o => !o)} style={{ background: 'none', border: 'none', color: GREEN, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{filtersOpen ? 'Hide' : 'Show'}</button>}<button onClick={() => { setLocation(''); setBreed(''); setMinPrice(''); setMaxPrice(''); load(1); }} style={{ background: 'none', border: 'none', color: text3, fontSize: 11, cursor: 'pointer' }}>Reset</button></div>
             </div>
+            <div style={{ display: isMobile && !filtersOpen ? 'none' : 'block' }}>
             <div style={{ marginBottom: 10 }}>
               <label style={lbl}>Location</label>
               <input style={inp} placeholder="e.g. Nakuru" value={location} onChange={e => setLocation(e.target.value)} />
@@ -388,6 +392,7 @@ export function MarketplacePage() {
                 <input style={inp} placeholder="Max" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} />
               </div>
             </div>
+            </div>
             <button onClick={() => load(1)} style={{ width: '100%', padding: '9px 0', borderRadius: 8, border: 'none', background: GREEN, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Apply Filters</button>
           </div>
         </div>
@@ -400,7 +405,7 @@ export function MarketplacePage() {
             border: `1px solid ${border}`, borderRadius: 20, padding: isMobile ? 18 : 28, flexWrap: 'wrap',
           }}>
             <div style={{ flex: '1 1 320px' }}>
-              <h1 style={{ fontSize: 30, fontWeight: 800, color: text, marginBottom: 6 }}>Buy and Sell Quality Livestock</h1>
+              <h1 style={{ fontSize: isMobile ? 24 : 30, fontWeight: 800, color: text, marginBottom: 6 }}>Buy and Sell Quality Livestock</h1>
               <p style={{ fontSize: 14, color: text2, marginBottom: 18 }}>Verified farmers. Healthy animals. Secure transfers.</p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {[

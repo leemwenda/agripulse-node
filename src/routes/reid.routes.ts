@@ -2,6 +2,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { requireAuth, requireSuperAdmin } from '../middleware/auth.middleware';
+import prisma from '../lib/prisma';
 
 const router = Router();
 router.use(requireAuth, requireSuperAdmin);
@@ -36,6 +37,18 @@ async function forward(method: 'GET' | 'POST', path: string, res: Response, form
   }
 }
 
+router.get('/animals', async (_req: Request, res: Response) => {
+  try {
+    const animals = await prisma.animal.findMany({
+      select: { id: true, name: true, tagNumber: true, agripulseId: true, status: true, farm: { select: { name: true } } },
+      orderBy: { tagNumber: 'asc' },
+      take: 2000,
+    });
+    res.json({ animals });
+  } catch {
+    res.status(500).json({ error: 'Could not load animal records.' });
+  }
+});
 router.get('/health', (_req: Request, res: Response) => forward('GET', '/health', res));
 router.get('/cows', (_req: Request, res: Response) => forward('GET', '/cows', res));
 

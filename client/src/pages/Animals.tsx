@@ -174,13 +174,17 @@ export function AnimalsPage() {
         toast.success('Animal updated.');
       } else {
         const res = await api.post(`/animals`, form);
+        let photoFailed = false;
         if (photoFile && res.data?.animal?.id) {
-          const fd = new FormData();
-          fd.append("photo", photoFile);
-          fd.append("isPrimary", "true");
-          await api.post(`/animals/${res.data.animal.id}/photos`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+          try {
+            const fd = new FormData();
+            fd.append("photo", photoFile);
+            fd.append("isPrimary", "true");
+            await api.post(`/animals/${res.data.animal.id}/photos`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+          } catch { photoFailed = true; }
         }
-        toast.success('Animal added.');
+        if (photoFailed) toast.error('Animal saved, but the photo upload failed. Edit the animal to add the photo again.');
+        else toast.success('Animal added.');
       }
       setModalOpen(false);
       load();
@@ -237,14 +241,14 @@ export function AnimalsPage() {
           <p className="text-sm text-gray-500">{total} total animals</p>
         </div>
         <button onClick={() => setShowAccept(true)}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/8 text-blue-500 text-sm font-semibold hover:bg-blue-500/15 transition-colors">
+        className="flex items-center gap-2 whitespace-nowrap px-3 sm:px-4 py-2 rounded-lg border border-blue-500/30 bg-blue-500/8 text-blue-500 text-sm font-semibold hover:bg-blue-500/15 transition-colors">
         <ArrowRightLeft className="w-4 h-4" /> Accept Transfer
       </button>
-      <button className="btn-primary" onClick={openAdd}><Plus className="w-4 h-4" />Add Animal</button>
+      <button className="btn-primary whitespace-nowrap" onClick={openAdd}><Plus className="w-4 h-4" />Add Animal</button>
       </div>
 
       {/* Category tabs */}
-      <div className="flex gap-1 flex-wrap">
+      <div className="flex gap-1 overflow-x-auto sm:flex-wrap pb-1" style={{ scrollbarWidth: 'none' }}>
         {CATEGORY_TABS.map(tab => {
           const count = tab.key === 'All' ? animals.length : (counts[tab.key] || 0);
           const active = categoryTab === tab.key;
@@ -253,7 +257,7 @@ export function AnimalsPage() {
               key={tab.key}
               onClick={() => setCategoryTab(tab.key)}
               style={{
-                padding: '5px 14px',
+                padding: '5px 14px', flexShrink: 0, whiteSpace: 'nowrap',
                 borderRadius: 999,
                 fontSize: 13,
                 fontWeight: active ? 700 : 500,
@@ -310,16 +314,16 @@ export function AnimalsPage() {
         />
       ) : (
         <div className="table-wrapper" style={{ overflowX: 'auto' }}>
-          <table style={{ minWidth: 700 }}>
+          <table className="w-full sm:min-w-[700px]">
             <thead>
               <tr>
                 <th>Name</th>
                 <th>Tag #</th>
-                <th>Breed</th>
-                <th>Gender</th>
-                <th>Age</th>
-                <th>Category</th>
-                <th>Stage / Feeding</th>
+                <th className="hidden sm:table-cell">Breed</th>
+                <th className="hidden sm:table-cell">Gender</th>
+                <th className="hidden sm:table-cell">Age</th>
+                <th className="hidden sm:table-cell">Category</th>
+                <th className="hidden sm:table-cell">Stage / Feeding</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -336,13 +340,13 @@ export function AnimalsPage() {
                     style={{ cursor: 'pointer' }}
                     onClick={() => navigate(`/animals/${a.id}`)}
                   >
-                    <td className="font-medium">{a.name}</td>
+                    <td className="font-medium">{a.name}<div className="sm:hidden text-xs text-gray-500 font-normal capitalize">{a.breed} · {a.gender}</div></td>
                     <td className="text-gray-500 font-mono text-xs">{a.tagNumber}</td>
-                    <td>{a.breed}</td>
-                    <td className="capitalize">{a.gender}</td>
+                    <td className="hidden sm:table-cell">{a.breed}</td>
+                    <td className="capitalize hidden sm:table-cell">{a.gender}</td>
 
                     {/* Age — replaces static DOB display with both DOB tooltip + age */}
-                    <td>
+                    <td className="hidden sm:table-cell">
                       <span
                         title={format(new Date(a.dateOfBirth), 'dd MMM yyyy')}
                         style={{ cursor: 'help', fontSize: 13 }}
@@ -352,12 +356,12 @@ export function AnimalsPage() {
                     </td>
 
                     {/* Category badge */}
-                    <td>
+                    <td className="hidden sm:table-cell">
                       <span style={categoryBadgeStyle(a._category)}>{a._category}</span>
                     </td>
 
                     {/* Stage / Feeding: calves show feeding recommendation, adults show breeding stage */}
-                    <td>
+                    <td className="hidden sm:table-cell">
                       {a._category === 'Calf' && feedingStage ? (
                         <span style={{
                           display: 'inline-block', padding: '2px 9px', borderRadius: 999,
