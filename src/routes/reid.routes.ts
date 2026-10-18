@@ -492,7 +492,7 @@ router.post('/identify-from-db', async (req: Request, res: Response) => {
     if ('error' in loaded) { res.status(400).json({ error: loaded.error }); return; }
     const src = loaded.photos[0];
     const form = new FormData();
-    form.append('photo', new Blob([src.buf], { type: src.mime }), src.name);
+    form.append('photo', new Blob([new Uint8Array(src.buf)], { type: src.mime }), src.name);
     form.append('top_k', '10');
     const { status, data } = await callJson('POST', '/identify', form);
     if (status !== 200) { res.status(502).json({ error: 'Re-ID service rejected the photo.' }); return; }
@@ -554,7 +554,7 @@ router.post('/register-from-db', async (req: Request, res: Response) => {
     if ('error' in loaded) { res.status(400).json({ error: loaded.error }); return; }
     const form = new FormData();
     form.append('animalKey', animalKey(animal.id));
-    for (const p of loaded.photos) form.append('photos', new Blob([p.buf], { type: p.mime }), p.name);
+    for (const p of loaded.photos) form.append('photos', new Blob([new Uint8Array(p.buf)], { type: p.mime }), p.name);
     const { status, data } = await callJson('POST', '/register', form);
     if (status !== 200) { res.status(502).json({ error: 'Re-ID service rejected the photos.' }); return; }
     await prisma.activityLog.create({
@@ -580,7 +580,7 @@ router.post('/group-from-db', async (req: Request, res: Response) => {
     if ('error' in loaded) { res.status(400).json({ error: loaded.error }); return; }
     const form = new FormData();
     form.append('threshold', String(b.data.threshold));
-    for (const p of loaded.photos) form.append('photos', new Blob([p.buf], { type: p.mime }), p.name);
+    for (const p of loaded.photos) form.append('photos', new Blob([new Uint8Array(p.buf)], { type: p.mime }), p.name);
     const { status, data } = await callJson('POST', '/group', form);
     if (status !== 200) { res.status(502).json({ error: 'Re-ID service rejected the photos.' }); return; }
 
