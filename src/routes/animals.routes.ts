@@ -167,7 +167,7 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../uploads/animals')),
   filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 15 * 1024 * 1024 } });
 
 router.post('/:id/photos', requireAdmin, upload.single('photo'), async (req: Request, res: Response): Promise<void> => {
   const farmId = getFarmId(req.user!);
