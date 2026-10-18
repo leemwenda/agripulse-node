@@ -1,15 +1,52 @@
-// SuperAdmin proxy to the internal cattle re-ID service. Mounted at /api/admin/reid.
+// Super Admin cow re-identification API. Mounted at /api/admin/reid.
+// Candidate matches only. Nothing here changes animals, image records or fraud review status.
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
-import { requireAuth, requireSuperAdmin } from '../middleware/auth.middleware';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { z } from 'zod';
 import prisma from '../lib/prisma';
+import { requireAuth, requireSuperAdmin } from '../middleware/auth.middleware';
+import { animalKey, animalIdFromKey, SIMILARITY_NOTE } from '../services/reid.logic';
 
 const router = Router();
 router.use(requireAuth, requireSuperAdmin);
 
 const SVC = process.env.REID_SERVICE_URL || 'http://127.0.0.1:7861';
 const TOKEN = process.env.REID_TOKEN || '';
-const COW_ID = /^[A-Za-z0-9_-]{1,40}$/;
+const QUERY_DIR = path.resolve(__dirname, '../../uploads/cow-reid');
+
+class ServiceOffline extends Error {}
+
+async function upstream(method: 'GET' | 'POST', urlPath: string, body?: FormData): Promise<globalThis.Response> {
+  if (!TOKEN) throw new ServiceOffline('REID_TOKEN not set');
+  try {
+    return await fetch(`${SVC}${urlPath}`, {
+      method,
+      headers: { 'X-Service-Token': TOKEN },
+      body,
+      signal: AbortSignal.timeout(120_000),
+    });
+  } catch {
+    throw new ServiceOffline('unreachable');
+  }
+}
+
+async function callJson(method: 'GET' | 'POST', urlPath: string, body?: FormData) {
+  const r = await upstream(method, urlPath, body);
+  const data: any = await r.json().catch(() => ({}));
+  return { status: r.status, data };
+}
+
+function fail(res: Response, e: unknown) {
+  if (e instanceof ServiceOffline) {
+    res.status(503).json({ error: 'Cow re-identification service is offline.' });
+    return;
+  }
+  console.error('[ReID]', (e as Error)?.message);
+  res.status(500).json({ error: 'Cow re-identification request failed.' });
+}
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -17,84 +54,310 @@ const upload = multer({
   fileFilter: (_req, file, cb) => cb(null, /^image\/(jpeg|png|webp)$/.test(file.mimetype)),
 });
 
-function appendFile(form: FormData, field: string, file: any) {
-  form.append(field, new Blob([file.buffer], { type: file.mimetype }), file.originalname || 'photo.jpg');
+const toBlob = (f: any) => new Blob([f.buffer], { type: f.mimetype });
+const parseId = (v: unknown) => {
+  const n = parseInt(String(v), 10);
+  return Number.isInteger(n) && n > 0 ? n : null;
+};
+const ANIMAL_SELECT = { id: true, name: true, tagNumber: true, agripulseId: true, status: true } as const;
+
+async function shapeCandidates(queryId: number) {
+  const rows = await prisma.cowIdentityCandidate.findMany({ where: { queryId }, orderBy: { rank: 'asc' } });
+  const animals = await prisma.animal.findMany({
+    where: { id: { in: rows.map(r => r.animalId) } },
+    select: ANIMAL_SELECT,
+  });
+  const am = new Map(animals.map(a => [a.id, a]));
+  const reviews = await prisma.cowIdentityReview.findMany({
+    where: { candidateId: { in: rows.map(r => r.id) } },
+    orderBy: { createdAt: 'desc' },
+  });
+  const reviewerIds = Array.from(new Set(reviews.map(r => r.reviewerId)));
+  const users = reviewerIds.length
+    ? await prisma.user.findMany({ where: { id: { in: reviewerIds } }, select: { id: true, name: true } })
+    : [];
+  const um = new Map(users.map(u => [u.id, u.name]));
+  return rows.map(r => ({
+    id: r.id,
+    rank: r.rank,
+    similarity: r.similarity,
+    referenceIndex: r.referenceIndex,
+    animal: am.get(r.animalId) ?? null,
+    previewUrl: r.referenceIndex !== null ? `/api/admin/reid/candidates/${r.id}/photo` : null,
+    reviews: reviews
+      .filter(v => v.candidateId === r.id)
+      .map(v => ({
+        id: v.id,
+        decision: v.decision,
+        reason: v.reason,
+        createdAt: v.createdAt,
+        reviewerName: um.get(v.reviewerId) ?? null,
+      })),
+  }));
 }
 
-async function forward(method: 'GET' | 'POST', path: string, res: Response, form?: FormData) {
-  if (!TOKEN) { res.status(503).json({ error: 'Re-ID service is not configured.' }); return; }
+router.get('/health', async (_req: Request, res: Response) => {
   try {
-    const r = await fetch(`${SVC}${path}`, {
-      method,
-      headers: { 'X-Service-Token': TOKEN },
-      body: method === 'POST' ? form : undefined,
-      signal: AbortSignal.timeout(120000),
-    });
-    const data = await r.json().catch(() => ({}));
-    res.status(r.status).json(data);
-  } catch {
-    res.status(503).json({ error: 'Cow re-identification service is offline.' });
+    const { status, data } = await callJson('GET', '/health');
+    res.status(status).json(data);
+  } catch (e) {
+    fail(res, e);
   }
-}
+});
 
 router.get('/animals', async (_req: Request, res: Response) => {
   try {
     const animals = await prisma.animal.findMany({
-      select: { id: true, name: true, tagNumber: true, agripulseId: true, status: true, farm: { select: { name: true } } },
+      select: { ...ANIMAL_SELECT, farm: { select: { name: true } } },
       orderBy: { tagNumber: 'asc' },
       take: 2000,
     });
     res.json({ animals });
-  } catch {
-    res.status(500).json({ error: 'Could not load animal records.' });
+  } catch (e) {
+    fail(res, e);
   }
 });
-router.get('/health', (_req: Request, res: Response) => forward('GET', '/health', res));
-router.get('/cows', (_req: Request, res: Response) => forward('GET', '/cows', res));
 
-router.post('/identify', upload.single('photo'), (req: Request, res: Response) => {
+// Upload a query photo, store it on the server, and record the candidate matches.
+router.post('/identify', upload.single('photo'), async (req: Request, res: Response) => {
   const file = (req as any).file;
-  if (!file) { res.status(400).json({ error: 'Upload one photo.' }); return; }
-  const form = new FormData();
-  appendFile(form, 'photo', file);
-  forward('POST', '/identify', res, form);
+  if (!file) {
+    res.status(400).json({ error: 'Upload one photo.' });
+    return;
+  }
+  try {
+    const form = new FormData();
+    form.append('photo', toBlob(file), 'query.jpg');
+    form.append('top_k', '5');
+    const { status, data } = await callJson('POST', '/identify', form);
+    if (status !== 200) {
+      res.status(502).json({ error: 'Re-ID service rejected the photo.' });
+      return;
+    }
+    if (data.status !== 'ok') {
+      res.json({ status: data.status, label: data.label ?? null, queryId: null, candidates: [], note: SIMILARITY_NOTE });
+      return;
+    }
+
+    const ranked = (data.candidates as any[])
+      .map(c => ({ c, id: animalIdFromKey(c.key) }))
+      .filter((x): x is { c: any; id: number } => x.id !== null);
+    const animals = await prisma.animal.findMany({
+      where: { id: { in: ranked.map(x => x.id) } },
+      select: { id: true },
+    });
+    const existing = new Set(animals.map(a => a.id));
+
+    fs.mkdirSync(QUERY_DIR, { recursive: true });
+    const photoFile = `${crypto.randomUUID()}.jpg`;
+    fs.writeFileSync(path.join(QUERY_DIR, photoFile), file.buffer);
+    const query = await prisma.cowIdentityQuery.create({
+      data: { requestedBy: req.user!.id, photoPath: photoFile },
+    });
+
+    let rank = 0;
+    for (const { c, id } of ranked) {
+      if (!existing.has(id)) continue; // animal deleted since registration: skip, never invent one
+      rank++;
+      await prisma.cowIdentityCandidate.create({
+        data: {
+          queryId: query.id,
+          animalId: id,
+          rank,
+          similarity: c.similarity,
+          referenceIndex: c.referenceIndex ?? null,
+        },
+      });
+    }
+
+    res.json({
+      status: data.status,
+      queryId: query.id,
+      threshold: data.threshold,
+      note: SIMILARITY_NOTE,
+      candidates: await shapeCandidates(query.id),
+    });
+  } catch (e) {
+    fail(res, e);
+  }
 });
 
-router.post('/register', upload.array('photos', 100), (req: Request, res: Response) => {
-  const cowId = String(req.body?.cowId || '').trim();
+// Register photos to one real animal record. Requires an explicit confirmation flag.
+const registerBody = z.object({
+  animalId: z.coerce.number().int().positive(),
+  confirmed: z.literal('true'),
+});
+
+router.post('/register', upload.array('photos', 100), async (req: Request, res: Response) => {
+  const b = registerBody.safeParse(req.body);
+  if (!b.success) {
+    res.status(400).json({ error: 'Choose an animal record and confirm the photos show that animal.' });
+    return;
+  }
   const files = ((req as any).files || []) as any[];
-  if (!COW_ID.test(cowId)) { res.status(400).json({ error: 'Cow ID must be 1-40 letters, digits, dashes or underscores.' }); return; }
-  if (!files.length) { res.status(400).json({ error: 'Upload at least one photo.' }); return; }
-  const form = new FormData();
-  form.append('cowId', cowId);
-  files.forEach(f => appendFile(form, 'photos', f));
-  forward('POST', '/register', res, form);
+  if (!files.length) {
+    res.status(400).json({ error: 'Upload at least one photo.' });
+    return;
+  }
+  try {
+    const animal = await prisma.animal.findUnique({ where: { id: b.data.animalId }, select: ANIMAL_SELECT });
+    if (!animal) {
+      res.status(404).json({ error: 'Animal record not found.' });
+      return;
+    }
+    const form = new FormData();
+    form.append('animalKey', animalKey(animal.id));
+    files.forEach(f => form.append('photos', toBlob(f), f.originalname || 'photo.jpg'));
+    const { status, data } = await callJson('POST', '/register', form);
+    if (status !== 200) {
+      res.status(502).json({ error: 'Re-ID service rejected the photos.' });
+      return;
+    }
+    await prisma.activityLog.create({
+      data: { userId: req.user!.id, action: 'reid_register_photos', entity: 'animals', entityId: animal.id },
+    });
+    res.json({ ...data, animal });
+  } catch (e) {
+    fail(res, e);
+  }
 });
 
-router.post('/confirm', upload.single('photo'), (req: Request, res: Response) => {
-  const cowId = String(req.body?.cowId || '').trim();
-  const file = (req as any).file;
-  if (!COW_ID.test(cowId) || !file) { res.status(400).json({ error: 'Cow ID and one photo are required.' }); return; }
-  const form = new FormData();
-  form.append('cowId', cowId);
-  appendFile(form, 'photo', file);
-  forward('POST', '/confirm', res, form);
-});
-
-router.post('/group', upload.array('photos', 100), (req: Request, res: Response) => {
+// Propose groups only. Assignment happens by calling /register once per group.
+router.post('/group', upload.array('photos', 100), async (req: Request, res: Response) => {
   const files = ((req as any).files || []) as any[];
-  if (!files.length) { res.status(400).json({ error: 'Upload at least one photo.' }); return; }
-  const form = new FormData();
-  form.append('threshold', String(req.body?.threshold ?? '0.5'));
-  files.forEach(f => appendFile(form, 'photos', f));
-  forward('POST', '/group', res, form);
+  if (!files.length) {
+    res.status(400).json({ error: 'Upload at least one photo.' });
+    return;
+  }
+  const threshold = Number(req.body?.threshold ?? 0.5);
+  if (!Number.isFinite(threshold) || threshold < 0.1 || threshold > 0.9) {
+    res.status(400).json({ error: 'Threshold must be between 0.1 and 0.9.' });
+    return;
+  }
+  try {
+    const form = new FormData();
+    form.append('threshold', String(threshold));
+    files.forEach(f => form.append('photos', toBlob(f), f.originalname || 'photo.jpg'));
+    const { status, data } = await callJson('POST', '/group', form);
+    if (status !== 200) {
+      res.status(502).json({ error: 'Re-ID service rejected the photos.' });
+      return;
+    }
+    res.json({ ...data, note: SIMILARITY_NOTE });
+  } catch (e) {
+    fail(res, e);
+  }
 });
 
-router.post('/group/save', (req: Request, res: Response) => {
-  const form = new FormData();
-  form.append('session', String(req.body?.session || ''));
-  form.append('assignments', typeof req.body?.assignments === 'string' ? req.body.assignments : JSON.stringify(req.body?.assignments || {}));
-  forward('POST', '/group/save', res, form);
+router.get('/queries/:id', async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  if (!id) {
+    res.status(400).json({ error: 'Invalid id.' });
+    return;
+  }
+  try {
+    const query = await prisma.cowIdentityQuery.findUnique({ where: { id } });
+    if (!query) {
+      res.status(404).json({ error: 'Not found.' });
+      return;
+    }
+    res.json({
+      query: { id: query.id, createdAt: query.createdAt, photoUrl: `/api/admin/reid/queries/${id}/photo` },
+      candidates: await shapeCandidates(id),
+      note: SIMILARITY_NOTE,
+    });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+router.get('/queries/:id/photo', async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  if (!id) {
+    res.status(400).json({ error: 'Invalid id.' });
+    return;
+  }
+  try {
+    const query = await prisma.cowIdentityQuery.findUnique({ where: { id }, select: { photoPath: true } });
+    if (!query) {
+      res.status(404).json({ error: 'Not found.' });
+      return;
+    }
+    const file = path.join(QUERY_DIR, path.basename(query.photoPath));
+    if (!fs.existsSync(file)) {
+      res.status(404).json({ error: 'Photo not available.' });
+      return;
+    }
+    res.type('jpeg');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.sendFile(file, { dotfiles: 'deny' });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Serves the matched reference photo, fetched from the laptop service.
+router.get('/candidates/:id/photo', async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  if (!id) {
+    res.status(400).json({ error: 'Invalid id.' });
+    return;
+  }
+  try {
+    const c = await prisma.cowIdentityCandidate.findUnique({ where: { id } });
+    if (!c || c.referenceIndex === null) {
+      res.status(404).json({ error: 'No preview for this candidate.' });
+      return;
+    }
+    const up = await upstream('GET', `/photo/${animalKey(c.animalId)}/${c.referenceIndex}`);
+    if (up.status !== 200) {
+      res.status(404).json({ error: 'Preview not available.' });
+      return;
+    }
+    const buf = Buffer.from(await up.arrayBuffer());
+    res.type(up.headers.get('content-type') || 'image/jpeg');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.send(buf);
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Human decision on one candidate. Appended as history. Never changes the animal or any fraud record.
+const reviewBody = z.object({
+  decision: z.enum(['same_animal', 'different_animals', 'inconclusive']),
+  reason: z.string().trim().min(10, 'Give a reason of at least 10 characters').max(1000),
+});
+
+router.post('/candidates/:id/review', async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  if (!id) {
+    res.status(400).json({ error: 'Invalid id.' });
+    return;
+  }
+  const b = reviewBody.safeParse(req.body);
+  if (!b.success) {
+    res.status(400).json({ error: 'Invalid review', details: b.error.flatten().fieldErrors });
+    return;
+  }
+  try {
+    const cand = await prisma.cowIdentityCandidate.findUnique({ where: { id }, select: { id: true } });
+    if (!cand) {
+      res.status(404).json({ error: 'Not found.' });
+      return;
+    }
+    const review = await prisma.cowIdentityReview.create({
+      data: { candidateId: id, reviewerId: req.user!.id, decision: b.data.decision, reason: b.data.reason },
+    });
+    await prisma.activityLog.create({
+      data: { userId: req.user!.id, action: `cow_candidate_${b.data.decision}`, entity: 'cow_identity_candidates', entityId: id },
+    });
+    res.status(201).json({ review });
+  } catch (e) {
+    fail(res, e);
+  }
 });
 
 export default router;
