@@ -1,32 +1,38 @@
 services:
-  nginx:
-    image: nginx:alpine
-    container_name: agripulse-nginx
-    restart: always
-    ports:
-      - "5002:80"
-    volumes:
-      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - agripulse-net
-
-  mysql-backup:
+  db:
     image: mysql:8.0
-    container_name: agripulse-mysql-backup
-    restart: always
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: AgriPulse@2026!
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: agripulse_db
       MYSQL_USER: agriuser
-      MYSQL_PASSWORD: AgriPulse@2026!
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in .env}
     volumes:
-      - mysql_backup_data:/var/lib/mysql
-    networks:
-      - agripulse-net
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+    networks: [agripulse-net]
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: mysql://agriuser:${MYSQL_PASSWORD}@db:3306/agripulse_db
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [agripulse-net]
 
 networks:
   agripulse-net:
-    driver: bridge
 
 volumes:
-  mysql_backup_data:
+  db_data:
