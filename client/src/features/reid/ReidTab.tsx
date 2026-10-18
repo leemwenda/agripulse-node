@@ -6,33 +6,35 @@ type Tone = 'ok' | 'err' | 'info';
 interface Notice { tone: Tone; text: string }
 
 interface Animal { id: number; name: string; tagNumber: string; agripulseId: string | null; status: string }
+interface StoredPhoto { id: number; isPrimary: boolean; fileUrl: string }
+interface StoredAnimal extends Animal { photos: StoredPhoto[] }
+interface Picked { ids: number[]; owners: Record<number, Animal> }
 interface Review { id: number; decision: string; reason: string | null; createdAt: string; reviewerName: string | null }
 interface Candidate {
-  id: number;
-  rank: number;
-  similarity: number;
-  referenceIndex: number | null;
-  animal: Animal | null;
-  previewUrl: string | null;
-  reviews: Review[];
+  id: number; rank: number; similarity: number; referenceIndex: number | null;
+  animal: Animal | null; previewUrl: string | null; reviews: Review[];
 }
 interface QueryState { id: number; photoUrl: string }
-interface QueueItem { id: number; createdAt: string; candidateCount: number; awaitingReview: number }
 interface Workspace {
   model: { connected: boolean; device?: string; threshold?: number; model?: string };
   candidates: number;
   awaitingReview: number;
-  queries: QueueItem[];
+  queries: { id: number; createdAt: string; candidateCount: number; awaitingReview: number }[];
 }
 interface GroupResult {
-  groups: { group: number; count: number; photoIndexes: number[]; files: string[] }[];
+  groups: {
+    group: number;
+    crossRecord: boolean;
+    photos: { photoId: number; animalId: number; animalName: string | null; tagNumber: string | null; fileUrl: string }[];
+  }[];
   rejected: string[];
   errors: string[];
-  message?: string;
 }
 
 const MULTI = { headers: { 'Content-Type': 'multipart/form-data' } };
+const PHOTO_LIMIT = 100;
 const MIN_REASON = 10;
+const EMPTY_PICK: Picked = { ids: [], owners: {} };
 const DECISIONS = [
   { value: 'same_animal', label: 'Same animal' },
   { value: 'different_animals', label: 'Different animals' },
@@ -108,7 +110,6 @@ function ReviewPanel({ busy, onSubmit }: { busy: boolean; onSubmit: (decision: s
   const [reason, setReason] = useState('');
   const trimmed = reason.trim();
   const valid = !!decision && trimmed.length >= MIN_REASON;
-
   return (
     <div className="flex flex-col gap-2">
       <div className="text-xs font-bold">Your decision</div>
@@ -175,7 +176,6 @@ function CandidateCard({
           )}
         </div>
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <div className="text-xs text-gray-500 mb-1">Registered reference photo</div>
@@ -188,13 +188,10 @@ function CandidateCard({
             Model signal only. Similarity ranks candidates; it is not proof that the photos show the same animal.
           </div>
           {!c.previewUrl && (
-            <div className="text-xs text-amber-600 mt-2">
-              No preview: this reference was registered before previews were stored.
-            </div>
+            <div className="text-xs text-amber-600 mt-2">No preview stored for this reference.</div>
           )}
         </div>
       </div>
-
       {c.reviews.length > 0 ? (
         <div className="text-xs flex flex-col gap-1">
           <div className="font-bold">Review history</div>
@@ -209,252 +206,145 @@ function CandidateCard({
       ) : (
         <div className="text-xs text-gray-500">Not reviewed yet.</div>
       )}
-
       <ReviewPanel busy={busy} onSubmit={(decision, reason) => onReview(c, decision, reason)} />
     </div>
   );
 }
 
-function RegisterPanel({
-  animals, disabled, report, onSaved,
+// Browses stored AgriPulse animal photos. Emits the selected photo ids and the animal that owns each one.
+function PhotoBrowser({
+  maxPhotos, singleAnimal, onChange,
 }: {
-  animals: Animal[];
-  disabled: boolean;
-  report: (n: Notice) => void;
-  onSaved: () => void;
+  maxPhotos: number;
+  singleAnimal: boolean;
+  onChange: (p: Picked) => void;
 }) {
-  const [animalId, setAnimalId] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [confirmed, setConfirmed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const selected = animals.find(a => String(a.id) === animalId) ?? null;
-
-  const save = async () => {
-    if (!selected) return;
-    setBusy(true);
-    try {
-      const fd = new FormData();
-      fd.append('animalId', String(selected.id));
-      fd.append('confirmed', 'true');
-      files.forEach(f => fd.append('photos', f));
-      const { data } = await api.post('/admin/reid/register', fd, MULTI);
-      const extra = [
-        data.rejected?.length ? `Rejected: ${data.rejected.join('; ')}` : '',
-        data.errors?.length ? `Skipped: ${data.errors.join('; ')}` : '',
-      ].filter(Boolean).join(' ');
-      report({
-        tone: data.saved > 0 ? 'ok' : 'info',
-        text: `Saved ${data.saved} photo(s) to ${selected.name} (tag ${selected.tagNumber}). Reference photos now: ${data.totalReference ?? 'n/a'}. ${extra}`.trim(),
-      });
-      setFiles([]);
-      setConfirmed(false);
-      onSaved();
-    } catch (e) {
-      report({ tone: 'err', text: errText(e, 'Registration failed.') });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div style={CARD}>
-      <div className="text-sm font-bold">Register reference photos for an animal</div>
-      <div className="text-xs text-gray-500">
-        Reference photos are stored for matching. Choose the real animal record first. Nothing is registered automatically.
-      </div>
-      <label className="label">Animal record</label>
-      <select className="input" value={animalId} onChange={e => setAnimalId(e.target.value)} disabled={disabled}>
-        <option value="">Select an animal…</option>
-        {animals.map(a => (
-          <option key={a.id} value={a.id}>{animalLine(a)}</option>
-        ))}
-      </select>
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        className="input py-1.5"
-        disabled={disabled}
-        onChange={e => setFiles(Array.from(e.target.files || []))}
-      />
-      <label className="text-xs flex gap-2 items-start">
-        <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} disabled={disabled} />
-        I confirm these photos show {selected ? `${selected.name} (tag ${selected.tagNumber})` : 'the selected animal'}.
-      </label>
-      <button
-        type="button"
-        className="btn-primary self-start"
-        disabled={disabled || busy || !selected || files.length === 0 || !confirmed}
-        onClick={save}
-      >
-        {busy ? 'Saving…' : `Register ${files.length || ''} photo(s)`.trim()}
-      </button>
-    </div>
-  );
-}
-
-function GroupPanel({
-  animals, disabled, report, onSaved,
-}: {
-  animals: Animal[];
-  disabled: boolean;
-  report: (n: Notice) => void;
-  onSaved: () => void;
-}) {
-  const [files, setFiles] = useState<File[]>([]);
-  const [thumbs, setThumbs] = useState<string[]>([]);
-  const [threshold, setThreshold] = useState('0.5');
-  const [result, setResult] = useState<GroupResult | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [assign, setAssign] = useState<Record<number, string>>({});
-  const [confirmedGroups, setConfirmedGroups] = useState<Record<number, boolean>>({});
-  const [savedGroups, setSavedGroups] = useState<Record<number, boolean>>({});
+  const [query, setQuery] = useState('');
+  const [term, setTerm] = useState('');
+  const [animals, setAnimals] = useState<StoredAnimal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [picked, setPicked] = useState<Record<number, Animal>>({});
 
   useEffect(() => {
-    const urls = files.map(f => URL.createObjectURL(f));
-    setThumbs(urls);
-    return () => urls.forEach(u => URL.revokeObjectURL(u));
-  }, [files]);
+    const t = setTimeout(() => setTerm(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
 
-  const t = Number(threshold);
-  const thresholdOk = Number.isFinite(t) && t >= 0.1 && t <= 0.9;
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setLoadError(null);
+    api.get('/admin/reid/animals-with-photos', { params: term ? { q: term } : undefined })
+      .then(r => { if (alive) setAnimals(r.data.animals || []); })
+      .catch(e => { if (alive) setLoadError(errText(e, 'Could not load animal photos.')); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [term]);
 
-  const propose = async () => {
-    setBusy(true);
-    setResult(null);
-    setAssign({});
-    setConfirmedGroups({});
-    setSavedGroups({});
-    try {
-      const fd = new FormData();
-      fd.append('threshold', threshold);
-      files.forEach(f => fd.append('photos', f));
-      const { data } = await api.post('/admin/reid/group', fd, MULTI);
-      setResult(data);
-      if (!data.groups?.length) report({ tone: 'info', text: data.message || 'No groups were proposed.' });
-    } catch (e) {
-      report({ tone: 'err', text: errText(e, 'Grouping failed.') });
-    } finally {
-      setBusy(false);
-    }
+  useEffect(() => {
+    onChange({ ids: Object.keys(picked).map(Number).sort((a, b) => a - b), owners: picked });
+  }, [picked, onChange]);
+
+  const active = animals.find(a => a.id === activeId) ?? animals[0] ?? null;
+  const count = Object.keys(picked).length;
+  const owners = new Set(Object.values(picked).map(a => a.id)).size;
+
+  const toggle = (a: StoredAnimal, p: StoredPhoto) => {
+    setPicked(prev => {
+      if (prev[p.id]) {
+        const next = { ...prev };
+        delete next[p.id];
+        return next;
+      }
+      if (maxPhotos === 1) return { [p.id]: a };
+      const others = Object.values(prev);
+      if (singleAnimal && others.length > 0 && others[0].id !== a.id) return { [p.id]: a };
+      if (others.length >= maxPhotos) return prev;
+      return { ...prev, [p.id]: a };
+    });
   };
 
-  // Registers one proposed group to one real animal. Uses the same confirmed register endpoint.
-  const saveGroup = async (g: GroupResult['groups'][number]) => {
-    const animalId = assign[g.group];
-    const animal = animals.find(a => String(a.id) === animalId);
-    if (!animal) return;
-    setBusy(true);
-    try {
-      const fd = new FormData();
-      fd.append('animalId', String(animal.id));
-      fd.append('confirmed', 'true');
-      g.photoIndexes.forEach(i => { if (files[i]) fd.append('photos', files[i]); });
-      const { data } = await api.post('/admin/reid/register', fd, MULTI);
-      report({
-        tone: data.saved > 0 ? 'ok' : 'info',
-        text: `Group ${g.group}: saved ${data.saved} photo(s) to ${animal.name} (tag ${animal.tagNumber}).`,
-      });
-      setSavedGroups(s => ({ ...s, [g.group]: true }));
-      onSaved();
-    } catch (e) {
-      report({ tone: 'err', text: errText(e, `Group ${g.group} could not be saved.`) });
-    } finally {
-      setBusy(false);
+  const selectAllLoaded = () => {
+    const next: Record<number, Animal> = {};
+    let n = 0;
+    for (const a of animals) {
+      for (const p of a.photos) {
+        if (n >= maxPhotos) break;
+        next[p.id] = a;
+        n++;
+      }
     }
+    setPicked(next);
   };
 
+  const cur = active;
   return (
-    <div className="flex flex-col gap-4">
-      <div style={CARD}>
-        <div className="text-sm font-bold">Group unsorted photos</div>
-        <div className="text-xs text-gray-500">
-          The model proposes groups of photos that look alike. Groups are not saved. Assign each group to a real animal and confirm it.
-        </div>
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          className="input py-1.5"
-          disabled={disabled}
-          onChange={e => { setFiles(Array.from(e.target.files || [])); setResult(null); }}
-        />
-        <label className="label">Similarity threshold (0.1 to 0.9, higher is stricter)</label>
-        <input
-          className="input w-32"
-          type="number"
-          step="0.05"
-          min="0.1"
-          max="0.9"
-          value={threshold}
-          onChange={e => setThreshold(e.target.value)}
-          disabled={disabled}
-        />
-        {!thresholdOk && <div className="text-xs text-red-500">Threshold must be between 0.1 and 0.9.</div>}
-        <button
-          type="button"
-          className="btn-primary self-start"
-          disabled={disabled || busy || files.length === 0 || !thresholdOk}
-          onClick={propose}
-        >
-          {busy ? 'Working…' : 'Propose groups'}
-        </button>
+    <div className="flex flex-col gap-3">
+      <input
+        className="input"
+        placeholder="Search by name, tag number or AgriPulse ID"
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+      />
+      {loadError && <div className="text-xs text-red-500">{loadError}</div>}
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="text-gray-500">
+          {count} photo(s) from {owners} animal record(s) selected{maxPhotos < PHOTO_LIMIT ? ` (max ${maxPhotos})` : ''}.
+        </span>
+        {count > 0 && <button type="button" className="btn-secondary text-xs" onClick={() => setPicked({})}>Clear</button>}
+        {!singleAnimal && maxPhotos > 1 && animals.length > 0 && (
+          <button type="button" className="btn-secondary text-xs" onClick={selectAllLoaded}>
+            Select all loaded (up to {PHOTO_LIMIT})
+          </button>
+        )}
       </div>
-
-      {result?.groups.map(g => (
-        <div key={g.group} style={CARD}>
-          <div className="flex justify-between flex-wrap gap-2">
-            <span className="text-sm font-bold">Proposed group {g.group}</span>
-            <span className="text-xs text-gray-500">{g.count} photo(s) · not saved yet</span>
-          </div>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            {g.photoIndexes.map(i => (
-              <div key={i} style={{ aspectRatio: '1 / 1', borderRadius: 8, overflow: 'hidden', background: 'rgba(128,128,128,.08)' }}>
-                {thumbs[i] && <img src={thumbs[i]} alt={files[i]?.name ?? 'photo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-              </div>
-            ))}
-          </div>
-          {savedGroups[g.group] ? (
-            <div className="text-xs text-green-600">Saved to an animal record.</div>
-          ) : (
-            <>
-              <select
-                className="input"
-                value={assign[g.group] ?? ''}
-                onChange={e => setAssign(p => ({ ...p, [g.group]: e.target.value }))}
-                disabled={disabled}
-              >
-                <option value="">Select the animal this group shows…</option>
-                {animals.map(a => <option key={a.id} value={a.id}>{animalLine(a)}</option>)}
-              </select>
-              <label className="text-xs flex gap-2 items-start">
-                <input
-                  type="checkbox"
-                  checked={!!confirmedGroups[g.group]}
-                  onChange={e => setConfirmedGroups(p => ({ ...p, [g.group]: e.target.checked }))}
-                  disabled={disabled}
-                />
-                I confirm all photos in this group show the selected animal.
-              </label>
-              <button
-                type="button"
-                className="btn-primary self-start"
-                disabled={disabled || busy || !assign[g.group] || !confirmedGroups[g.group]}
-                onClick={() => saveGroup(g)}
-              >
-                Register this group
-              </button>
-            </>
+      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3">
+        <div className="flex flex-col gap-1" style={{ maxHeight: 360, overflow: 'auto' }}>
+          {loading && <div className="text-xs text-gray-500">Loading animals…</div>}
+          {!loading && animals.length === 0 && (
+            <div className="text-xs text-gray-500">No animals with photos match this search.</div>
           )}
+          {animals.map(a => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => setActiveId(a.id)}
+              className="text-left text-xs p-2 rounded border border-gray-300"
+              style={{ outline: cur?.id === a.id ? '2px solid #15803d' : 'none' }}
+            >
+              <div className="font-bold">{a.name}</div>
+              <div className="text-gray-500">
+                tag {a.tagNumber}{a.agripulseId ? ` · ${a.agripulseId}` : ''} · {a.photos.length} photo(s)
+              </div>
+            </button>
+          ))}
         </div>
-      ))}
-
-      {result && (result.rejected.length > 0 || result.errors.length > 0) && (
-        <div style={CARD} className="text-xs">
-          {result.rejected.length > 0 && <div>Rejected as not cattle: {result.rejected.join('; ')}</div>}
-          {result.errors.length > 0 && <div>Skipped: {result.errors.join('; ')}</div>}
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 content-start">
+          {cur && cur.photos.map(p => {
+            const on = !!picked[p.id];
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => toggle(cur, p)}
+                className="relative text-left"
+                style={{ outline: on ? '3px solid #15803d' : '1px solid rgba(128,128,128,.3)', borderRadius: 10 }}
+              >
+                <ProtectedPhoto path={p.fileUrl} alt={`${cur.name} photo ${p.id}`} />
+                <span className="absolute top-1 left-1 text-[10px] px-1 rounded bg-black/60 text-white">
+                  {p.isPrimary ? 'Primary' : `Photo ${p.id}`}
+                </span>
+                {on && (
+                  <span className="absolute top-1 right-1 text-[10px] px-1 rounded bg-green-700 text-white">Selected</span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -463,18 +353,29 @@ export function ReidTab() {
   const [tab, setTab] = useState<Tab>('identify');
   const [ws, setWs] = useState<Workspace | null>(null);
   const [wsError, setWsError] = useState<string | null>(null);
-  const [animals, setAnimals] = useState<Animal[]>([]);
-  const [animalsError, setAnimalsError] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [pickerKey, setPickerKey] = useState(0);
 
-  const [idFile, setIdFile] = useState<File | null>(null);
-  const [identifying, setIdentifying] = useState(false);
+  const [idPick, setIdPick] = useState<Picked>(EMPTY_PICK);
   const [query, setQuery] = useState<QueryState | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [reviewBusyId, setReviewBusyId] = useState<number | null>(null);
 
+  const [regPick, setRegPick] = useState<Picked>(EMPTY_PICK);
+  const [regConfirmed, setRegConfirmed] = useState(false);
+
+  const [grpPick, setGrpPick] = useState<Picked>(EMPTY_PICK);
+  const [grpThreshold, setGrpThreshold] = useState('0.5');
+  const [grpConfirmed, setGrpConfirmed] = useState(false);
+  const [groups, setGroups] = useState<GroupResult | null>(null);
+
   const modelOnline = !!ws?.model.connected;
   const threshold = ws?.model.threshold;
+  const regOwner: Animal | undefined = regPick.owners[regPick.ids[0]];
+  const grpOwners = new Set(Object.values(grpPick.owners).map(a => a.id)).size;
+  const grpT = Number(grpThreshold);
+  const grpTOk = Number.isFinite(grpT) && grpT >= 0.1 && grpT <= 0.9;
 
   const loadWorkspace = useCallback(async () => {
     try {
@@ -486,20 +387,7 @@ export function ReidTab() {
     }
   }, []);
 
-  const loadAnimals = useCallback(async () => {
-    try {
-      setAnimalsError(null);
-      const { data } = await api.get('/admin/reid/animals');
-      setAnimals(data.animals || []);
-    } catch (e) {
-      setAnimalsError(errText(e, 'Could not load animal records.'));
-    }
-  }, []);
-
-  useEffect(() => {
-    loadWorkspace();
-    loadAnimals();
-  }, [loadWorkspace, loadAnimals]);
+  useEffect(() => { loadWorkspace(); }, [loadWorkspace]);
 
   const fetchQuery = useCallback(async (id: number) => {
     const { data } = await api.get(`/admin/reid/queries/${id}`);
@@ -517,36 +405,35 @@ export function ReidTab() {
   };
 
   const identify = async () => {
-    if (!idFile) return;
-    setIdentifying(true);
+    const photoId = idPick.ids[0];
+    if (!photoId) return;
+    setBusy(true);
     setNotice(null);
+    setGroups(null);
     try {
-      const fd = new FormData();
-      fd.append('photo', idFile);
-      const { data: d } = await api.post('/admin/reid/identify', fd, MULTI);
+      const { data: d } = await api.post('/admin/reid/identify-from-db', { photoId });
       if (d.status === 'not_cattle') {
         setQuery(null);
         setCandidates([]);
-        setNotice({ tone: 'info', text: `Not identified. This photo looks like "${d.label ?? 'something else'}", not cattle. Upload a clear photo of the cow.` });
+        setNotice({ tone: 'info', text: `Not identified. This photo looks like "${d.label ?? 'something else'}", not cattle.` });
       } else if (d.status === 'empty') {
         setQuery(null);
         setCandidates([]);
-        setNotice({ tone: 'info', text: 'No registered animal has reference photos yet. Register photos first.' });
+        setNotice({ tone: 'info', text: 'No animal record has reference photos yet. Add reference photos first.' });
       } else if (d.queryId) {
         setQuery({ id: d.queryId, photoUrl: `/api/admin/reid/queries/${d.queryId}/photo` });
         setCandidates(d.candidates || []);
         setNotice(
           d.candidates?.length
-            ? { tone: 'ok', text: `${d.candidates.length} candidate(s) ranked. Review each one. Nothing is recorded until you decide.` }
-            : { tone: 'info', text: 'No candidates matched registered animals that have usable photos.' },
+            ? { tone: 'ok', text: `${d.candidates.length} candidate(s) ranked against other animal records. The photo's own record was excluded. Nothing is recorded until you decide.` }
+            : { tone: 'info', text: 'No other animal record has a usable reference photo to compare against.' },
         );
       }
-      setIdFile(null);
       await loadWorkspace();
     } catch (e) {
       setNotice({ tone: 'err', text: errText(e, 'Identification failed.') });
     } finally {
-      setIdentifying(false);
+      setBusy(false);
     }
   };
 
@@ -570,12 +457,54 @@ export function ReidTab() {
     }
   };
 
-  const afterChange = () => { loadWorkspace(); loadAnimals(); };
+  const addReferences = async () => {
+    if (!regOwner || !regConfirmed || regPick.ids.length === 0) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const { data } = await api.post('/admin/reid/register-from-db', {
+        animalId: regOwner.id,
+        photoIds: regPick.ids,
+        confirmed: true,
+      });
+      setNotice({
+        tone: data.saved > 0 ? 'ok' : 'info',
+        text: `Added ${data.saved} reference view(s) for ${regOwner.name} (tag ${regOwner.tagNumber}). Reference views now: ${data.totalReference ?? 'n/a'}.`
+          + (data.rejected?.length ? ` Rejected as not cattle: ${data.rejected.join('; ')}` : ''),
+      });
+      setRegConfirmed(false);
+      setPickerKey(k => k + 1);
+      await loadWorkspace();
+    } catch (e) {
+      setNotice({ tone: 'err', text: errText(e, 'Could not add reference photos.') });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const proposeGroups = async () => {
+    if (grpPick.ids.length === 0 || !grpConfirmed || !grpTOk) return;
+    setBusy(true);
+    setNotice(null);
+    setGroups(null);
+    try {
+      const { data } = await api.post('/admin/reid/group-from-db', {
+        photoIds: grpPick.ids,
+        threshold: grpT,
+      });
+      setGroups(data);
+      if (!data.groups?.length) setNotice({ tone: 'info', text: 'No groups were proposed.' });
+    } catch (e) {
+      setNotice({ tone: 'err', text: errText(e, 'Grouping failed.') });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'identify', label: 'Identify' },
-    { id: 'register', label: 'Register photos' },
-    { id: 'group', label: 'Group photos' },
+    { id: 'register', label: 'Add reference photos' },
+    { id: 'group', label: 'Compare photos' },
   ];
 
   const noticeStyle = (tone: Tone): React.CSSProperties => ({
@@ -590,10 +519,11 @@ export function ReidTab() {
     <section aria-labelledby="reid-title" className="flex flex-col gap-4">
       <header>
         <h2 id="reid-title" style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Cow Re-identification</h2>
-        <p className="text-sm text-gray-500">AI-assisted animal matching and verification. Human verification required.</p>
+        <p className="text-sm text-gray-500">
+          Uses photos already stored in AgriPulse. AI-assisted matching; human verification required.
+        </p>
       </header>
 
-      {/* Summary strip: every value comes from the backend */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div style={CARD}>
           <div className="text-xs text-gray-500">Candidates</div>
@@ -618,12 +548,11 @@ export function ReidTab() {
 
       {ws && !modelOnline && (
         <div style={noticeStyle('err')} role="alert">
-          The model service is offline. Identify, Register and Group are disabled until the laptop service and tunnel are running.
-          Saved reviews remain available.
+          The model service is offline. Browsing photos still works. Identify, adding reference photos and comparisons are
+          disabled until the laptop service and tunnel are running. Saved reviews remain available.
         </div>
       )}
       {wsError && <div style={noticeStyle('err')} role="alert">{wsError}</div>}
-      {animalsError && <div style={noticeStyle('err')} role="alert">{animalsError}</div>}
       {notice && <div style={noticeStyle(notice.tone)} role="status">{notice.text}</div>}
 
       <div role="tablist" className="flex flex-wrap gap-2">
@@ -643,92 +572,168 @@ export function ReidTab() {
       </div>
 
       {tab === 'identify' && (
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
-          <aside className="flex flex-col gap-4">
-            <div style={CARD}>
-              <div className="text-sm font-bold">Upload a cow photograph</div>
-              <div className="text-xs text-gray-500">Use a clear photo with the whole cow visible.</div>
-              <input
-                type="file"
-                accept="image/*"
-                className="input py-1.5"
-                disabled={!modelOnline}
-                onChange={e => setIdFile(e.target.files?.[0] || null)}
-              />
-              <button
-                type="button"
-                className="btn-primary self-start"
-                disabled={!modelOnline || !idFile || identifying}
-                onClick={identify}
-              >
-                {identifying ? 'Analysing…' : 'Find candidate matches'}
-              </button>
+        <div className="flex flex-col gap-4">
+          <div style={CARD}>
+            <div className="text-sm font-bold">1. Select one stored photo</div>
+            <div className="text-xs text-gray-500">
+              Search an animal, then click one of its photos. The model compares it with other animal records.
             </div>
+            <PhotoBrowser maxPhotos={1} singleAnimal onChange={setIdPick} />
+            <button
+              type="button"
+              className="btn-primary self-start"
+              disabled={!modelOnline || busy || idPick.ids.length === 0}
+              onClick={identify}
+            >
+              {busy ? 'Analysing…' : 'Find candidate matches'}
+            </button>
+          </div>
 
-            <div style={CARD}>
-              <div className="text-sm font-bold">Recent queries</div>
-              {!ws || ws.queries.length === 0 ? (
-                <div className="text-xs text-gray-500">No queries yet.</div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {ws.queries.map(q => (
-                    <button
-                      key={q.id}
-                      type="button"
-                      onClick={() => openQuery(q.id)}
-                      className="text-left text-xs p-2 rounded border border-gray-300"
-                      style={{ outline: query?.id === q.id ? '2px solid #15803d' : 'none' }}
-                    >
-                      <div className="font-bold">Query #{q.id}</div>
-                      <div className="text-gray-500">
-                        {new Date(q.createdAt).toLocaleString()} · {q.candidateCount} candidate(s) · {q.awaitingReview} awaiting review
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </aside>
-
-          <main className="flex flex-col gap-4">
-            {!query ? (
-              <div style={CARD} className="text-sm text-gray-500">
-                Upload a cow photograph to see candidate matches from registered animals.
+          {query && (
+            <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-4">
+              <div style={CARD} className="xl:sticky xl:top-4 self-start">
+                <div className="text-sm font-bold">Query photo</div>
+                <ProtectedPhoto path={query.photoUrl} alt={`Query photo ${query.id}`} />
+                <div className="text-xs text-gray-500">Query #{query.id}</div>
               </div>
+              <div className="flex flex-col gap-4">
+                {candidates.length === 0 ? (
+                  <div style={CARD} className="text-sm text-gray-500">No candidates for this query.</div>
+                ) : (
+                  candidates.map(c => (
+                    <CandidateCard
+                      key={c.id}
+                      c={c}
+                      threshold={threshold}
+                      busy={reviewBusyId === c.id}
+                      onReview={submitReview}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          <div style={CARD}>
+            <div className="text-sm font-bold">Recent queries</div>
+            {!ws || ws.queries.length === 0 ? (
+              <div className="text-xs text-gray-500">No queries yet.</div>
             ) : (
-              <div className="grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-4">
-                <div style={CARD} className="xl:sticky xl:top-4 self-start">
-                  <div className="text-sm font-bold">Uploaded photo</div>
-                  <ProtectedPhoto path={query.photoUrl} alt={`Uploaded query photo ${query.id}`} />
-                  <div className="text-xs text-gray-500">Query #{query.id}</div>
-                </div>
-                <div className="flex flex-col gap-4">
-                  {candidates.length === 0 ? (
-                    <div style={CARD} className="text-sm text-gray-500">No candidates for this query.</div>
-                  ) : (
-                    candidates.map(c => (
-                      <CandidateCard
-                        key={c.id}
-                        c={c}
-                        threshold={threshold}
-                        busy={reviewBusyId === c.id}
-                        onReview={submitReview}
-                      />
-                    ))
-                  )}
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {ws.queries.map(q => (
+                  <button
+                    key={q.id}
+                    type="button"
+                    onClick={() => openQuery(q.id)}
+                    className="text-left text-xs p-2 rounded border border-gray-300"
+                    style={{ outline: query?.id === q.id ? '2px solid #15803d' : 'none' }}
+                  >
+                    <div className="font-bold">Query #{q.id}</div>
+                    <div className="text-gray-500">
+                      {new Date(q.createdAt).toLocaleString()} · {q.candidateCount} candidate(s) · {q.awaitingReview} awaiting review
+                    </div>
+                  </button>
+                ))}
               </div>
             )}
-          </main>
+          </div>
         </div>
       )}
 
       {tab === 'register' && (
-        <RegisterPanel animals={animals} disabled={!modelOnline} report={setNotice} onSaved={afterChange} />
+        <div style={CARD}>
+          <div className="text-sm font-bold">Add stored photos as reference views</div>
+          <div className="text-xs text-gray-500">
+            Choose one animal record and the photos that show it. Several views of the same animal improve matching.
+            The animal record itself is not changed.
+          </div>
+          <PhotoBrowser key={pickerKey} maxPhotos={PHOTO_LIMIT} singleAnimal onChange={setRegPick} />
+          {regOwner && <div className="text-xs">Animal: <strong>{animalLine(regOwner)}</strong></div>}
+          <label className="text-xs flex gap-2 items-start">
+            <input type="checkbox" checked={regConfirmed} onChange={e => setRegConfirmed(e.target.checked)} />
+            I confirm the selected photos show {regOwner ? `${regOwner.name} (tag ${regOwner.tagNumber})` : 'the selected animal'}.
+          </label>
+          <button
+            type="button"
+            className="btn-primary self-start"
+            disabled={!modelOnline || busy || !regOwner || !regConfirmed}
+            onClick={addReferences}
+          >
+            Add {regPick.ids.length || ''} reference view(s)
+          </button>
+        </div>
       )}
 
       {tab === 'group' && (
-        <GroupPanel animals={animals} disabled={!modelOnline} report={setNotice} onSaved={afterChange} />
+        <div className="flex flex-col gap-4">
+          <div style={CARD}>
+            <div className="text-sm font-bold">Compare stored photos</div>
+            <div className="text-xs text-gray-500">
+              The model proposes groups of photos that look alike. Groups that span several animal records are flagged
+              for review. Nothing is saved or merged.
+            </div>
+            <PhotoBrowser maxPhotos={PHOTO_LIMIT} singleAnimal={false} onChange={setGrpPick} />
+            <label className="label">Similarity threshold (0.1 to 0.9, higher is stricter)</label>
+            <input
+              className="input w-32"
+              type="number"
+              step="0.05"
+              min="0.1"
+              max="0.9"
+              value={grpThreshold}
+              onChange={e => setGrpThreshold(e.target.value)}
+            />
+            {!grpTOk && <div className="text-xs text-red-500">Threshold must be between 0.1 and 0.9.</div>}
+            <div className="text-xs">
+              Summary: {grpPick.ids.length} photo(s) from {grpOwners} animal record(s) will be compared.
+              {grpPick.ids.length >= 50 && ' Large batches can take several minutes.'}
+            </div>
+            <label className="text-xs flex gap-2 items-start">
+              <input type="checkbox" checked={grpConfirmed} onChange={e => setGrpConfirmed(e.target.checked)} />
+              I understand these suggestions are for review only and no animal record will be changed.
+            </label>
+            <button
+              type="button"
+              className="btn-primary self-start"
+              disabled={!modelOnline || busy || grpPick.ids.length === 0 || !grpConfirmed || !grpTOk}
+              onClick={proposeGroups}
+            >
+              {busy ? 'Comparing…' : 'Compare selected photos'}
+            </button>
+          </div>
+
+          {groups?.groups.map(g => (
+            <div key={g.group} style={CARD}>
+              <div className="flex justify-between flex-wrap gap-2">
+                <span className="text-sm font-bold">Proposed group {g.group}</span>
+                <span className="text-xs text-gray-500">{g.photos.length} photo(s)</span>
+              </div>
+              {g.crossRecord && (
+                <div className="text-xs text-amber-600">
+                  Photos from more than one animal record look alike. This may be the same cow listed twice. It is a review item only.
+                  Nothing was merged or changed.
+                </div>
+              )}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {g.photos.map(p => (
+                  <div key={p.photoId}>
+                    <ProtectedPhoto path={p.fileUrl} alt={`${p.animalName ?? 'Animal'} photo ${p.photoId}`} />
+                    <div className="text-xs text-gray-500 mt-1">
+                      {p.animalName ?? 'Animal record missing'} · tag {p.tagNumber ?? '—'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {groups && (groups.rejected.length > 0 || groups.errors.length > 0) && (
+            <div style={CARD} className="text-xs">
+              {groups.rejected.length > 0 && <div>Rejected as not cattle: {groups.rejected.join('; ')}</div>}
+              {groups.errors.length > 0 && <div>Skipped: {groups.errors.join('; ')}</div>}
+            </div>
+          )}
+        </div>
       )}
     </section>
   );

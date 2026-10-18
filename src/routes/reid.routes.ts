@@ -8,7 +8,7 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { requireAuth, requireSuperAdmin } from '../middleware/auth.middleware';
-import { animalKey, animalIdFromKey, SIMILARITY_NOTE } from '../services/reid.logic';
+import { animalKey, animalIdFromKey, SIMILARITY_NOTE, resolveUploadPath } from '../services/reid.logic';
 
 const router = Router();
 router.use(requireAuth, requireSuperAdmin);
@@ -396,6 +396,214 @@ router.get('/workspace', async (_req: Request, res: Response) => {
         awaitingReview: perQuery.get(q.id)?.awaiting ?? 0,
       })),
     });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+
+// ─── Database-backed workflows: Super Admin selects stored AgriPulse photos. No local uploads. ───
+const UPLOADS_ROOT = path.resolve(__dirname, '../../uploads');
+const PHOTO_LIMIT = 100;
+const MIME: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
+const mimeFor = (file: string) => MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream';
+const idList = z.array(z.number().int().positive()).min(1).max(PHOTO_LIMIT);
+
+// Only files reached through a stored AnimalPhoto row, and only inside the upload root, are ever read.
+function storedPhotoFile(url: string): string | null {
+  const full = resolveUploadPath(UPLOADS_ROOT, url);
+  if (!full) return null;
+  try {
+    return fs.statSync(full).isFile() ? full : null;
+  } catch {
+    return null;
+  }
+}
+
+interface StoredPhoto { id: number; animalId: number; buf: Buffer; name: string; mime: string }
+
+async function loadStoredPhotos(ids: number[], animalId?: number): Promise<{ photos: StoredPhoto[] } | { error: string }> {
+  if (new Set(ids).size !== ids.length) return { error: 'Each photo can be selected only once.' };
+  const rows = await prisma.animalPhoto.findMany({
+    where: { id: { in: ids }, ...(animalId !== undefined ? { animalId } : {}) },
+    select: { id: true, animalId: true, url: true },
+  });
+  const byId = new Map(rows.map(r => [r.id, r]));
+  const photos: StoredPhoto[] = [];
+  for (const id of ids) {
+    const row = byId.get(id);
+    if (!row) return { error: `Photo ${id} was not found for this animal record.` };
+    const file = storedPhotoFile(row.url);
+    if (!file) return { error: `Photo ${id} is missing from storage.` };
+    photos.push({ id, animalId: row.animalId, buf: fs.readFileSync(file), name: `photo-${id}${path.extname(file)}`, mime: mimeFor(file) });
+  }
+  return { photos };
+}
+
+// Animals that have at least one stored photo. Primary photo first. Upload paths are never returned.
+router.get('/animals-with-photos', async (req: Request, res: Response) => {
+  const q = String(req.query.q ?? '').trim().slice(0, 80);
+  try {
+    const where: any = { photos: { some: {} } };
+    if (q) where.OR = [{ name: { contains: q } }, { tagNumber: { contains: q } }, { agripulseId: { contains: q } }];
+    const animals = await prisma.animal.findMany({
+      where,
+      select: {
+        ...ANIMAL_SELECT,
+        photos: { select: { id: true, isPrimary: true }, orderBy: [{ isPrimary: 'desc' }, { id: 'asc' }] },
+      },
+      orderBy: { tagNumber: 'asc' },
+      take: 300,
+    });
+    res.json({
+      animals: animals.map(a => ({
+        ...a,
+        photos: a.photos.map(p => ({ ...p, fileUrl: `/api/admin/reid/animal-photos/${p.id}/file` })),
+      })),
+    });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Serves one stored animal photo to the browser, through the authenticated API only.
+router.get('/animal-photos/:id/file', async (req: Request, res: Response) => {
+  const id = parseId(req.params.id);
+  if (!id) { res.status(400).json({ error: 'Invalid id.' }); return; }
+  try {
+    const row = await prisma.animalPhoto.findUnique({ where: { id }, select: { url: true } });
+    const file = row ? storedPhotoFile(row.url) : null;
+    if (!file) { res.status(404).json({ error: 'Photo not available.' }); return; }
+    res.type(mimeFor(file));
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.sendFile(file, { dotfiles: 'deny' });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Identify one stored photo. Compares it against every OTHER animal record's reference photos.
+router.post('/identify-from-db', async (req: Request, res: Response) => {
+  const b = z.object({ photoId: z.coerce.number().int().positive() }).safeParse(req.body);
+  if (!b.success) { res.status(400).json({ error: 'Choose one stored photo.' }); return; }
+  try {
+    const loaded = await loadStoredPhotos([b.data.photoId]);
+    if ('error' in loaded) { res.status(400).json({ error: loaded.error }); return; }
+    const src = loaded.photos[0];
+    const form = new FormData();
+    form.append('photo', new Blob([src.buf], { type: src.mime }), src.name);
+    form.append('top_k', '10');
+    const { status, data } = await callJson('POST', '/identify', form);
+    if (status !== 200) { res.status(502).json({ error: 'Re-ID service rejected the photo.' }); return; }
+    if (data.status !== 'ok') {
+      res.json({ status: data.status, label: data.label ?? null, queryId: null, candidates: [], note: SIMILARITY_NOTE });
+      return;
+    }
+
+    const others = (data.candidates as any[])
+      .map(c => ({ c, id: animalIdFromKey(c.key) }))
+      .filter((x): x is { c: any; id: number } => x.id !== null && x.id !== src.animalId);
+    const existing = new Set(
+      (await prisma.animal.findMany({ where: { id: { in: others.map(x => x.id) } }, select: { id: true } })).map(a => a.id),
+    );
+
+    fs.mkdirSync(QUERY_DIR, { recursive: true });
+    const photoFile = `${crypto.randomUUID()}.jpg`;
+    fs.writeFileSync(path.join(QUERY_DIR, photoFile), src.buf);
+    const query = await prisma.cowIdentityQuery.create({ data: { requestedBy: req.user!.id, photoPath: photoFile } });
+
+    let rank = 0;
+    for (const { c, id } of others) {
+      if (!existing.has(id)) continue;
+      rank++;
+      await prisma.cowIdentityCandidate.create({
+        data: { queryId: query.id, animalId: id, rank, similarity: c.similarity, referenceIndex: c.referenceIndex ?? null },
+      });
+    }
+    res.json({
+      status: 'ok',
+      queryId: query.id,
+      threshold: data.threshold,
+      sourceAnimalExcluded: true,
+      note: SIMILARITY_NOTE,
+      candidates: await shapeCandidates(query.id),
+    });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Adds selected stored photos as reference views for ONE animal record. Never changes the animal.
+const registerDbBody = z.object({
+  animalId: z.coerce.number().int().positive(),
+  photoIds: idList,
+  confirmed: z.literal(true),
+});
+
+router.post('/register-from-db', async (req: Request, res: Response) => {
+  const b = registerDbBody.safeParse(req.body);
+  if (!b.success) {
+    res.status(400).json({ error: 'Choose an animal, at least one stored photo, and confirm the photos show that animal.' });
+    return;
+  }
+  try {
+    const animal = await prisma.animal.findUnique({ where: { id: b.data.animalId }, select: ANIMAL_SELECT });
+    if (!animal) { res.status(404).json({ error: 'Animal record not found.' }); return; }
+    const loaded = await loadStoredPhotos(b.data.photoIds, animal.id);
+    if ('error' in loaded) { res.status(400).json({ error: loaded.error }); return; }
+    const form = new FormData();
+    form.append('animalKey', animalKey(animal.id));
+    for (const p of loaded.photos) form.append('photos', new Blob([p.buf], { type: p.mime }), p.name);
+    const { status, data } = await callJson('POST', '/register', form);
+    if (status !== 200) { res.status(502).json({ error: 'Re-ID service rejected the photos.' }); return; }
+    await prisma.activityLog.create({
+      data: { userId: req.user!.id, action: 'reid_register_stored_photos', entity: 'animals', entityId: animal.id },
+    });
+    res.json({ ...data, animal, photoIds: b.data.photoIds });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
+// Proposes groups among stored photos. Read-only: nothing is saved. Groups spanning several records are flagged.
+const groupDbBody = z.object({
+  photoIds: idList,
+  threshold: z.coerce.number().min(0.1).max(0.9).default(0.5),
+});
+
+router.post('/group-from-db', async (req: Request, res: Response) => {
+  const b = groupDbBody.safeParse(req.body);
+  if (!b.success) { res.status(400).json({ error: 'Select 1 to 100 stored photos. Threshold must be 0.1 to 0.9.' }); return; }
+  try {
+    const loaded = await loadStoredPhotos(b.data.photoIds);
+    if ('error' in loaded) { res.status(400).json({ error: loaded.error }); return; }
+    const form = new FormData();
+    form.append('threshold', String(b.data.threshold));
+    for (const p of loaded.photos) form.append('photos', new Blob([p.buf], { type: p.mime }), p.name);
+    const { status, data } = await callJson('POST', '/group', form);
+    if (status !== 200) { res.status(502).json({ error: 'Re-ID service rejected the photos.' }); return; }
+
+    const ownerIds = Array.from(new Set(loaded.photos.map(p => p.animalId)));
+    const owners = await prisma.animal.findMany({ where: { id: { in: ownerIds } }, select: { id: true, name: true, tagNumber: true } });
+    const om = new Map(owners.map(a => [a.id, a]));
+    const groups = (data.groups as { group: number; photoIndexes: number[] }[]).map(g => {
+      const photos = g.photoIndexes
+        .map(i => loaded.photos[i])
+        .filter((p): p is StoredPhoto => !!p)
+        .map(p => {
+          const a = om.get(p.animalId);
+          return {
+            photoId: p.id,
+            animalId: p.animalId,
+            animalName: a?.name ?? null,
+            tagNumber: a?.tagNumber ?? null,
+            fileUrl: `/api/admin/reid/animal-photos/${p.id}/file`,
+          };
+        });
+      return { group: g.group, crossRecord: new Set(photos.map(p => p.animalId)).size > 1, photos };
+    });
+    res.json({ groups, rejected: data.rejected ?? [], errors: data.errors ?? [], note: SIMILARITY_NOTE });
   } catch (e) {
     fail(res, e);
   }
