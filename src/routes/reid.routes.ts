@@ -580,15 +580,16 @@ router.post('/group-from-db', async (req: Request, res: Response) => {
     if ('error' in loaded) { res.status(400).json({ error: loaded.error }); return; }
     const form = new FormData();
     form.append('threshold', String(b.data.threshold));
-    for (const p of loaded.photos) form.append('photos', new Blob([new Uint8Array(p.buf)], { type: p.mime }), p.name);
+    loaded.photos.forEach((p, i) => form.append('photos', new Blob([new Uint8Array(p.buf)], { type: p.mime }), `${i}__${p.name}`));
     const { status, data } = await callJson('POST', '/group', form);
     if (status !== 200) { res.status(502).json({ error: 'Re-ID service rejected the photos.' }); return; }
 
     const ownerIds = Array.from(new Set(loaded.photos.map(p => p.animalId)));
     const owners = await prisma.animal.findMany({ where: { id: { in: ownerIds } }, select: { id: true, name: true, tagNumber: true } });
     const om = new Map(owners.map(a => [a.id, a]));
-    const groups = (data.groups as { group: number; photoIndexes: number[] }[]).map(g => {
-      const photos = g.photoIndexes
+    const groups = ((data.groups ?? []) as { group: number; photoIndexes?: number[]; files?: string[] }[]).map(g => {
+      const idxs = g.photoIndexes ?? (g.files ?? []).map(f => parseInt(String(f).split('__')[0], 10)).filter(n => Number.isInteger(n));
+      const photos = idxs
         .map(i => loaded.photos[i])
         .filter((p): p is StoredPhoto => !!p)
         .map(p => {

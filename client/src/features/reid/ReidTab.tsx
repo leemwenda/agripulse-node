@@ -232,6 +232,7 @@ function PhotoBrowser({
     return () => clearTimeout(t);
   }, [query]);
 
+  // Keeps the previous list on screen while a new search loads, so tiles don't collapse.
   useEffect(() => {
     let alive = true;
     setLoading(true);
@@ -247,7 +248,7 @@ function PhotoBrowser({
     onChange({ ids: Object.keys(picked).map(Number).sort((a, b) => a - b), owners: picked });
   }, [picked, onChange]);
 
-  const active = animals.find(a => a.id === activeId) ?? animals[0] ?? null;
+  const cur = animals.find(a => a.id === activeId) ?? animals[0] ?? null;
   const count = Object.keys(picked).length;
   const owners = new Set(Object.values(picked).map(a => a.id)).size;
 
@@ -279,11 +280,10 @@ function PhotoBrowser({
     setPicked(next);
   };
 
-  const cur = active;
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 min-w-0">
       <input
-        className="input"
+        className="input w-full"
         placeholder="Search by name, tag number or AgriPulse ID"
         value={query}
         onChange={e => setQuery(e.target.value)}
@@ -292,6 +292,7 @@ function PhotoBrowser({
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="text-gray-500">
           {count} photo(s) from {owners} animal record(s) selected{maxPhotos < PHOTO_LIMIT ? ` (max ${maxPhotos})` : ''}.
+          {loading && ' Searching…'}
         </span>
         {count > 0 && <button type="button" className="btn-secondary text-xs" onClick={() => setPicked({})}>Clear</button>}
         {!singleAnimal && maxPhotos > 1 && animals.length > 0 && (
@@ -300,28 +301,31 @@ function PhotoBrowser({
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-3">
-        <div className="flex flex-col gap-1" style={{ maxHeight: 360, overflow: 'auto' }}>
-          {loading && <div className="text-xs text-gray-500">Loading animals…</div>}
-          {!loading && animals.length === 0 && (
-            <div className="text-xs text-gray-500">No animals with photos match this search.</div>
-          )}
+
+      {!loading && animals.length === 0 && (
+        <div className="text-xs text-gray-500">No animals with photos match this search.</div>
+      )}
+
+      {/* Stacks on phones: animals scroll sideways above the photos. Side by side from md up. */}
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,220px)_minmax(0,1fr)] gap-3 min-w-0">
+        <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-y-auto md:max-h-[420px] min-w-0 pb-1">
           {animals.map(a => (
             <button
               key={a.id}
               type="button"
               onClick={() => setActiveId(a.id)}
-              className="text-left text-xs p-2 rounded border border-gray-300"
+              className="shrink-0 md:shrink text-left text-xs p-2 rounded border border-gray-300 w-44 md:w-auto"
               style={{ outline: cur?.id === a.id ? '2px solid #15803d' : 'none' }}
             >
-              <div className="font-bold">{a.name}</div>
-              <div className="text-gray-500">
-                tag {a.tagNumber}{a.agripulseId ? ` · ${a.agripulseId}` : ''} · {a.photos.length} photo(s)
-              </div>
+              <span className="block font-bold truncate">{a.name}</span>
+              <span className="block text-gray-500 truncate">
+                tag {a.tagNumber} · {a.photos.length} photo(s)
+              </span>
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 content-start">
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 min-w-0 content-start">
           {cur && cur.photos.map(p => {
             const on = !!picked[p.id];
             return (
@@ -330,16 +334,14 @@ function PhotoBrowser({
                 type="button"
                 aria-pressed={on}
                 onClick={() => toggle(cur, p)}
-                className="relative text-left"
-                style={{ outline: on ? '3px solid #15803d' : '1px solid rgba(128,128,128,.3)', borderRadius: 10 }}
+                className="flex flex-col min-w-0 w-full text-left overflow-hidden rounded-lg"
+                style={{ border: on ? '2px solid #15803d' : '1px solid rgba(128,128,128,.3)', background: 'transparent', padding: 0 }}
               >
                 <ProtectedPhoto path={p.fileUrl} alt={`${cur.name} photo ${p.id}`} />
-                <span className="absolute top-1 left-1 text-[10px] px-1 rounded bg-black/60 text-white">
-                  {p.isPrimary ? 'Primary' : `Photo ${p.id}`}
+                <span className="flex justify-between items-center gap-1 px-2 py-1 text-[11px]">
+                  <span className="truncate">{p.isPrimary ? 'Primary' : `Photo ${p.id}`}</span>
+                  {on && <span className="shrink-0 font-bold text-green-700">Selected</span>}
                 </span>
-                {on && (
-                  <span className="absolute top-1 right-1 text-[10px] px-1 rounded bg-green-700 text-white">Selected</span>
-                )}
               </button>
             );
           })}
