@@ -97,4 +97,45 @@ router.post('/group/save', (req: Request, res: Response) => {
   forward('POST', '/group/save', res, form);
 });
 
+
+// Workspace summary: real model status, recent queries, review counts. Read-only.
+router.get('/workspace', async (_req: Request, res: Response) => {
+  try {
+    let model: { connected: boolean; device?: string; threshold?: number; model?: string } = { connected: false };
+    try {
+      const { status, data } = await callJson('GET', '/health');
+      if (status === 200) model = { connected: true, device: data.device, threshold: data.threshold, model: data.model };
+    } catch {
+      // service offline: connected stays false
+    }
+    const queries = await prisma.cowIdentityQuery.findMany({
+      orderBy: { createdAt: 'desc' }, take: 20, select: { id: true, createdAt: true },
+    });
+    const candidates = await prisma.cowIdentityCandidate.findMany({ select: { id: true, queryId: true } });
+    const reviewed = new Set(
+      (await prisma.cowIdentityReview.findMany({ select: { candidateId: true } })).map(r => r.candidateId),
+    );
+    const perQuery = new Map<number, { total: number; awaiting: number }>();
+    for (const c of candidates) {
+      const e = perQuery.get(c.queryId) ?? { total: 0, awaiting: 0 };
+      e.total++;
+      if (!reviewed.has(c.id)) e.awaiting++;
+      perQuery.set(c.queryId, e);
+    }
+    res.json({
+      model,
+      candidates: candidates.length,
+      awaitingReview: candidates.filter(c => !reviewed.has(c.id)).length,
+      queries: queries.map(q => ({
+        id: q.id,
+        createdAt: q.createdAt,
+        candidateCount: perQuery.get(q.id)?.total ?? 0,
+        awaitingReview: perQuery.get(q.id)?.awaiting ?? 0,
+      })),
+    });
+  } catch (e) {
+    fail(res, e);
+  }
+});
+
 export default router;

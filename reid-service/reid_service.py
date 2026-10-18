@@ -308,3 +308,8 @@ async def group_save(session: str = Form(...), assignments: str = Form(...)):
         total = add_to_db(cid, embs)
         results.append({"group": gnum, "status": "saved", "cowId": cid, "photos": count, "totalReference": total})
     return {"results": results}
+
+# Single-photo suitability check (separate file)
+import sys
+from verify_route import register_verify
+register_verify(app, sys.modules[__name__])
