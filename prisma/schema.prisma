@@ -1139,3 +1139,48 @@ model ImageReview {
   @@index([reviewerId])
   @@map("image_reviews")
 }
+
+// ─── Cow re-identification candidates (separate from image fraud records) ────
+// Candidate matches and human decisions only. Never merges animals or changes fraud status.
+enum CowReviewDecision {
+  same_animal
+  different_animals
+  inconclusive
+}
+
+model CowIdentityQuery {
+  id          Int      @id @default(autoincrement())
+  requestedBy Int      @map("requested_by")
+  photoPath   String   @map("photo_path") @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([requestedBy])
+  @@map("cow_identity_queries")
+}
+
+model CowIdentityCandidate {
+  id             Int      @id @default(autoincrement())
+  queryId        Int      @map("query_id")
+  animalId       Int      @map("animal_id")
+  rank           Int
+  similarity     Float
+  referenceIndex Int?     @map("reference_index")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([queryId])
+  @@index([animalId])
+  @@map("cow_identity_candidates")
+}
+
+model CowIdentityReview {
+  id          Int               @id @default(autoincrement())
+  candidateId Int               @map("candidate_id")
+  reviewerId  Int               @map("reviewer_id")
+  decision    CowReviewDecision
+  reason      String?           @db.Text
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@index([candidateId])
+  @@index([reviewerId])
+  @@map("cow_identity_reviews")
+}

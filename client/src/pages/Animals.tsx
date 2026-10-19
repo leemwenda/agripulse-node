@@ -457,7 +457,7 @@ export function AnimalsPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editId ? 'Edit Animal' : 'Add Animal'} size="lg">
         <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Name *</label>
               <input className="input" value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required />
@@ -516,9 +516,9 @@ export function AnimalsPage() {
             <label className="label">Notes</label>
             <textarea className="input" rows={3} value={form.notes || ''} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional notes..." />
           </div>
-          <div className="flex gap-3 justify-end pt-2">
-            <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
-            <button type="submit" className="btn-primary" disabled={saving}>
+          <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end pt-2">
+            <button type="button" className="btn-secondary w-full sm:w-auto" onClick={() => setModalOpen(false)}>Cancel</button>
+            <button type="submit" className="btn-primary w-full sm:w-auto" disabled={saving}>
               {saving ? <Spinner size="sm" /> : null}
               {editId ? 'Update' : 'Add'} Animal
             </button>

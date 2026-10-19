@@ -26,3 +26,4 @@ audit_*.txt
 .env.*
 !.env.example
 __pycache__/
+uploads/cow-reid/
