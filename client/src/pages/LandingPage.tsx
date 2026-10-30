@@ -1,3 +1,4 @@
+import AppDownloadBar from '../components/AppDownloadBar';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -323,6 +324,7 @@ export default function LandingPage() {
       )}
 
       {/* HERO */}
+      <AppDownloadBar />
       <section id="home" className="ap-hero">
         <img src="/farm-hero.jpg" alt="Farm" className="ap-hero-img" />
         <div className="ap-hero-grad" />
@@ -363,6 +365,9 @@ export default function LandingPage() {
             </Link>
             <Link to="/marketplace" className="ap-hero-btn-secondary">
               Explore Marketplace <ArrowRight size={16} />
+            </Link>
+            <Link to="/download" className="ap-hero-btn-secondary">
+              Get the App <ArrowRight size={16} />
             </Link>
           </div>
 
@@ -628,6 +633,7 @@ export default function LandingPage() {
               <h4>Contact Us</h4>
               <ul>
                 <li><a href="tel:+254700123456">+254 700 123 456</a></li>
+                <li><Link to="/download">Download the App</Link></li>
                 <li><a href="mailto:agripulse254@gmail.com">agripulse254@gmail.com</a></li>
                 <li><a href="#contact">Nairobi, Kenya</a></li>
               </ul>
