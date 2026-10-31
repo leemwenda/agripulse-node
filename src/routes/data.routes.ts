@@ -15,6 +15,7 @@ milkRouter.use(requireAuth, requireFarmer);
 const milkSchema = z.object({
   animalId: z.number().int().positive(),
   productionDate: z.string().min(1),
+  session: z.enum(['morning', 'evening']).optional(),
   quantityLiters: z.number().positive("Quantity must be positive").max(999.99, "Quantity cannot exceed 999.99 liters"),
   notes: z.string().max(500).optional(),
 });
@@ -59,7 +60,7 @@ milkRouter.post('/', async (req: Request, res: Response): Promise<void> => {
   } catch (err: unknown) {
     const e = err as { code?: string };
     if (e.code === 'P2002') {
-      res.status(409).json({ error: 'A record for this animal on that date already exists.' });
+      res.status(409).json({ error: 'A record for this animal, date and session already exists.' });
     } else { throw err; }
   }
 });
@@ -79,7 +80,7 @@ milkRouter.put('/:id', async (req: Request, res: Response): Promise<void> => {
     res.json({ record });
   } catch (err: unknown) {
     if ((err as { code?: string }).code === 'P2002') {
-      res.status(409).json({ error: 'A record for this animal on that date already exists.' });
+      res.status(409).json({ error: 'A record for this animal, date and session already exists.' });
     } else { throw err; }
   }
 });

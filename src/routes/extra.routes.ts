@@ -1345,9 +1345,9 @@ reportsRouter.get('/export/:type', async (req: Request, res: Response): Promise<
     rows = data.map(a => ({ 'Tag Number': a.tagNumber, Name: a.name, Breed: a.breed, Gender: a.gender, 'Date of Birth': a.dateOfBirth.toISOString().slice(0,10), Color: a.color||'', Status: a.status, Notes: a.notes||'', Created: a.createdAt.toISOString().slice(0,10) }));
     filename = `agripulse-animals-${now}.csv`;
   } else if (type === 'milk') {
-    headers = ['Date', 'Animal', 'Tag', 'Liters', 'Notes', 'Recorded By'];
+    headers = ['Date', 'Session', 'Animal', 'Tag', 'Liters', 'Notes', 'Recorded By'];
     const data = await prisma.milkProduction.findMany({ where: { farmId }, orderBy: { productionDate: 'desc' }, include: { animal: { select: { name: true, tagNumber: true } }, recordedByUser: { select: { name: true } } } });
-    rows = data.map(r => ({ Date: r.productionDate.toISOString().slice(0,10), Animal: r.animal.name, Tag: r.animal.tagNumber, Liters: Number(r.quantityLiters), Notes: r.notes||'', 'Recorded By': r.recordedByUser?.name||'' }));
+    rows = data.map(r => ({ Date: r.productionDate.toISOString().slice(0,10), Session: r.session, Animal: r.animal.name, Tag: r.animal.tagNumber, Liters: Number(r.quantityLiters), Notes: r.notes||'', 'Recorded By': r.recordedByUser?.name||'' }));
     filename = `agripulse-milk-${now}.csv`;
   } else if (type === 'health') {
     headers = ['Date', 'Animal', 'Tag', 'Condition', 'Treatment', 'Vaccination', 'Doctor', 'Notes'];
@@ -1423,8 +1423,25 @@ notificationsRouter.get('/', async (req: Request, res: Response) => {
     prisma.breeding.findMany({ where: { farmId, pregnancyStatus: 'pregnant', expectedBirthDate: { lt: today } }, include: { animal: { select: { name: true } } }, orderBy: { expectedBirthDate: 'asc' } }),
     prisma.breeding.findMany({ where: { farmId, pregnancyStatus: 'pregnant', expectedBirthDate: { gte: today, lte: sevenDaysAhead } }, include: { animal: { select: { name: true } } }, orderBy: { expectedBirthDate: 'asc' } }),
     prisma.healthRecord.findMany({ where: { farmId, recordDate: { gte: thirtyDaysAgo } }, orderBy: { recordDate: 'desc' }, take: 5, include: { animal: { select: { name: true } } } }),
-    prisma.milkProduction.groupBy({ by: ['animalId'], where: { farmId, productionDate: { gte: thirtyDaysAgo } }, _avg: { quantityLiters: true }, having: { quantityLiters: { _avg: { lt: 5 } } }, orderBy: { _avg: { quantityLiters: "asc" } }, take: 3 }).then(async rows => {
-      const ids = rows.map(r => r.animalId);
+    prisma.milkProduction.findMany({ where: { farmId, productionDate: { gte: thirtyDaysAgo } }, select: { animalId: true, productionDate: true, quantityLiters: true } }).then(async recs => {
+      const perDay = new Map<string, number>();
+      for (const r of recs) {
+        const k = r.animalId + '|' + r.productionDate.toISOString().slice(0, 10);
+        perDay.set(k, (perDay.get(k) || 0) + Number(r.quantityLiters));
+      }
+      const perAnimal = new Map<number, { sum: number; days: number }>();
+      for (const [k, v] of perDay) {
+        const id = Number(k.split('|')[0]);
+        const e = perAnimal.get(id) || { sum: 0, days: 0 };
+        e.sum += v; e.days += 1;
+        perAnimal.set(id, e);
+      }
+      const ids = [...perAnimal.entries()]
+        .map(([id, e]) => ({ id, avg: e.sum / e.days }))
+        .filter(x => x.avg < 5)
+        .sort((a, b) => a.avg - b.avg)
+        .slice(0, 3)
+        .map(x => x.id);
       return prisma.animal.findMany({ where: { id: { in: ids }, status: 'active' }, select: { name: true } });
     }),
   ]);

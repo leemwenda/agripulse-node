@@ -222,6 +222,7 @@ model MilkProduction {
   animalId       Int      @map("animal_id")
   farmId         Int      @map("farm_id")
   productionDate DateTime @map("production_date") @db.Date
+  session        MilkSession @default(morning)
   quantityLiters Decimal  @map("quantity_liters") @db.Decimal(6, 2)
   notes          String?  @db.Text
   recordedBy     Int?      @map("recorded_by")
@@ -230,7 +231,7 @@ model MilkProduction {
   animal     Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   recordedByUser User?   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([animalId, productionDate])
+  @@unique([animalId, productionDate, session])
   @@map("milk_production")
 }
 
@@ -1241,4 +1242,10 @@ model AdminAlert {
 
   @@index([status, lastSeenAt])
   @@map("admin_alerts")
+}
+
+
+enum MilkSession {
+  morning
+  evening
 }
