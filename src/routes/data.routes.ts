@@ -3,6 +3,11 @@ import { z } from 'zod';
 import prisma from '../lib/prisma';
 import { requireAuth, requireFarmer, getFarmId } from '../middleware/auth.middleware';
 
+async function animalInFarm(animalId: number, farmId: number): Promise<boolean> {
+  const a = await prisma.animal.findFirst({ where: { id: animalId, farmId }, select: { id: true } });
+  return !!a;
+}
+
 // ── MILK PRODUCTION ─────────────────────────────────────────
 export const milkRouter = Router();
 milkRouter.use(requireAuth, requireFarmer);
@@ -41,6 +46,7 @@ milkRouter.post('/', async (req: Request, res: Response): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
   const farmId = getFarmId(req.user!);
   try {
+    if (!(await animalInFarm(parsed.data.animalId, farmId))) { res.status(404).json({ error: 'Animal not found' }); return; }
     const record = await prisma.milkProduction.create({
       data: {
         ...parsed.data,
@@ -64,11 +70,18 @@ milkRouter.put('/:id', async (req: Request, res: Response): Promise<void> => {
   if (!existing) { res.status(404).json({ error: 'Record not found' }); return; }
   const parsed = milkSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
-  const record = await prisma.milkProduction.update({
-    where: { id: existing.id },
-    data: { ...parsed.data, productionDate: new Date(parsed.data.productionDate) },
-  });
-  res.json({ record });
+  if (!(await animalInFarm(parsed.data.animalId, farmId))) { res.status(404).json({ error: 'Animal not found' }); return; }
+  try {
+    const record = await prisma.milkProduction.update({
+      where: { id: existing.id },
+      data: { ...parsed.data, productionDate: new Date(parsed.data.productionDate) },
+    });
+    res.json({ record });
+  } catch (err: unknown) {
+    if ((err as { code?: string }).code === 'P2002') {
+      res.status(409).json({ error: 'A record for this animal on that date already exists.' });
+    } else { throw err; }
+  }
 });
 
 milkRouter.delete('/:id', async (req: Request, res: Response): Promise<void> => {
@@ -114,6 +127,7 @@ healthRouter.post('/', async (req: Request, res: Response): Promise<void> => {
   const parsed = healthSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
   const farmId = getFarmId(req.user!);
+  if (!(await animalInFarm(parsed.data.animalId, farmId))) { res.status(404).json({ error: 'Animal not found' }); return; }
   const record = await prisma.healthRecord.create({
     data: { ...parsed.data, farmId, recordDate: new Date(parsed.data.recordDate), recordedBy: req.user!.id },
   });
@@ -126,6 +140,7 @@ healthRouter.put('/:id', async (req: Request, res: Response): Promise<void> => {
   if (!existing) { res.status(404).json({ error: 'Record not found' }); return; }
   const parsed = healthSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
+  if (!(await animalInFarm(parsed.data.animalId, farmId))) { res.status(404).json({ error: 'Animal not found' }); return; }
   const record = await prisma.healthRecord.update({
     where: { id: existing.id },
     data: { ...parsed.data, recordDate: new Date(parsed.data.recordDate) },
@@ -177,6 +192,7 @@ breedingRouter.post('/', async (req: Request, res: Response): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
   const farmId = getFarmId(req.user!);
   const { serviceDate, expectedBirthDate, actualBirthDate, ...rest } = parsed.data;
+  if (!(await animalInFarm(parsed.data.animalId, farmId))) { res.status(404).json({ error: 'Animal not found' }); return; }
   const record = await prisma.breeding.create({
     data: {
       ...rest,
@@ -197,6 +213,7 @@ breedingRouter.put('/:id', async (req: Request, res: Response): Promise<void> =>
   const parsed = breedingSchema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.errors[0].message }); return; }
   const { serviceDate, expectedBirthDate, actualBirthDate, ...rest } = parsed.data;
+  if (!(await animalInFarm(parsed.data.animalId, farmId))) { res.status(404).json({ error: 'Animal not found' }); return; }
   const record = await prisma.breeding.update({
     where: { id: existing.id },
     data: {
