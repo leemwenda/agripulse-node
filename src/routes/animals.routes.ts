@@ -17,6 +17,7 @@ const animalSchema = z.object({
   color: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   status: z.enum(['active', 'sold', 'deceased']).optional().default('active'),
+  category: z.enum(['calf', 'heifer', 'cow', 'bull_calf', 'young_bull', 'bull']).nullable().optional(),
 });
 
 // GET /api/animals
@@ -189,7 +190,7 @@ router.post('/:id/photos', requireAdmin, uploadPhoto, async (req: Request, res: 
   const farmId = getFarmId(req.user!);
   const animalId = parseInt(req.params.id as string);
   const animal = await prisma.animal.findFirst({ where: { id: animalId, farmId } });
-  if (!animal) { res.status(404).json({ error: 'Animal not found' }); return; }
+  if (!animal) { if (req.file) fs.unlink(req.file.path, () => undefined); res.status(404).json({ error: 'Animal not found' }); return; }
   if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return; }
   {
     const head = Buffer.alloc(12);
