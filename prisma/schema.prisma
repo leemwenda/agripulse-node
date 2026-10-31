@@ -222,6 +222,7 @@ model MilkProduction {
   animalId       Int      @map("animal_id")
   farmId         Int      @map("farm_id")
   productionDate DateTime @map("production_date") @db.Date
+  session        MilkSession @default(morning)
   quantityLiters Decimal  @map("quantity_liters") @db.Decimal(6, 2)
   notes          String?  @db.Text
   recordedBy     Int?      @map("recorded_by")
@@ -230,7 +231,7 @@ model MilkProduction {
   animal     Animal @relation(fields: [animalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   recordedByUser User?   @relation(fields: [recordedBy], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([animalId, productionDate])
+  @@unique([animalId, productionDate, session])
   @@map("milk_production")
 }
 
@@ -1138,4 +1139,113 @@ model ImageReview {
   @@index([imageId])
   @@index([reviewerId])
   @@map("image_reviews")
+}
+
+// ─── Cow re-identification candidates (separate from image fraud records) ────
+// Candidate matches and human decisions only. Never merges animals or changes fraud status.
+enum CowReviewDecision {
+  same_animal
+  different_animals
+  inconclusive
+}
+
+model CowIdentityQuery {
+  id          Int      @id @default(autoincrement())
+  requestedBy Int      @map("requested_by")
+  photoPath   String   @map("photo_path") @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([requestedBy])
+  @@map("cow_identity_queries")
+}
+
+model CowIdentityCandidate {
+  id             Int      @id @default(autoincrement())
+  queryId        Int      @map("query_id")
+  animalId       Int      @map("animal_id")
+  rank           Int
+  similarity     Float
+  referenceIndex Int?     @map("reference_index")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([queryId])
+  @@index([animalId])
+  @@map("cow_identity_candidates")
+}
+
+model CowIdentityReview {
+  id          Int               @id @default(autoincrement())
+  candidateId Int               @map("candidate_id")
+  reviewerId  Int               @map("reviewer_id")
+  decision    CowReviewDecision
+  reason      String?           @db.Text
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@index([candidateId])
+  @@index([reviewerId])
+  @@map("cow_identity_reviews")
+}
+
+// ─── Photo verification (suitability). Separate from image fraud and cow identity. ───
+// Decides only whether an uploaded photo is usable. Never edits animals, tags or fraud reviews.
+model PhotoVerificationJob {
+  id               Int       @id @default(autoincrement())
+  photoId          Int       @unique @map("photo_id")
+  animalId         Int       @map("animal_id")
+  uploaderId       Int?      @map("uploader_id")
+  status           String    @default("queued") @db.VarChar(20)
+  mode             String    @default("shadow") @db.VarChar(10)
+  attempts         Int       @default(0)
+  maxAttempts      Int       @default(5) @map("max_attempts")
+  nextAttemptAt    DateTime  @default(now()) @map("next_attempt_at")
+  lockedAt         DateTime? @map("locked_at")
+  lockedBy         String?   @map("locked_by") @db.VarChar(60)
+  lastError        String?   @map("last_error") @db.VarChar(500)
+  decision         String?   @db.VarChar(20)
+  reasonCode       String?   @map("reason_code") @db.VarChar(40)
+  reasonText       String?   @map("reason_text") @db.VarChar(500)
+  scores           Json?
+  thresholds       Json?
+  modelVersion     String?   @map("model_version") @db.VarChar(60)
+  decidedAt        DateTime? @map("decided_at")
+  emailStatus      String    @default("none") @map("email_status") @db.VarChar(20)
+  emailAttempts    Int       @default(0) @map("email_attempts")
+  emailSentAt      DateTime? @map("email_sent_at")
+  emailError       String?   @map("email_error") @db.VarChar(300)
+  overrideDecision String?   @map("override_decision") @db.VarChar(20)
+  overrideBy       Int?      @map("override_by")
+  overrideNote     String?   @map("override_note") @db.VarChar(500)
+  overrideAt       DateTime? @map("override_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, nextAttemptAt])
+  @@index([animalId])
+  @@index([decidedAt])
+  @@map("photo_verification_jobs")
+}
+
+model AdminAlert {
+  id            Int       @id @default(autoincrement())
+  incidentKey   String    @unique @map("incident_key") @db.VarChar(120)
+  kind          String    @db.VarChar(40)
+  severity      String    @default("warning") @db.VarChar(10)
+  summary       String    @db.VarChar(300)
+  details       Json?
+  jobId         Int?      @map("job_id")
+  occurrences   Int       @default(1)
+  status        String    @default("open") @db.VarChar(10)
+  firstSeenAt   DateTime  @default(now()) @map("first_seen_at")
+  lastSeenAt    DateTime  @default(now()) @map("last_seen_at")
+  lastEmailedAt DateTime? @map("last_emailed_at")
+  resolvedAt    DateTime? @map("resolved_at")
+
+  @@index([status, lastSeenAt])
+  @@map("admin_alerts")
+}
+
+
+enum MilkSession {
+  morning
+  evening
 }

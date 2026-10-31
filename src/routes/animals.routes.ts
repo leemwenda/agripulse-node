@@ -17,6 +17,7 @@ const animalSchema = z.object({
   color: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   status: z.enum(['active', 'sold', 'deceased']).optional().default('active'),
+  category: z.enum(['calf', 'heifer', 'cow', 'bull_calf', 'young_bull', 'bull']).nullable().optional(),
 });
 
 // GET /api/animals
@@ -159,22 +160,48 @@ export default router;
 
 // POST /api/animals/:id/photos — upload animal photo
 import { queueImageAnalysis } from '../services/imageAnalysis.service';
+import { safeExtension, sniffImageType } from '../services/uploadValidation';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../uploads/animals')),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
+  filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${safeExtension(file.originalname, file.mimetype) ?? '.jpg'}`),
 });
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  limits: { fileSize: 15 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (safeExtension(file.originalname, file.mimetype)) cb(null, true);
+    else cb(new Error('UNSUPPORTED_TYPE'));
+  },
+});
+function uploadPhoto(req: Request, res: Response, next: () => void): void {
+  upload.single('photo')(req, res, (err: unknown) => {
+    if (!err) { next(); return; }
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') { res.status(413).json({ error: 'The photo is too large. The maximum size is 15 MB.' }); return; }
+    if (err instanceof Error && err.message === 'UNSUPPORTED_TYPE') { res.status(400).json({ error: 'Unsupported file. Please upload a JPG, PNG or WebP photo.' }); return; }
+    res.status(400).json({ error: 'The photo could not be uploaded. Please try again.' });
+  });
+}
 
-router.post('/:id/photos', requireAdmin, upload.single('photo'), async (req: Request, res: Response): Promise<void> => {
+router.post('/:id/photos', requireAdmin, uploadPhoto, async (req: Request, res: Response): Promise<void> => {
   const farmId = getFarmId(req.user!);
   const animalId = parseInt(req.params.id as string);
   const animal = await prisma.animal.findFirst({ where: { id: animalId, farmId } });
-  if (!animal) { res.status(404).json({ error: 'Animal not found' }); return; }
+  if (!animal) { if (req.file) fs.unlink(req.file.path, () => undefined); res.status(404).json({ error: 'Animal not found' }); return; }
   if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return; }
+  {
+    const head = Buffer.alloc(12);
+    const fd = fs.openSync(req.file.path, 'r');
+    try { fs.readSync(fd, head, 0, 12, 0); } finally { fs.closeSync(fd); }
+    if (!sniffImageType(head)) {
+      fs.unlink(req.file.path, () => undefined);
+      res.status(400).json({ error: 'The file is not a valid JPG, PNG or WebP image.' });
+      return;
+    }
+  }
 
   const isPrimary = req.body.isPrimary === 'true';
   if (isPrimary) {

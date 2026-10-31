@@ -27,6 +27,7 @@ const ProfilePage = lazy(() => import('./pages/Profile').then(m => ({ default: m
 const ReportIssuePage = lazy(() => import('./pages/ReportIssue').then(m => ({ default: m.ReportIssuePage })));
 const SystemPanel = lazy(() => import('./pages/SystemPanel').then(m => ({ default: m.SystemPanel })));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const DownloadPage = lazy(() => import('./pages/DownloadPage'));
 const AnimalPassport = lazy(() => import('./pages/AnimalPassport'));
 const ChooseJourney = lazy(() => import('./pages/ChooseJourney'));
 const ListingDetail = lazy(() => import('./pages/ListingDetail'));
@@ -114,6 +115,7 @@ function AppRoutes() {
       <Route path="/vet/:id" element={<PrivateRoute><VetProfilePublic /></PrivateRoute>} />
       {/* Public pages — no auth required */}
       <Route path="/" element={<LandingPage />} />
+      <Route path="/download" element={<DownloadPage />} />
       <Route path="/login" element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />

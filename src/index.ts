@@ -57,6 +57,8 @@ const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:5173',
   'https://agripulse.me',
   'https://www.agripulse.me',
+  'https://localhost',
+  'capacitor://localhost',
 ];
 const vercelProjectPattern = /^https:\/\/agripulse-node-f43w(-[a-z0-9-]+)?\.vercel\.app$/;
 app.use(cors({

@@ -77,9 +77,10 @@ router.post('/register', authLimiter, async (req: Request, res: Response): Promi
 
   const { name, email, password } = parsed.data;
   const farmName = req.body.farmName;
-  const roleParam = req.body.role || 'farmer';
+  const roleParam = typeof req.body.role === 'string' ? req.body.role : 'farmer';
   const roleMap: Record<string, string> = { farmer: 'admin', buyer: 'buyer', vet: 'vet' };
-  const assignedRole = roleMap[roleParam] || 'admin';
+  const assignedRole = roleMap[roleParam];
+  if (!assignedRole) { res.status(400).json({ error: 'Invalid account type.' }); return; }
 
   if (assignedRole === 'admin' && !farmName?.trim()) {
     res.status(400).json({ error: 'Farm name is required for farm accounts.' });
@@ -206,6 +207,7 @@ router.post('/login', authLimiter, async (req: Request, res: Response): Promise<
 
   res.json({
     user: { id: user.id, name: user.name, email: user.email, role: user.role, farmId: user.farmId },
+    ...(req.headers['x-client'] === 'mobile' ? { token } : {}),
   });
 });
 
@@ -290,7 +292,7 @@ router.get('/google', (req: Request, res: Response) => {
     scope: 'openid email profile',
     access_type: 'offline',
     prompt: 'select_account',
-    state: `${portal}.${nonce}`,
+    state: `${portal}.${nonce}${req.query.client === 'mobile' ? '.m' : ''}`,
   });
   res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
 });
@@ -298,16 +300,20 @@ router.get('/google', (req: Request, res: Response) => {
 router.get('/google/callback', async (req: Request, res: Response): Promise<void> => {
   const { code, state } = req.query;
   const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
-  const [portalRaw, nonce] = String(state || '').split('.');
+  const [portalRaw, nonce, clientFlag] = String(state || '').split('.');
+  const isMobile = clientFlag === 'm';
+  const MOBILE_CB = 'me.agripulse.app://auth/callback';
   const portal = toPortal(portalRaw);
   const loginPath = portal === 'marketplace' ? '/marketplace/login' : '/login';
+  const failUrl = (code: string) =>
+    isMobile ? `${MOBILE_CB}?error=${code}` : `${CLIENT_URL}${loginPath}?error=${code}`;
 
   if (!code) {
-    res.redirect(`${CLIENT_URL}${loginPath}?error=google_cancelled`);
+    res.redirect(failUrl('google_cancelled'));
     return;
   }
   if (!nonce || nonce !== req.cookies?.oauth_state) {
-    res.redirect(`${CLIENT_URL}${loginPath}?error=google_failed`);
+    res.redirect(failUrl('google_failed'));
     return;
   }
   res.clearCookie('oauth_state');
@@ -363,12 +369,17 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
       });
     }
     if (!user.isActive) {
-      res.redirect(`${CLIENT_URL}${loginPath}?error=account_inactive`);
+      res.redirect(failUrl('account_inactive'));
       return;
     }
 
     await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } });
-    res.cookie('token', issueToken(user.id), COOKIE_OPTS);
+    const jwtToken = issueToken(user.id);
+    if (isMobile) {
+      res.redirect(`${MOBILE_CB}?token=${encodeURIComponent(jwtToken)}`);
+      return;
+    }
+    res.cookie('token', jwtToken, COOKIE_OPTS);
 
     if (portal === 'marketplace') res.redirect(`${CLIENT_URL}/marketplace`);
     else if (portal === 'vet') res.redirect(`${CLIENT_URL}/vet-dashboard`);
@@ -378,7 +389,7 @@ router.get('/google/callback', async (req: Request, res: Response): Promise<void
     else res.redirect(`${CLIENT_URL}/dashboard`);
   } catch (err) {
     console.error('[Google OAuth]', err);
-    res.redirect(`${CLIENT_URL}${loginPath}?error=google_failed`);
+    res.redirect(failUrl('google_failed'));
   }
 });
 
@@ -391,6 +402,11 @@ const initSuperadminSchema = z.object({
 });
 
 router.post('/init-superadmin', authLimiter, async (req: Request, res: Response): Promise<void> => {
+  if (process.env.ALLOW_INIT_SUPERADMIN !== 'true') {
+    res.status(404).json({ error: 'Not found.' });
+    return;
+  }
+
   const parsed = initSuperadminSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.errors[0].message });
