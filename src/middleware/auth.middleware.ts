@@ -99,6 +99,6 @@ export function requireBuyer(req: Request, res: Response, next: NextFunction): v
 // Returns the farm ID for the current user
 // Admin = their own user ID; Worker = their farm_id
 export function getFarmId(user: AuthUser): number {
-  if (user.role === 'admin') return user.id;
+  if (user.role === 'admin') return user.farmId ?? user.id;
   return user.farmId ?? 0;
 }

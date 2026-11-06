@@ -1,3 +1,6 @@
+import farmNotificationsRouter from './routes/notifications.routes';
+import marketNotificationsRoutes from './routes/market.notifications.routes';
+import { scheduleNotificationCron } from './services/notificationCron.service';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -14,7 +17,6 @@ import marketOffersRoutes from './routes/market.offers.routes';
 import marketMessagesRoutes from './routes/market.messages.routes';
 import marketMiscRoutes from './routes/market.misc.routes';
 import cartRoutes from './routes/cart.routes';
-import marketNotificationsRoutes from './routes/market.notifications.routes';
 import marketAnalyticsRoutes from './routes/market.analytics.routes';
 import marketReviewsRoutes from './routes/market.reviews.routes';
 import marketWatchlistRoutes from './routes/market.watchlist.routes';
@@ -33,6 +35,7 @@ import vetPrescriptionsRoutes from './routes/vet.prescriptions.routes';
 import vetCertificatesRoutes from './routes/vet.certificates.routes';
 import vetLabTestsRoutes from './routes/vet.labtests.routes';
 import animalsRoutes from './routes/animals.routes';
+import additionalReportsRouter from './routes/reports.routes';
 import { milkRouter, healthRouter, breedingRouter, financialRouter } from './routes/data.routes';
 import { startAnimalCategoryCron, updateAllAnimalCategories } from './services/animalCategory.service';
 import { dashboardRouter, workersRouter, aiRouter, adminRouter, reportsRouter, profileRouter, notificationsRouter, issuesRouter } from './routes/extra.routes';
@@ -127,6 +130,8 @@ app.use((req, res, next) => {
 // ── Routes ───────────────────────────────────────────────────
 app.use('/api/auth',      authRoutes);  // authLimiter applied per-route inside auth.routes.ts only — NOT globally, since /auth/me is called on every page load and must stay unthrottled
 app.use('/api/animals',   animalsRoutes);
+app.use('/api/reports', additionalReportsRouter);
+app.use('/api/farm-notifications', farmNotificationsRouter);
 app.use('/api/milk',      milkRouter);
 app.use('/api/animal-health', healthRouter);
 app.use('/api/breeding',  breedingRouter);
@@ -137,6 +142,7 @@ app.use('/api/ai',        aiRouter);
 import imageIntelligenceRoutes from './routes/imageIntelligence.routes';
 import './services/imageAnalysis.scheduler';
 import reidRoutes from './routes/reid.routes';
+
 app.use('/api/admin/images', imageIntelligenceRoutes);
 app.use('/api/admin/reid', reidRoutes);
 app.use('/api/admin',         adminRouter);
@@ -200,6 +206,9 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
+
+
+scheduleNotificationCron();
 app.listen(PORT, '127.0.0.1', async () => {
   console.log(`\n AgriPulse API v2.0`);
   console.log(`   Server : http://localhost:${PORT}`);

@@ -294,7 +294,7 @@ function ExportTab() {
               <div className="text-sm text-gray-500 mt-0.5">{e.desc}</div>
               <button
                 onClick={() => download(e.type, e.label)}
-                disabled={!!downloading}
+                disabled={downloading === e.type}
                 className="btn-primary mt-3 text-sm px-3 py-1.5 disabled:opacity-50"
               >
                 {downloading === e.type

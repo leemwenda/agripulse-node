@@ -125,6 +125,7 @@ model User {
   announcements         SystemAnnouncement[]
   featureFlags          FeatureFlag[]
   rememberTokens        RememberToken[]
+  notifications         Notification[]
   emailVerifications    EmailVerification[]
   aiChatSessions        AiChatSession[]
   loginAttempts         LoginAttempt[]
@@ -189,7 +190,7 @@ model Animal {
   id          Int          @id @default(autoincrement())
   farmId      Int          @map("farm_id")
   name        String
-  tagNumber   String       @unique @map("tag_number")
+  tagNumber   String       @map("tag_number")
   breed       String
   gender      AnimalGender
   category    AnimalCategory? @map("category")
@@ -214,6 +215,7 @@ model Animal {
   certificates       Certificate[]
   labTests           LabTest[]
 
+  @@unique([farmId, tagNumber])
   @@map("animals")
 }
 
@@ -1248,4 +1250,45 @@ model AdminAlert {
 enum MilkSession {
   morning
   evening
+}
+
+
+// ── General farm notifications (added for mobile) ─────────────────────
+enum NotificationType {
+  info
+  success
+  warning
+  danger
+}
+
+enum NotificationCategory {
+  health
+  vaccination
+  breeding
+  calving
+  milk
+  finance
+  animal
+  worker
+  ai
+  system
+}
+
+model Notification {
+  id        Int                  @id @default(autoincrement())
+  userId    Int                  @map("user_id")
+  farmId    Int?                 @map("farm_id")
+  type      NotificationType     @default(info)
+  category  NotificationCategory @default(system)
+  title     String
+  message   String               @db.Text
+  link      String?
+  isRead    Boolean              @default(false) @map("is_read")
+  createdAt DateTime             @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([farmId])
+  @@map("notifications")
 }

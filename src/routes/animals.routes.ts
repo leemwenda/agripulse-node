@@ -10,7 +10,7 @@ router.use(requireAuth, requireFarmer);
 
 const animalSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  tagNumber: z.string().min(1, 'Tag number is required'),
+  tagNumber: z.string().trim().min(1, 'Tag number is required'),
   breed: z.string().min(1, 'Breed is required'),
   gender: z.enum(['male', 'female']),
   dateOfBirth: z.string().min(1, 'Date of birth is required'),
@@ -25,7 +25,6 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
   const farmId = getFarmId(req.user!);
   const { status, gender, search, page = '1', limit = '20' } = req.query;
 
-  // Handle potential array values from query parameters
   const statusValue = Array.isArray(status) ? status[0] : status;
   const genderValue = Array.isArray(gender) ? gender[0] : gender;
   const searchValue = Array.isArray(search) ? search[0] : search;
@@ -93,22 +92,54 @@ router.post('/', requireAdmin, async (req: Request, res: Response): Promise<void
   }
 
   const farmId = getFarmId(req.user!);
+  
+  let animal;
   try {
-    const agripulseId = await generateAgripulseId();
-    const animal = await prisma.animal.create({
-      data: { ...parsed.data, farmId, agripulseId, dateOfBirth: new Date(parsed.data.dateOfBirth) },
-    });
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const agripulseId = await generateAgripulseId();
+        animal = await prisma.animal.create({
+          data: { ...parsed.data, farmId, agripulseId, dateOfBirth: new Date(parsed.data.dateOfBirth) },
+        });
+        break; // Success!
+      } catch (err: any) {
+        if (err.code === 'P2002' && err.meta?.target?.includes('agripulse_id')) {
+          retries--;
+          if (retries === 0) throw new Error('Failed to generate unique Passport ID.');
+        } else {
+          throw err; // It's a tag number collision, bubble it up
+        }
+      }
+    }
+
+    if (!animal) {
+      throw new Error('Animal creation failed unexpectedly.');
+    }
+
     await prisma.activityLog.create({
       data: { userId: req.user!.id, action: 'create_animal', entity: 'animals', entityId: animal.id },
     });
+    
     mailAnimalRegistered(req.user!.email, req.user!.name, animal.name, animal.agripulseId || '', animal.tagNumber).catch(() => {});
     res.status(201).json({ animal });
+    
   } catch (err: unknown) {
-    const e = err as { code?: string };
+    const e = err as { code?: string; meta?: { target?: string | string[] } };
     if (e.code === 'P2002') {
-      res.status(409).json({ error: `Tag number "${parsed.data.tagNumber}" is already in use.` });
+      const target = e.meta?.target;
+      const field = Array.isArray(target) ? target.join(',') : String(target);
+      
+      if (field.includes('tag_number') || field.includes('tagNumber') || field.includes('farmId')) {
+        res.status(409).json({ error: `Tag number "${parsed.data.tagNumber}" is already in use on this farm.` });
+      } else if (field.includes('agripulse_id') || field.includes('agripulseId')) {
+        res.status(500).json({ error: 'A system collision occurred. Please try saving the animal again.' });
+      } else {
+        res.status(409).json({ error: `A unique constraint was violated on: ${field}` });
+      }
     } else {
-      throw err;
+      console.error(err);
+      res.status(500).json({ error: 'An unexpected server error occurred.' });
     }
   }
 });
@@ -133,11 +164,19 @@ router.put('/:id', requireAdmin, async (req: Request, res: Response): Promise<vo
     });
     res.json({ animal });
   } catch (err: unknown) {
-    const e = err as { code?: string };
+    const e = err as { code?: string; meta?: { target?: string | string[] } };
     if (e.code === 'P2002') {
-      res.status(409).json({ error: `Tag number "${parsed.data.tagNumber}" is already in use.` });
+      const target = e.meta?.target;
+      const field = Array.isArray(target) ? target.join(',') : String(target);
+      
+      if (field.includes('tag_number') || field.includes('tagNumber') || field.includes('farmId')) {
+        res.status(409).json({ error: `Tag number "${parsed.data.tagNumber}" is already in use on this farm.` });
+      } else {
+        res.status(409).json({ error: `A unique constraint was violated on: ${field}` });
+      }
     } else {
-      throw err;
+      console.error(err);
+      res.status(500).json({ error: 'An unexpected server error occurred.' });
     }
   }
 });

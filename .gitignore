@@ -27,3 +27,13 @@ audit_*.txt
 !.env.example
 __pycache__/
 uploads/cow-reid/
+*.bak*
+.env
+.env.*
+cookies.txt
+node_modules/
+dist/
+client/node_modules/
+client/dist/
+*.log
+uploads/
